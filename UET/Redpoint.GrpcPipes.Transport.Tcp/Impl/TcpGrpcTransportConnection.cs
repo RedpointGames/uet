@@ -1,12 +1,13 @@
 ﻿namespace Redpoint.GrpcPipes.Transport.Tcp.Impl
 {
-    using Grpc.Core;
     using Google.Protobuf;
     using Google.Protobuf.Reflection;
+    using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using System;
     using System.Buffers;
     using System.Buffers.Binary;
+    using System.IO;
     using System.Net;
     using System.Net.Sockets;
     using System.Threading.Tasks;
@@ -28,7 +29,6 @@
             ILogger? logger,
             CancellationToken cancellationToken)
         {
-            var client = new TcpClient();
             try
             {
                 if (logger != null)
@@ -37,12 +37,10 @@
                 }
                 for (var i = 0; i < 3000; i += 100)
                 {
+                    var client = new TcpClient();
                     try
                     {
                         await client.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
-                        // Catch any scenario in which the socket isn't actually connected after this point.
-                        _ = client.GetStream();
-                        break;
                     }
                     catch (SocketException) when (i < 3000 - 1)
                     {
@@ -51,33 +49,49 @@
                             logger.LogTrace($"TcpGrpcTransportConnection(Client): Connection to '{endpoint}' failed, retrying in {i}ms...");
                         }
                         await Task.Delay(i, cancellationToken).ConfigureAwait(false);
+                        continue;
                     }
-                    catch (InvalidOperationException ex) when (
-                        string.Equals(ex.Message, "The operation is not allowed on non-connected sockets.", StringComparison.OrdinalIgnoreCase))
+
+                    NetworkStream? stream = null;
+                    try
+                    {
+                        // Get the stream here to handle a race condition where the socket closes between now
+                        // and the constructor of TcpGrpcTransportConnection running.
+                        stream = client.GetStream();
+                    }
+                    catch (InvalidOperationException) when (i < 3000 - 1)
                     {
                         if (logger != null)
                         {
                             logger.LogTrace($"TcpGrpcTransportConnection(Client): Connection to '{endpoint}' failed, retrying in {i}ms...");
                         }
                         await Task.Delay(i, cancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    if (client.Connected && stream != null)
+                    {
+                        return new TcpGrpcTransportConnection(client, stream, logger, true);
                     }
                 }
+
+                throw new RpcException(new Status(StatusCode.Unavailable, $"Unable to connect to the remote host!"));
             }
             catch (SocketException ex)
             {
                 throw new RpcException(new Status(StatusCode.Unavailable, $"Unable to connect to the remote host: '{ex}'"));
             }
-            return new TcpGrpcTransportConnection(client, logger, true);
         }
 
         public TcpGrpcTransportConnection(
             TcpClient client,
+            NetworkStream stream,
             ILogger? logger,
             bool isClient)
         {
             _disposeMutex = new Concurrency.Mutex();
             _disposed = false;
-            _networkStream = client.GetStream();
+            _networkStream = stream;
             _client = client;
             _remoteEndpoint = client.Client.RemoteEndPoint;
             _logger = logger;
