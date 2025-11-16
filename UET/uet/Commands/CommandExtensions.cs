@@ -37,6 +37,7 @@
     using Redpoint.PackageManagement;
     using Redpoint.Uet.Core.BugReport;
     using Redpoint.Uet.Workspace.PhysicalGit;
+    using Redpoint.Uet.Database;
 
     internal static class CommandExtensions
     {
@@ -95,6 +96,7 @@
                 minimumLogLevel: minimumLogLevel,
                 permitRunbackLogging: permitRunbackLogging,
                 bugReportCollector: bugReporting ? BugReportCollector.Instance : null);
+            services.AddUetDatabase();
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IReleaseVersioning, DefaultReleaseVersioning>();

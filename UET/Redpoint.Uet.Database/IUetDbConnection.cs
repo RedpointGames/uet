@@ -8,6 +8,10 @@
             T value,
             CancellationToken cancellationToken) where T : IUetModel, new();
 
+        Task UpsertAsync<T>(
+            T value,
+            CancellationToken cancellationToken) where T : IUetModel, new();
+
         Task<T?> FindAsync<T>(
             string key,
             CancellationToken cancellationToken) where T : IUetModel, new();
