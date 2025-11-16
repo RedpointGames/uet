@@ -71,6 +71,7 @@
                 }
 
                 EngineBuildVersionJson? engineInfo;
+            retryWithEngineRemount:
                 await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                     engineSpec,
                     string.Empty,
@@ -79,6 +80,13 @@
                     engineInfo = GetEngineVersionInfo(engineWorkspace.Path);
                     if (engineInfo == null)
                     {
+                        if (engineSpec.NoUefsWriteScratchReuse == false)
+                        {
+                            _logger.LogWarning("Retrying with new UEFS engine mount...");
+                            engineSpec.NoUefsWriteScratchReuse = true;
+                            goto retryWithEngineRemount;
+                        }
+
                         throw new BuildMisconfigurationException("Specified engine does not have a build.version file, but having version information is required in order to build and package plugins.");
                     }
                 }
