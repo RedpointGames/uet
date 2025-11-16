@@ -8,6 +8,7 @@
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.IO;
+    using System.Net.Sockets;
     using System.Threading.Tasks;
 
     internal sealed class TransferCommand
@@ -208,6 +209,13 @@
                                 cancellationToken).ConfigureAwait(false);
                         }
                         catch (B2Exception ex) when (ex.Message.Contains("no tomes available", StringComparison.Ordinal))
+                        {
+                            throw new RetryTransferException();
+                        }
+                        catch (HttpRequestException ex) when (
+                            ex.InnerException is IOException ioEx &&
+                            ioEx.InnerException is SocketException socketEx &&
+                            socketEx.SocketErrorCode == SocketError.ConnectionAborted)
                         {
                             throw new RetryTransferException();
                         }
