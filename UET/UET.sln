@@ -362,6 +362,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.Tests", "Redpoint.Uet.Tests\Redpoint.Uet.Tests.csproj", "{ED32AE16-F747-41CE-9FAD-00D82A0AA06E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.Database", "Redpoint.Uet.Database\Redpoint.Uet.Database.csproj", "{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.Database.Tests", "Redpoint.Uet.Database.Tests\Redpoint.Uet.Database.Tests.csproj", "{BA658978-818D-40D0-B769-306F7B4D3999}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -984,6 +988,14 @@ Global
 		{ED32AE16-F747-41CE-9FAD-00D82A0AA06E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED32AE16-F747-41CE-9FAD-00D82A0AA06E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED32AE16-F747-41CE-9FAD-00D82A0AA06E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA658978-818D-40D0-B769-306F7B4D3999}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA658978-818D-40D0-B769-306F7B4D3999}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA658978-818D-40D0-B769-306F7B4D3999}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA658978-818D-40D0-B769-306F7B4D3999}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1111,6 +1123,8 @@ Global
 		{CAA2B8FB-D8AB-3936-C9FF-99556D1C2850} = {0BF83468-3C95-4B7E-AE5A-01E54464DC93}
 		{29BA4DF0-B40E-4B27-8C2A-4F622F0B181A} = {0BF83468-3C95-4B7E-AE5A-01E54464DC93}
 		{ED32AE16-F747-41CE-9FAD-00D82A0AA06E} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
+		{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
+		{BA658978-818D-40D0-B769-306F7B4D3999} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
