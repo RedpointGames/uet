@@ -106,7 +106,7 @@
             return !hasErrored;
         }
 
-        private static TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target, bool localExecutor)
+        private TargetConfig ComputeTargetConfig(string name, BuildConfigProjectBuildTarget? target, bool localExecutor)
         {
             if (target == null)
             {
@@ -133,7 +133,7 @@
             };
         }
 
-        private static TargetConfig ComputeTargetConfig(string name, BuildConfigPluginBuildTarget? target, bool localExecutor)
+        private TargetConfig ComputeTargetConfig(string name, BuildConfigPluginBuildTarget? target, bool localExecutor)
         {
             if (target == null)
             {
@@ -291,20 +291,38 @@
             };
         }
 
-        private static string[] FilterIncompatiblePlatforms(string[] platforms, bool localExecutor)
+        private string[] FilterIncompatiblePlatforms(string[] platforms, bool localExecutor)
         {
+            HashSet<string> newPlatforms;
             if (!localExecutor)
             {
-                return platforms;
+                newPlatforms = platforms.ToHashSet();
             }
-            if (OperatingSystem.IsWindows())
+            else if (OperatingSystem.IsWindows())
             {
-                return platforms.Where(x => !x.Equals("Mac", StringComparison.OrdinalIgnoreCase) && !x.Equals("IOS", StringComparison.OrdinalIgnoreCase)).ToArray();
+                newPlatforms = platforms
+                    .Where(x => !x.Equals("Mac", StringComparison.OrdinalIgnoreCase) && !x.Equals("IOS", StringComparison.OrdinalIgnoreCase))
+                    .ToHashSet();
             }
             else
             {
-                return platforms.Where(x => x.Equals("Mac", StringComparison.OrdinalIgnoreCase) || x.Equals("IOS", StringComparison.OrdinalIgnoreCase)).ToArray();
+                newPlatforms = platforms
+                    .Where(x => x.Equals("Mac", StringComparison.OrdinalIgnoreCase) || x.Equals("IOS", StringComparison.OrdinalIgnoreCase))
+                    .ToHashSet();
             }
+
+            var excludedViaEnvironment = (Environment.GetEnvironmentVariable("UET_RUNTIME_EXCLUDED_PLATFORMS") ?? string.Empty)
+                .Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var excluded in excludedViaEnvironment)
+            {
+                if (newPlatforms.Contains(excluded))
+                {
+                    _logger.LogWarning($"Excluding platform '{excluded}' because it is set in the environment variable UET_RUNTIME_EXCLUDED_PLATFORMS.");
+                }
+                newPlatforms.Remove(excluded);
+            }
+
+            return newPlatforms.ToArray();
         }
 
         private async Task<(string nodeInclude, string macroInclude)> WriteDynamicBuildGraphIncludeAsync(
