@@ -92,6 +92,42 @@
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
+        public async Task UpsertAsync<T>(
+            T value,
+            CancellationToken cancellationToken) where T : IUetModel, new()
+        {
+            ArgumentNullException.ThrowIfNull(value);
+
+            using var command = _connection.CreateCommand();
+            var columns = value.GetPropertyInfos().Select(x => x.Name).ToHashSet();
+#pragma warning disable CA2100
+            var upsertResolution = value.GetPropertyInfos().Length == 1
+                ? "NOTHING"
+                : $"""
+                    UPDATE SET
+                        {string.Join(
+                            ", ",
+                            columns
+                                .Where(x => x != "Key")
+                                .Select(x => $"{x} = ${x}"))}
+                    """;
+            command.CommandText =
+                $"""
+                INSERT INTO {value.GetKind()}
+                ({string.Join(", ", columns)})
+                VALUES
+                ({string.Join(", ", columns.Select(x => $"${x}"))})
+                ON CONFLICT(Key)
+                DO {upsertResolution};
+                """;
+#pragma warning restore CA2100
+            foreach (var propInfo in value.GetPropertyInfos())
+            {
+                command.Parameters.AddWithValue($"${propInfo.Name}", propInfo.GetValue(value));
+            }
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         public async Task<T?> FindAsync<T>(
             string key,
             CancellationToken cancellationToken) where T : IUetModel, new()

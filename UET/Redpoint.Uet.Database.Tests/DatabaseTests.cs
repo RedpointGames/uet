@@ -7,7 +7,7 @@
     public class DatabaseTests
     {
         [Fact]
-        public async Task TestMigrationsAsync()
+        public async Task TestDatabaseAsync()
         {
             var services = new ServiceCollection();
             services.AddUetDatabase();
@@ -33,6 +33,19 @@
             Assert.NotNull(result);
             Assert.Equal("test", result.Key);
             Assert.Equal("some\\path", result.LastEnginePath);
+
+            await connection.UpsertAsync(
+                new LastEnginePathModel
+                {
+                    Key = "test",
+                    LastEnginePath = "changedpath"
+                },
+                CancellationToken.None);
+
+            result = await connection.FindAsync<LastEnginePathModel>("test", CancellationToken.None);
+            Assert.NotNull(result);
+            Assert.Equal("test", result.Key);
+            Assert.Equal("changedpath", result.LastEnginePath);
         }
     }
 }

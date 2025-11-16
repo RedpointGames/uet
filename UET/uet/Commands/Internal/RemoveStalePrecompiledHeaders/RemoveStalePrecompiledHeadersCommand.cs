@@ -1,6 +1,8 @@
 ﻿namespace UET.Commands.Internal.RemoveStalePrecompiledHeaders
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.Uet.Database;
+    using Redpoint.Uet.Database.Models;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -32,13 +34,16 @@
         private sealed class RemoveStalePrecompiledHeadersCommandInstance : ICommandInstance
         {
             private readonly ILogger<RemoveStalePrecompiledHeadersCommandInstance> _logger;
+            private readonly IUetDbConnectionFactory _uetDbConnectionFactory;
             private readonly Options _options;
 
             public RemoveStalePrecompiledHeadersCommandInstance(
                 ILogger<RemoveStalePrecompiledHeadersCommandInstance> logger,
+                IUetDbConnectionFactory uetDbConnectionFactory,
                 Options options)
             {
                 _logger = logger;
+                _uetDbConnectionFactory = uetDbConnectionFactory;
                 _options = options;
             }
 
@@ -74,6 +79,11 @@
                 }
                 _logger.LogTrace($"{candidates.Count} potentially non-existent candidate paths to consider for PCH staleness check.");
 
+                // Connect to our database for storing the last engine path.
+                await using var connection = await _uetDbConnectionFactory
+                    .ConnectToDefaultDatabaseAsync(context.GetCancellationToken())
+                    .ConfigureAwait(false);
+
                 // Iterate through all of the candidates, and search for PCH files
                 // in the ones that exist.
                 foreach (var candidate in candidates)
@@ -84,14 +94,10 @@
                         continue;
                     }
 
-                    string previousEnginePath = string.Empty;
-                    if (File.Exists(Path.Combine(candidate, "UETLastEnginePath.txt")))
-                    {
-                        previousEnginePath = (await File.ReadAllTextAsync(
-                            Path.Combine(candidate, "UETLastEnginePath.txt"),
-                            context.GetCancellationToken()).ConfigureAwait(false)).Trim();
-                    }
-
+                    string previousEnginePath =
+                        (await connection.FindAsync<LastEnginePathModel>(
+                            candidate.ToLowerInvariant(),
+                            context.GetCancellationToken()).ConfigureAwait(false))?.LastEnginePath ?? string.Empty;
                     if (!string.Equals(enginePath.FullName, previousEnginePath, StringComparison.OrdinalIgnoreCase))
                     {
                         _logger.LogTrace($"Engine version has changed for {targetName} {targetConfiguration}, removing PCH files underneath: {candidate}");
@@ -116,9 +122,12 @@
                         _logger.LogTrace($"Engine version up-to-date for {targetName} {targetConfiguration}, not removing PCH files underneath: {candidate}");
                     }
 
-                    await File.WriteAllTextAsync(
-                        Path.Combine(candidate, "UETLastEnginePath.txt"),
-                        enginePath.FullName,
+                    await connection.UpsertAsync(
+                        new LastEnginePathModel
+                        {
+                            Key = candidate.ToLowerInvariant(),
+                            LastEnginePath = enginePath.FullName,
+                        },
                         context.GetCancellationToken()).ConfigureAwait(false);
                 }
 
