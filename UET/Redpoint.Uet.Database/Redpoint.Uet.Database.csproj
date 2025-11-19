@@ -3,12 +3,31 @@
 	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Data.Sqlite" />
+		<PackageReference Include="Microsoft.Data.Sqlite.Core" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+		<PackageReference Include="SourceGear.sqlite3" GeneratePathProperty="true">
+			<ExcludeAssets>all</ExcludeAssets>
+		</PackageReference>
+		<PackageReference Include="SQLitePCLRaw.provider.dynamic_cdecl" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="$(PkgSourceGear_sqlite3)\runtimes\win-x64\native\e_sqlite3.dll" Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == ''">
+			<Link>Sqlite\win-x64\e_sqlite3.dll</Link>
+			<LogicalName>sqlite.win-x64</LogicalName>
+		</EmbeddedResource>
+		<EmbeddedResource Include="$(PkgSourceGear_sqlite3)\runtimes\osx-arm64\native\libe_sqlite3.dylib" Condition="'$(RuntimeIdentifier)' == 'osx-arm64' or '$(RuntimeIdentifier)' == ''">
+			<Link>Sqlite\osx-arm64\libe_sqlite3.dylib</Link>
+			<LogicalName>sqlite.osx-arm64</LogicalName>
+		</EmbeddedResource>
+		<EmbeddedResource Include="$(PkgSourceGear_sqlite3)\runtimes\linux-x64\native\libe_sqlite3.so" Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == ''">
+			<Link>Sqlite\linux-x64\libe_sqlite3.so</Link>
+			<LogicalName>sqlite.linux-x64</LogicalName>
+		</EmbeddedResource>
 	</ItemGroup>
 
 </Project>

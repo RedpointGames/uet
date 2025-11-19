@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Database.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Reservation;
     using Redpoint.Uet.Database.Models;
     using Xunit;
 
@@ -11,6 +12,8 @@
         {
             var services = new ServiceCollection();
             services.AddUetDatabase();
+            services.AddReservation();
+            services.AddLogging();
             var serviceProvider = services.BuildServiceProvider();
 
             if (File.Exists("uet-test.db"))
