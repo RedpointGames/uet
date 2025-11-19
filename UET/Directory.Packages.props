@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- System libraries whose version is tied with framework version -->
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.11" />
+    <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="9.0.11" />
     <PackageVersion Include="Microsoft.Dism" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
@@ -22,6 +22,9 @@
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.10.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.10.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageVersion Include="SourceGear.sqlite3" Version="3.50.4.5" />
+    <PackageVersion Include="SQLitePCLRaw.provider.dynamic_cdecl" Version="3.0.2" />
+    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.2" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.1" />
     <!-- Redpoint native libraries -->
     <PackageVersion Include="Redpoint.AutoDiscovery.Win32" Version="2024.1358.192" />

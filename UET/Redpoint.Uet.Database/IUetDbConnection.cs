@@ -15,5 +15,7 @@
         Task<T?> FindAsync<T>(
             string key,
             CancellationToken cancellationToken) where T : IUetModel, new();
+
+        IAsyncEnumerable<T> ListAsync<T>(CancellationToken cancellationToken) where T : IUetModel, new();
     }
 }

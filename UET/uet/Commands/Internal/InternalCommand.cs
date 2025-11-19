@@ -38,6 +38,7 @@
     using UET.Commands.Internal.Service;
     using UET.Commands.Internal.GitCredentialHelper;
     using UET.Commands.Internal.RegisterGitLabRunner;
+    using UET.Commands.Internal.TestDatabaseLibrary;
 
     internal sealed class InternalCommand
     {
@@ -84,6 +85,7 @@
                 ServiceCommand.CreateServiceCommand(),
                 GitCredentialHelperCommand.CreateGitCredentialHelperCommand(),
                 RegisterGitLabRunnerCommand.CreateRegisterGitLabRunnerCommand(),
+                TestDatabaseLibraryCommand.CreateTestDatabaseLibraryCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
