@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.Database
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.Hashing;
     using Redpoint.Reservation;
@@ -20,27 +21,28 @@
     using System.Threading.Tasks;
     using System.Xml.Linq;
     using Mutex = Concurrency.Mutex;
-    using NativeLibrary = SQLitePCL.NativeLibrary;
 
     internal class DefaultUetDbConnectionFactory : IUetDbConnectionFactory, IAsyncDisposable
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<DefaultUetDbConnectionFactory> _logger;
         private readonly IReservationManagerForUet? _reservationManagerForUet;
-        private readonly Mutex _nativeLibraryMutex;
         private readonly IReservationManager _reservationManagerForNativeLibrary;
-        private bool _isNativeLibraryInitialized;
         private IReservation? _nativeLibraryReservation;
+
+        private static Mutex _nativeLibraryMutex = new();
+        private static bool _isNativeLibraryInitialized = false;
 
         public DefaultUetDbConnectionFactory(
             IServiceProvider serviceProvider,
             IReservationManagerFactory reservationManagerFactory,
+            ILogger<DefaultUetDbConnectionFactory> logger,
             IReservationManagerForUet? reservationManagerForUet = null)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
             _reservationManagerForUet = reservationManagerForUet;
-            _nativeLibraryMutex = new();
             _reservationManagerForNativeLibrary = _reservationManagerForUet ?? reservationManagerFactory.CreateReservationManager(Path.GetTempPath());
-            _isNativeLibraryInitialized = false;
             _nativeLibraryReservation = null;
         }
 
@@ -135,15 +137,29 @@
                         }
                     }
                     File.Move(temporaryPath, desiredPath);
+                    _logger.LogInformation($"Extracted Sqlite3 runtime library to: {desiredPath}");
+                }
+                else
+                {
+                    _logger.LogInformation($"Loaded existing Sqlite3 runtime library from: {desiredPath}");
                 }
 
                 // Load the native library.
                 {
-                    var assembly = typeof(raw).Assembly;
-                    var dll = NativeLibrary.Load(desiredPath);
-                    var gf = NativeLibrary.Setup(dll);
-                    SQLite3Provider_dynamic_cdecl.Setup("e_sqlite3", gf);
-                    raw.SetProvider(new SQLite3Provider_dynamic_cdecl());
+                    NativeLibrary.SetDllImportResolver(
+                        typeof(SQLite3Provider_e_sqlite3).Assembly,
+                        (string libraryName, Assembly assembly, DllImportSearchPath? searchPath) =>
+                        {
+                            if (libraryName.Contains("e_sqlite3", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                return NativeLibrary.Load(desiredPath);
+                            }
+                            else
+                            {
+                                return IntPtr.Zero;
+                            }
+                        });
+                    raw.SetProvider(new SQLite3Provider_e_sqlite3());
                 }
 
                 _isNativeLibraryInitialized = true;
