@@ -55,7 +55,8 @@
                 NeedsRetry = true;
             }
             if (data.Contains("error LNK1327", StringComparison.Ordinal) ||
-                data.Contains("error LNK1171", StringComparison.Ordinal))
+                data.Contains("error LNK1171", StringComparison.Ordinal) ||
+                data.Contains("error LNK1123", StringComparison.Ordinal))
             {
                 // Temporary failures that can happen due to UBA.
                 _logger.LogWarning("This build will be retried because a temporary linker error occurred.");
