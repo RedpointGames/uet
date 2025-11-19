@@ -14,11 +14,13 @@
     using System.IO.Hashing;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Xml.Linq;
     using Mutex = Concurrency.Mutex;
+    using NativeLibrary = SQLitePCL.NativeLibrary;
 
     internal class DefaultUetDbConnectionFactory : IUetDbConnectionFactory, IAsyncDisposable
     {
@@ -60,17 +62,46 @@
                 string libraryName;
                 if (OperatingSystem.IsWindows())
                 {
-                    embeddedResourceName = "sqlite.win-x64";
+                    if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                    {
+                        embeddedResourceName = "sqlite.win-x64";
+                    }
+                    else
+                    {
+                        throw new PlatformNotSupportedException("Unsupported architecture for Redpoint.Uet.Database!");
+                    }
                     libraryName = "e_sqlite3.dll";
                 }
                 else if (OperatingSystem.IsMacOS())
                 {
-                    embeddedResourceName = "sqlite.osx-arm64";
+                    if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                    {
+                        embeddedResourceName = "sqlite.osx-arm64";
+                    }
+                    else if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                    {
+                        embeddedResourceName = "sqlite.osx-x64";
+                    }
+                    else
+                    {
+                        throw new PlatformNotSupportedException("Unsupported architecture for Redpoint.Uet.Database!");
+                    }
                     libraryName = "libe_sqlite3.dylib";
                 }
                 else if (OperatingSystem.IsLinux())
                 {
-                    embeddedResourceName = "sqlite.linux-x64";
+                    if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                    {
+                        embeddedResourceName = "sqlite.linux-x64";
+                    }
+                    else if (RuntimeInformation.ProcessArchitecture == Architecture.X86)
+                    {
+                        embeddedResourceName = "sqlite.linux-x86";
+                    }
+                    else
+                    {
+                        throw new PlatformNotSupportedException("Unsupported architecture for Redpoint.Uet.Database!");
+                    }
                     libraryName = "libe_sqlite3.so";
                 }
                 else
@@ -108,36 +139,14 @@
 
                 // Load the native library.
                 {
-                    var assembly = typeof(SQLitePCL.raw).Assembly;
-                    var dll = SQLitePCL.NativeLibrary.Load(desiredPath);
-                    var gf = new MyGetFunctionPointer(dll);
-                    SQLitePCL.SQLite3Provider_dynamic_cdecl.Setup("e_sqlite3", gf);
-                    SQLitePCL.raw.SetProvider(new SQLite3Provider_dynamic_cdecl());
+                    var assembly = typeof(raw).Assembly;
+                    var dll = NativeLibrary.Load(desiredPath);
+                    var gf = NativeLibrary.Setup(dll);
+                    SQLite3Provider_dynamic_cdecl.Setup("e_sqlite3", gf);
+                    raw.SetProvider(new SQLite3Provider_dynamic_cdecl());
                 }
 
                 _isNativeLibraryInitialized = true;
-            }
-        }
-
-        private class MyGetFunctionPointer : IGetFunctionPointer
-        {
-            readonly IntPtr _dll;
-
-            public MyGetFunctionPointer(IntPtr dll)
-            {
-                _dll = dll;
-            }
-
-            public IntPtr GetFunctionPointer(string name)
-            {
-                if (NativeLibrary.TryGetExport(_dll, name, out var f))
-                {
-                    return f;
-                }
-                else
-                {
-                    return IntPtr.Zero;
-                }
             }
         }
 

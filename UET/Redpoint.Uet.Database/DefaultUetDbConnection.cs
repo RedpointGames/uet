@@ -5,6 +5,7 @@
     using Redpoint.Uet.Database.Migrations;
     using Redpoint.Uet.Database.Models;
     using System.Diagnostics.CodeAnalysis;
+    using System.Runtime.CompilerServices;
 
     internal class DefaultUetDbConnection : IUetDbConnection
     {
@@ -150,7 +151,7 @@
 
             T? result = default;
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
-            while (reader.Read())
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 if (result == null)
                 {
@@ -183,6 +184,56 @@
                 }
             }
             return result;
+        }
+
+        public async IAsyncEnumerable<T> ListAsync<T>([EnumeratorCancellation] CancellationToken cancellationToken) where T : IUetModel, new()
+        {
+            var @ref = new T();
+
+            using var command = _connection.CreateCommand();
+#pragma warning disable CA2100
+            command.CommandText =
+                $"""
+                SELECT *
+                FROM {@ref.GetKind()};
+                """;
+#pragma warning restore CA2100
+
+            T? result = default;
+            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (result == null)
+                {
+                    result = new T();
+                }
+                for (var i = 0; i < reader.FieldCount; i++)
+                {
+                    var propInfo = result.GetPropertyInfo(reader.GetName(i));
+                    if (propInfo == null)
+                    {
+                        continue;
+                    }
+
+                    if (propInfo.PropertyType == typeof(string))
+                    {
+                        propInfo.SetValue(result, reader.GetString(i));
+                    }
+                    else if (propInfo.PropertyType == typeof(double))
+                    {
+                        propInfo.SetValue(result, reader.GetDouble(i));
+                    }
+                    else if (propInfo.PropertyType == typeof(long))
+                    {
+                        propInfo.SetValue(result, reader.GetInt64(i));
+                    }
+                    else
+                    {
+                        // Ignored.
+                    }
+                }
+                yield return result;
+            }
         }
     }
 }
