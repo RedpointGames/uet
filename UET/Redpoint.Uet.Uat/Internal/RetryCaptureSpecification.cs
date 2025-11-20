@@ -62,6 +62,12 @@
                 _logger.LogWarning("This build will be retried because a temporary linker error occurred.");
                 NeedsRetry = true;
             }
+            if (data.Contains("ERROR: MapViewOfFile failed", StringComparison.Ordinal))
+            {
+                // Temporary failures that can happen due to UBA.
+                _logger.LogWarning("This build will be retried because a temporary UBA error occurred.");
+                NeedsRetry = true;
+            }
             if (data.Contains("LLVM ERROR: out of memory", StringComparison.Ordinal))
             {
                 _logger.LogWarning("This build will be retried because a temporary out-of-memory scenario occurred.");
