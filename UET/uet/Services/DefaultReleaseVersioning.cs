@@ -25,18 +25,18 @@
             _engineWorkspaceProvider = engineWorkspaceProvider;
         }
 
-        private EngineBuildVersionJson? GetEngineVersionInfo(string path)
+        private EngineBuildVersionJson? GetEngineVersionInfo(string path, out string buildVersionPath)
         {
-            var buildVersion = Path.Combine(path, "Engine", "Build", "Build.version");
-            _logger.LogInformation($"Checking for Build.version file at: {buildVersion}");
-            if (File.Exists(buildVersion))
+            buildVersionPath = Path.Combine(path, "Engine", "Build", "Build.version");
+            _logger.LogInformation($"Checking for Build.version file at: {buildVersionPath}");
+            if (File.Exists(buildVersionPath))
             {
-                using (var stream = new FileStream(buildVersion, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var stream = new FileStream(buildVersionPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     var result = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.EngineBuildVersionJson);
                     if (result == null)
                     {
-                        _logger.LogError($"Deserialized contents of Build.version file as null value: {buildVersion}");
+                        _logger.LogError($"Deserialized contents of Build.version file as null value: {buildVersionPath}");
                     }
                     else
                     {
@@ -47,7 +47,6 @@
             }
             else
             {
-                _logger.LogError($"Missing Build.version file at: {buildVersion}");
                 return null;
             }
         }
@@ -70,16 +69,32 @@
                     versionDateTime = overrideDateVersion;
                 }
 
-                EngineBuildVersionJson? engineInfo;
+                EngineBuildVersionJson? engineInfo = null;
             retryWithEngineRemount:
                 await using ((await _engineWorkspaceProvider.GetEngineWorkspace(
                     engineSpec,
                     string.Empty,
                     cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var engineWorkspace).ConfigureAwait(false))
                 {
-                    engineInfo = GetEngineVersionInfo(engineWorkspace.Path);
+                    const int waitLimit = 10;
+                    string buildVersionPath = string.Empty;
+                    for (int i = 0; i < waitLimit; i++)
+                    {
+                        engineInfo = GetEngineVersionInfo(engineWorkspace.Path, out buildVersionPath);
+                        if (engineInfo != null)
+                        {
+                            break;
+                        }
+                        else if (i != waitLimit - 1)
+                        {
+                            // Try to wait for UEFS to stabilize.
+                            await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
                     if (engineInfo == null)
                     {
+                        _logger.LogError($"Missing Build.version file at: {buildVersionPath}");
+
                         if (engineSpec.NoUefsWriteScratchReuse == false)
                         {
                             _logger.LogWarning("Retrying with new UEFS engine mount...");
