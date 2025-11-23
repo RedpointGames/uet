@@ -169,11 +169,11 @@
                     {
                         propInfo.SetValue(result, reader.GetString(i));
                     }
-                    else if (propInfo.PropertyType == typeof(double))
+                    else if (propInfo.PropertyType == typeof(double) || propInfo.PropertyType == typeof(double?))
                     {
                         propInfo.SetValue(result, reader.GetDouble(i));
                     }
-                    else if (propInfo.PropertyType == typeof(long))
+                    else if (propInfo.PropertyType == typeof(long) || propInfo.PropertyType == typeof(long?))
                     {
                         propInfo.SetValue(result, reader.GetInt64(i));
                     }
@@ -219,11 +219,11 @@
                     {
                         propInfo.SetValue(result, reader.GetString(i));
                     }
-                    else if (propInfo.PropertyType == typeof(double))
+                    else if (propInfo.PropertyType == typeof(double) || propInfo.PropertyType == typeof(double?))
                     {
                         propInfo.SetValue(result, reader.GetDouble(i));
                     }
-                    else if (propInfo.PropertyType == typeof(long))
+                    else if (propInfo.PropertyType == typeof(long) || propInfo.PropertyType == typeof(long?))
                     {
                         propInfo.SetValue(result, reader.GetInt64(i));
                     }

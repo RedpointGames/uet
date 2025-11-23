@@ -91,6 +91,20 @@
   </Macro>
 
   <!--
+    Workaround an issue where the linker produces invalid DLL files.
+  -->
+  <Macro Name="IntegrityCheckExistingDllFilesBeforeCompile" Arguments="FolderPath">
+    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --folder &quot;$(FolderPath)&quot;" />
+  </Macro>
+  <Macro Name="IntegrityCheckNewDllFilesAfterCompile" Arguments="FileList">
+    <WriteTextFile
+      File="$(TempPath)/FileListForIntegrityCheck.txt"
+      Files="$(FileList)"
+    />
+    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --file-list &quot;$(TempPath)/FileListForIntegrityCheck.txt&quot;" />
+  </Macro>
+
+  <!--
     Strip debugging symbols out of the target platform's binaries if requested.
   -->
   <Macro Name="StripDebugSymbolsForTarget" Arguments="PluginPath;TargetPlatform;FilesTag">
@@ -451,6 +465,10 @@ $(PackageExclude);
         TargetPlatform="Win64"
         FilesTag="#EditorBinaries_Win64"
       />
+      <Expand 
+        Name="IntegrityCheckNewDllFilesAfterCompile" 
+        FileList="#EditorBinaries_Win64" 
+      />
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
     <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(CanBuildEditorWin64)' == 'true'" />
@@ -566,6 +584,10 @@ $(PackageExclude);
               PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
               TargetPlatform="$(TargetPlatform)"
               FilesTag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
+            />
+            <Expand 
+              Name="IntegrityCheckNewDllFilesAfterCompile" 
+              FileList="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate" 
             />
             <Property Name="BinaryExceptRule" Value="" />
             <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />

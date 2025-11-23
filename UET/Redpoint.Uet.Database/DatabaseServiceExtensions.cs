@@ -15,6 +15,7 @@
             services.AddSingleton<IUetDbConnectionFactory, DefaultUetDbConnectionFactory>();
 
             services.AddSingleton<IMigration, Migration001_LastEnginePath>();
+            services.AddSingleton<IMigration, Migration002_VerifiedDllFile>();
         }
     }
 }
