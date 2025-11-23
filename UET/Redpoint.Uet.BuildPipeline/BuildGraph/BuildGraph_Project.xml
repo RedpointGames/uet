@@ -86,10 +86,12 @@
     <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --folder &quot;$(FolderPath)&quot;" />
   </Macro>
   <Macro Name="IntegrityCheckNewDllFilesAfterCompile" Arguments="FileList">
+    <Log Message="UET-SILENCE-OUTPUT-ON" />
     <WriteTextFile
       File="$(TempPath)/FileListForIntegrityCheck.txt"
       Files="$(FileList)"
     />
+    <Log Message="UET-SILENCE-OUTPUT-OFF" />
     <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --file-list &quot;$(TempPath)/FileListForIntegrityCheck.txt&quot;" />
   </Macro>
 
