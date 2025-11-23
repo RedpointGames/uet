@@ -10,6 +10,7 @@
         private readonly ILogger _logger;
         private readonly ICaptureSpecification _baseCaptureSpecification;
         private readonly string[] _forceRetryMessages;
+        private bool _isCurrentlySilenced;
 
         public RetryCaptureSpecification(
             ILogger logger,
@@ -170,6 +171,22 @@
 
         public void OnReceiveStandardError(string data)
         {
+            if (data.Contains("UET-SILENCE-OUTPUT-ON", StringComparison.Ordinal))
+            {
+                _isCurrentlySilenced = true;
+                return;
+            }
+            else if (data.Contains("UET-SILENCE-OUTPUT-OFF", StringComparison.Ordinal))
+            {
+                _isCurrentlySilenced = false;
+                return;
+            }
+
+            if (_isCurrentlySilenced)
+            {
+                return;
+            }
+
             CheckDataForRetry(data);
 
             if (_baseCaptureSpecification.InterceptStandardError)
@@ -184,6 +201,22 @@
 
         public void OnReceiveStandardOutput(string data)
         {
+            if (data.Contains("UET-SILENCE-OUTPUT-ON", StringComparison.Ordinal))
+            {
+                _isCurrentlySilenced = true;
+                return;
+            }
+            else if (data.Contains("UET-SILENCE-OUTPUT-OFF", StringComparison.Ordinal))
+            {
+                _isCurrentlySilenced = false;
+                return;
+            }
+
+            if (_isCurrentlySilenced)
+            {
+                return;
+            }
+
             CheckDataForRetry(data);
 
             if (_baseCaptureSpecification.InterceptStandardOutput)
