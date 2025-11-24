@@ -207,6 +207,45 @@
             {
                 await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
             }
+            if (props.FileLists != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "FileLists", null, props.FileLists).ConfigureAwait(false);
+            }
+            if (props.Filter != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "Filter", null, props.Filter).ConfigureAwait(false);
+            }
+            if (props.Except != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "Except", null, props.Except).ConfigureAwait(false);
+            }
+            await writer.WriteEndElementAsync().ConfigureAwait(false);
+        }
+
+        public static async Task WriteLogAsync(
+            this XmlWriter writer,
+            LogElementProperties props)
+        {
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(props);
+
+            await writer.WriteStartElementAsync(null, "Log", null).ConfigureAwait(false);
+            if (props.Message != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "Message", null, props.Message).ConfigureAwait(false);
+            }
+            if (props.Files != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "Files", null, props.Files).ConfigureAwait(false);
+            }
+            if (props.IncludeContents)
+            {
+                await writer.WriteAttributeStringAsync(null, "IncludeContents", null, props.IncludeContents ? "True" : "False").ConfigureAwait(false);
+            }
+            if (props.If != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
+            }
             await writer.WriteEndElementAsync().ConfigureAwait(false);
         }
 
@@ -352,44 +391,5 @@
             await writeChildren(writer).ConfigureAwait(false);
             await writer.WriteEndElementAsync().ConfigureAwait(false);
         }
-    }
-
-    public record class DynamicNodeAppendElementProperties : ElementProperties
-    {
-        public required string NodeName { get; set; }
-        public bool MustPassForLaterDeployment { get; set; }
-    }
-
-    public record class DynamicOutputFileAppendElementProperties : ElementProperties
-    {
-        public required string Tag { get; set; }
-    }
-
-    public record class DeleteElementProperties : ElementProperties
-    {
-        public required string Files { get; set; }
-    }
-
-    public record class TagElementProperties : ElementProperties
-    {
-        public required string BaseDir { get; set; }
-
-        public required string Files { get; set; }
-
-        public required string With { get; set; }
-    }
-
-    public record class SpawnElementProperties : ElementProperties
-    {
-        public required string Exe { get; set; }
-
-        public required IReadOnlyCollection<string> Arguments { get; set; }
-    }
-
-    public record class MacroElementProperties : ElementProperties
-    {
-        public required string Name { get; set; }
-
-        public required IReadOnlyCollection<string> Arguments { get; set; }
     }
 }
