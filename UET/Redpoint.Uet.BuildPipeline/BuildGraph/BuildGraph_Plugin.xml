@@ -93,17 +93,18 @@
   <!--
     Workaround an issue where the linker produces invalid DLL files.
   -->
-  <Macro Name="IntegrityCheckExistingDllFilesBeforeCompile" Arguments="FolderPath">
+  <Macro Name="IntegrityCheckExistingDllFilesBeforeCompile" Arguments="FolderPath;TargetPlatform">
     <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --folder &quot;$(FolderPath)&quot;" />
   </Macro>
-  <Macro Name="IntegrityCheckNewDllFilesAfterCompile" Arguments="FileList">
-    <Log Message="UET-SILENCE-OUTPUT-ON" />
+  <Macro Name="IntegrityCheckNewDllFilesAfterCompile" Arguments="FileList;TargetPlatform">
+    <Log Message="UET-SILENCE-OUTPUT-ON" If="'$(TargetPlatform)' == 'Win64'" />
     <WriteTextFile
       File="$(TempPath)/FileListForIntegrityCheck.txt"
       Files="$(FileList)"
+      If="'$(TargetPlatform)' == 'Win64'"
     />
-    <Log Message="UET-SILENCE-OUTPUT-OFF" />
-    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --file-list &quot;$(TempPath)/FileListForIntegrityCheck.txt&quot;" />
+    <Log Message="UET-SILENCE-OUTPUT-OFF" If="'$(TargetPlatform)' == 'Win64'" />
+    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --file-list &quot;$(TempPath)/FileListForIntegrityCheck.txt&quot;" If="'$(TargetPlatform)' == 'Win64'" />
   </Macro>
 
   <!--
@@ -467,9 +468,10 @@ $(PackageExclude);
         TargetPlatform="Win64"
         FilesTag="#EditorBinaries_Win64"
       />
-      <Expand 
-        Name="IntegrityCheckNewDllFilesAfterCompile" 
-        FileList="#EditorBinaries_Win64" 
+      <Expand
+        Name="IntegrityCheckNewDllFilesAfterCompile"
+        FileList="#EditorBinaries_Win64"
+        TargetPlatform="Win64"
       />
     </Node>
     <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
@@ -587,9 +589,10 @@ $(PackageExclude);
               TargetPlatform="$(TargetPlatform)"
               FilesTag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
             />
-            <Expand 
-              Name="IntegrityCheckNewDllFilesAfterCompile" 
-              FileList="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate" 
+            <Expand
+              Name="IntegrityCheckNewDllFilesAfterCompile"
+              FileList="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
+              TargetPlatform="$(TargetPlatform)"
             />
             <Property Name="BinaryExceptRule" Value="" />
             <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />

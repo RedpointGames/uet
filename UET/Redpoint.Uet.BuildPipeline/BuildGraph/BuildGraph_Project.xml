@@ -82,17 +82,18 @@
   <!--
     Workaround an issue where the linker produces invalid DLL files.
   -->
-  <Macro Name="IntegrityCheckExistingDllFilesBeforeCompile" Arguments="FolderPath">
+  <Macro Name="IntegrityCheckExistingDllFilesBeforeCompile" Arguments="FolderPath;TargetPlatform">
     <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --folder &quot;$(FolderPath)&quot;" />
   </Macro>
-  <Macro Name="IntegrityCheckNewDllFilesAfterCompile" Arguments="FileList">
-    <Log Message="UET-SILENCE-OUTPUT-ON" />
+  <Macro Name="IntegrityCheckNewDllFilesAfterCompile" Arguments="FileList;TargetPlatform">
+    <Log Message="UET-SILENCE-OUTPUT-ON" If="'$(TargetPlatform)' == 'Win64'" />
     <WriteTextFile
       File="$(TempPath)/FileListForIntegrityCheck.txt"
       Files="$(FileList)"
+      If="'$(TargetPlatform)' == 'Win64'"
     />
-    <Log Message="UET-SILENCE-OUTPUT-OFF" />
-    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --file-list &quot;$(TempPath)/FileListForIntegrityCheck.txt&quot;" />
+    <Log Message="UET-SILENCE-OUTPUT-OFF" If="'$(TargetPlatform)' == 'Win64'" />
+    <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal verify-dll-file-integrity --file-list &quot;$(TempPath)/FileListForIntegrityCheck.txt&quot;" If="'$(TargetPlatform)' == 'Win64'" />
   </Macro>
 
   <!--
@@ -105,17 +106,19 @@
           <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(TargetPlatform)" />
         </ForEach>
         <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-        <Expand 
-          Name="IntegrityCheckExistingDllFilesBeforeCompile" 
-          FolderPath="$(EnginePath)/Engine/Binaries/Win64" 
+        <Expand
+          Name="IntegrityCheckExistingDllFilesBeforeCompile"
+          FolderPath="$(EnginePath)/Engine/Binaries/$(TargetPlatform)"
+          TargetPlatform="$(TargetPlatform)"
         />
         <Compile Target="$(EditorTarget)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
         <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
         <Compile Target="ShaderCompileWorker" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
         <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="Shipping" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Expand 
-          Name="IntegrityCheckNewDllFilesAfterCompile" 
-          FileList="#EditorBinaries;#BuildToolBinaries" 
+        <Expand
+          Name="IntegrityCheckNewDllFilesAfterCompile"
+          FileList="#EditorBinaries;#BuildToolBinaries"
+          TargetPlatform="$(TargetPlatform)"
         />
       </Node>
     </Agent>
