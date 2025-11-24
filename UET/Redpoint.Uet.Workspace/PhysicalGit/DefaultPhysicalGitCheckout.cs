@@ -26,14 +26,6 @@
     using Redpoint.Windows.HandleManagement;
     using System.Globalization;
 
-    public class GitLfsFileNotCheckedOutProperlyException : Exception
-    {
-        public GitLfsFileNotCheckedOutProperlyException(string fullName)
-            : base($"Found Git LFS pointer in file: {fullName}")
-        {
-        }
-    }
-
     internal class DefaultPhysicalGitCheckout : IPhysicalGitCheckout
     {
         private readonly ILogger<DefaultPhysicalGitCheckout> _logger;
@@ -1011,7 +1003,7 @@
                 _logger.LogInformation("Fetching LFS files from remote server...");
                 using (var fetchEnvVars = gitContext.FetchEnvironmentVariablesFactory())
                 {
-                    exitCode = await _processExecutor.ExecuteAsync(
+                    exitCode = await FaultTolerantGitLfsAsync(
                         new ProcessSpecification
                         {
                             FilePath = gitContext.Git,
@@ -1806,6 +1798,46 @@
                     continue;
                 }
                 else if (exitCode == 128)
+                {
+                    // We attempted too many times and can't continue.
+                    _logger.LogError("Fault tolerant Git operation ran into exit code 128 over 10 attempts, permanently failing...");
+                    return exitCode;
+                }
+
+                // Some other exit code, just return.
+                return exitCode;
+            } while (true);
+        }
+
+        private async Task<int> FaultTolerantGitLfsAsync(
+            ProcessSpecification processSpecification,
+            ICaptureSpecification captureSpecification,
+            CancellationToken cancellationToken)
+        {
+            var backoff = 1000;
+            var attempts = 0;
+            do
+            {
+                var gitLfsCaptureSpecification = new GitLfsCaptureSpecification(captureSpecification);
+                var exitCode = await _processExecutor.ExecuteAsync(
+                    processSpecification,
+                    gitLfsCaptureSpecification,
+                    cancellationToken).ConfigureAwait(false);
+                if (exitCode != 0 && gitLfsCaptureSpecification.NeedsRetry && attempts < 10)
+                {
+                    // 'git lfs fetch' encountered a temporary network error. We want to handle
+                    // unreliable network connections by simply retrying the 'git lfs fetch' operation.
+                    _logger.LogWarning($"'git lfs' encountered a network error while fetching data. Retrying the fetch operation in {backoff}ms...");
+                    await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
+                    backoff *= 2;
+                    if (backoff > 30000)
+                    {
+                        backoff = 30000;
+                    }
+                    attempts++;
+                    continue;
+                }
+                else if (exitCode != 0 && gitLfsCaptureSpecification.NeedsRetry)
                 {
                     // We attempted too many times and can't continue.
                     _logger.LogError("Fault tolerant Git operation ran into exit code 128 over 10 attempts, permanently failing...");
