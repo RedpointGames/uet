@@ -57,6 +57,20 @@
                     },
                     async writer =>
                     {
+                        await writer.WriteTagAsync(
+                            new TagElementProperties
+                            {
+                                BaseDir = "$(StageDirectory)",
+                                Files = "...",
+                                Except = $"#{deployment.settings.Package.Type.ToString()}Staged_{deployment.settings.Package.Target}_{deployment.settings.Package.Platform}_{deployment.settings.Package.Configuration}",
+                                With = "#FilesToDelete"
+                            }).ConfigureAwait(false);
+                        await writer.WriteLogAsync(
+                            new LogElementProperties
+                            {
+                                Message = "Extra files detected in staging directory:",
+                                Files = "#FilesToDelete"
+                            }).ConfigureAwait(false);
                         await writer.WriteDynamicReentrantSpawnAsync<SteamProjectDeploymentProvider, BuildConfigProjectDistribution, BuildConfigProjectDeploymentSteam>(
                             this,
                             context,
