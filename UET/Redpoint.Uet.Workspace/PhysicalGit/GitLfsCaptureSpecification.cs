@@ -22,11 +22,12 @@
 
         public bool InterceptStandardOutput => true;
 
-        public bool InterceptStandardError => _proxied.InterceptStandardError;
+        public bool InterceptStandardError => true;
 
         private static bool ShouldRetry(string data)
         {
-            if (data.Contains($"batch response: Fatal error: Server error:", StringComparison.Ordinal))
+            if (data.Contains($"batch response: Fatal error: Server error:", StringComparison.Ordinal) ||
+                data.Contains($"error: failed to fetch some objects from", StringComparison.Ordinal))
             {
                 return true;
             }
@@ -43,7 +44,14 @@
                 NeedsRetry = true;
             }
 
-            _proxied.OnReceiveStandardError(data);
+            if (_proxied.InterceptStandardError)
+            {
+                _proxied.OnReceiveStandardError(data);
+            }
+            else
+            {
+                Console.Error.WriteLine(data.TrimEnd('\n'));
+            }
         }
 
         public void OnReceiveStandardOutput(string data)
@@ -55,7 +63,14 @@
                 NeedsRetry = true;
             }
 
-            _proxied.OnReceiveStandardOutput(data);
+            if (_proxied.InterceptStandardOutput)
+            {
+                _proxied.OnReceiveStandardOutput(data);
+            }
+            else
+            {
+                Console.WriteLine(data.TrimEnd('\n'));
+            }
         }
 
         public string? OnRequestStandardInputAtStartup()
