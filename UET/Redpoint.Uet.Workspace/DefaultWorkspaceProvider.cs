@@ -394,6 +394,8 @@
         {
             var parameters = new string[] { descriptor.PackageTag }.Concat(descriptor.WorkspaceDisambiguators).ToArray();
 
+        retryMount:
+
             var usingMountReservation = false;
             var mountReservation = await _reservationManager.ReserveAsync("VirtualPackageMount", _parameterGenerator.ConstructReservationParameters(parameters)).ConfigureAwait(false);
             try
@@ -457,22 +459,32 @@
                     // because it wasn't in a valid state.
                     {
                         _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
-                        var mountId = await MountAsync(
-                            _uefsClient.MountPackageTag,
-                            new MountPackageTagRequest()
-                            {
-                                MountRequest = new MountRequest
+                        string? mountId;
+                        try
+                        {
+                            mountId = await MountAsync(
+                                _uefsClient.MountPackageTag,
+                                new MountPackageTagRequest()
                                 {
-                                    MountPath = mountReservation.ReservedPath,
-                                    WriteScratchPath = scratchReservation.ReservedPath,
-                                    WriteScratchPersistence = WriteScratchPersistence.Keep,
-                                    StartupBehaviour = StartupBehaviour.None,
-                                    TrackPid = GetTrackedPid(),
+                                    MountRequest = new MountRequest
+                                    {
+                                        MountPath = mountReservation.ReservedPath,
+                                        WriteScratchPath = scratchReservation.ReservedPath,
+                                        WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                        StartupBehaviour = StartupBehaviour.None,
+                                        TrackPid = GetTrackedPid(),
+                                    },
+                                    Tag = descriptor.PackageTag,
+                                    Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
                                 },
-                                Tag = descriptor.PackageTag,
-                                Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
-                            },
-                            cancellationToken).ConfigureAwait(false);
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (RpcException ex) when (ex.StatusCode == StatusCode.Internal && ex.Status.Detail.Contains("ERROR_SHARING_VIOLATION", StringComparison.Ordinal))
+                        {
+                            _logger.LogInformation("Temporary error in UEFS when mounting package, retrying in 1 second...");
+                            await Task.Delay(1000, cancellationToken);
+                            goto retryMount;
+                        }
                         usingMountReservation = true;
                         usingScratchReservation = true;
                         return new UefsWorkspace(
