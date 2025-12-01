@@ -16,7 +16,7 @@ namespace Redpoint.CloudFramework.Startup
         TBase UseMultiTenant<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : ICurrentTenantService;
 
         /// <summary>
-        /// Set what Google Cloud services are used at runtime. By default all services are on except for Logging, Trace and Error Reporting (which are sufficiently covered by Sentry instead).
+        /// Set what Google Cloud services are used at runtime.
         /// </summary>
         /// <param name="usageFlag"></param>
         /// <returns></returns>

@@ -36,8 +36,10 @@
 
         public void AddPointSync(string metricType, long amount, Key? projectKey, Dictionary<string, string?>? labels = null)
         {
-            TagList tagList;
-            tagList.Add("tenant_id", projectKey == null ? string.Empty : _globalPrefix.Create(projectKey));
+            TagList tagList = new()
+            {
+                { "tenant_id", projectKey == null ? string.Empty : _globalPrefix.Create(projectKey) }
+            };
             if (labels != null)
             {
                 foreach (var kv in labels)

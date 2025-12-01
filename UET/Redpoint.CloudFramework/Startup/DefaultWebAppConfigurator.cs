@@ -36,7 +36,6 @@
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)]
         private Type? _startupType;
         private WebHostBuilderContext? _context;
-        private double _tracingRate = 0.0;
         private Func<IConfiguration, string, DevelopmentDockerContainer[]>? _dockerFactory;
         private Func<IConfiguration, string, HelmConfiguration>? _helmConfig;
         private string[] _prefixes = Array.Empty<string>();
@@ -71,17 +70,6 @@
                 });
             };
             return this;
-        }
-
-        public IWebAppConfigurator UseSentryTracing(double tracingRate)
-        {
-            _tracingRate = tracingRate;
-            return this;
-        }
-
-        public IWebAppConfigurator UsePerformanceTracing(double tracingRate)
-        {
-            return UseSentryTracing(tracingRate);
         }
 
         public IWebAppConfigurator UseDevelopmentDockerContainers(Func<IConfiguration, string, DevelopmentDockerContainer[]> factory)
@@ -162,35 +150,39 @@
 
                     _kestrelConfigure?.Invoke(options);
                 })
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseSentry(options =>
-                {
-                    options.TracesSampleRate = _tracingRate;
-                    options.TracesSampler = (ctx) =>
+                .UseContentRoot(Directory.GetCurrentDirectory());
+            // Don't register Sentry if this service uses OTLP endpoint for trace exporting.
+            if (!IsUsingOtelTracing)
+            {
+                hostBuilder = hostBuilder.UseSentry(options =>
                     {
-                        if (ctx.CustomSamplingContext.ContainsKey("__HttpPath") &&
-                            ctx.CustomSamplingContext["__HttpPath"] is string)
+                        options.TracesSampleRate = _tracingRate;
+                        options.TracesSampler = (ctx) =>
                         {
-                            var path = (string?)ctx.CustomSamplingContext["__HttpPath"];
-                            if (path != null)
+                            if (ctx.CustomSamplingContext.ContainsKey("__HttpPath") &&
+                                ctx.CustomSamplingContext["__HttpPath"] is string)
                             {
-                                if (path == "/healthz")
+                                var path = (string?)ctx.CustomSamplingContext["__HttpPath"];
+                                if (path != null)
                                 {
-                                    return 0;
-                                }
+                                    if (path == "/healthz")
+                                    {
+                                        return 0;
+                                    }
 
-                                if (_prefixes.Any(x => path.StartsWith(x, StringComparison.Ordinal)))
-                                {
-                                    return 0;
+                                    if (_prefixes.Any(x => path.StartsWith(x, StringComparison.Ordinal)))
+                                    {
+                                        return 0;
+                                    }
                                 }
                             }
-                        }
 
-                        return null;
-                    };
-                    options.AdjustStandardEnvironmentNameCasing = false;
-                })
-                .ConfigureAppConfiguration((hostingContext, config) =>
+                            return null;
+                        };
+                        options.AdjustStandardEnvironmentNameCasing = false;
+                    });
+            }
+            hostBuilder = hostBuilder.ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     ConfigureAppConfiguration(hostingContext.HostingEnvironment, config);
                 })
@@ -308,7 +300,7 @@
             // Add the services for multi-tenanting. These are only valid in a web app, and we only register them if the current tenant service is not our builtin SingleTenantService.
             if (_currentTenantService != typeof(SingleCurrentTenantService))
             {
-                if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
+                if (_googleCloudUsage.HasFlag(GoogleCloudUsageFlag.Datastore))
                 {
                     services.AddScoped<IRepository, DatastoreRepository>();
                     services.AddScoped<ILockService, DefaultLockService>();
@@ -317,8 +309,15 @@
                 services.AddScoped<IPrefix, DefaultPrefix>();
             }
 
-            // Register the Sentry tracer, since we always use Sentry.
-            services.AddSingleton<IManagedTracer, SentryManagedTracer>();
+            // Register the correct tracing implementation.
+            if (IsUsingOtelTracing)
+            {
+                services.AddSingleton<IManagedTracer, OtelManagedTracer>();
+            }
+            else
+            {
+                services.AddSingleton<IManagedTracer, SentryManagedTracer>();
+            }
 
             // If we don't have the HTTP client factory registered, register it now.
             if (!services.Any(x => x.ServiceType == typeof(IHttpClientFactory)))

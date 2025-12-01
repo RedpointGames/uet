@@ -14,15 +14,11 @@
     {
         IWebAppConfigurator UseStartup<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] T>();
 
-        IWebAppConfigurator UseSentryTracing(double tracingRate);
-
-        [Obsolete("Call UseSentryTracing instead.")]
-        IWebAppConfigurator UsePerformanceTracing(double tracingRate);
-
         IWebAppConfigurator UseDevelopmentDockerContainers(Func<IConfiguration, string, DevelopmentDockerContainer[]> factory);
 
         IWebAppConfigurator UseHelm(Func<IConfiguration, string, HelmConfiguration> helmConfig);
 
+        [Obsolete("This is ignored by OpenTelemetry tracing.")]
         IWebAppConfigurator FilterPathPrefixesFromSentryPerformance(string[] prefixes);
 
         IWebAppConfigurator UseHttp2Only(bool http2Only);

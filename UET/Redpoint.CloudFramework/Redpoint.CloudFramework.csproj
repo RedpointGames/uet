@@ -1,77 +1,79 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
-  <PropertyGroup>
-    <Description>A framework for building ASP.NET Core applications on top of Google Cloud Firestore in Datastore mode. Not only does this framework provide a model-based API for interacting with Google Cloud Firestore, it contains useful implementations of things like database migrations, distributed locks, geographic indexes and sharded counters.</Description>
-    <PackageTags>cloud, datastore, asp.net, asp.net core, framework, distributed counters, sharded counters, geographic queries</PackageTags>
-  </PropertyGroup>
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>A framework for building ASP.NET Core applications on top of Google Cloud Firestore in Datastore mode. Not only does this framework provide a model-based API for interacting with Google Cloud Firestore, it contains useful implementations of things like database migrations, distributed locks, geographic indexes and sharded counters.</Description>
+		<PackageTags>cloud, datastore, asp.net, asp.net core, framework, distributed counters, sharded counters, geographic queries</PackageTags>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-  </PropertyGroup>
+	<PropertyGroup>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Docker.DotNet" />
-    <PackageReference Include="Google.Cloud.BigQuery.V2" />
-    <PackageReference Include="Google.Cloud.Datastore.V1" />
-    <PackageReference Include="Google.Cloud.Monitoring.V3" />
-    <PackageReference Include="Google.Cloud.PubSub.V1" />
-    <PackageReference Include="Google.Cloud.SecretManager.V1" />
-    <PackageReference Include="JavaScriptEngineSwitcher.Extensions.MsDependencyInjection" />
-    <PackageReference Include="JavaScriptEngineSwitcher.V8" />
-    <PackageReference Include="Microsoft.ClearScript.V8.Native.linux-x64" />
-    <PackageReference Include="Microsoft.ClearScript.V8.Native.win-x64" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="NodaTime" />
-    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore">
-      <NoWarn>NU5104</NoWarn>
-    </PackageReference>
-    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.HttpListener">
-      <NoWarn>NU5104</NoWarn>
-    </PackageReference>
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="Quartz.Extensions.Hosting" />
-    <PackageReference Include="S2Geometry" />
-    <PackageReference Include="Sentry.AspNetCore" />
-    <PackageReference Include="SharpZipLib" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Docker.DotNet" />
+		<PackageReference Include="Google.Cloud.BigQuery.V2" />
+		<PackageReference Include="Google.Cloud.Datastore.V1" />
+		<PackageReference Include="Google.Cloud.Monitoring.V3" />
+		<PackageReference Include="Google.Cloud.PubSub.V1" />
+		<PackageReference Include="Google.Cloud.SecretManager.V1" />
+		<PackageReference Include="JavaScriptEngineSwitcher.Extensions.MsDependencyInjection" />
+		<PackageReference Include="JavaScriptEngineSwitcher.V8" />
+		<PackageReference Include="Microsoft.ClearScript.V8.Native.linux-x64" />
+		<PackageReference Include="Microsoft.ClearScript.V8.Native.win-x64" />
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="NodaTime" />
+		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore">
+			<NoWarn>NU5104</NoWarn>
+		</PackageReference>
+		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.HttpListener">
+			<NoWarn>NU5104</NoWarn>
+		</PackageReference>
+		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+		<PackageReference Include="Quartz.Extensions.Hosting" />
+		<PackageReference Include="S2Geometry" />
+		<PackageReference Include="Sentry.AspNetCore" />
+		<PackageReference Include="SharpZipLib" />
+		<PackageReference Include="Swashbuckle.AspNetCore" />
+		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj">
-      <Aliases>RDCommandLine</Aliases>
-    </ProjectReference>
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet.Middleware\Redpoint.ThirdParty.React.AspNet.Middleware.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet\Redpoint.ThirdParty.React.AspNet.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.Core\Redpoint.ThirdParty.React.Core.csproj" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
-    <ProjectReference Include="..\Redpoint.CloudFramework.Abstractions\Redpoint.CloudFramework.Abstractions.csproj" />
-    <ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
-    <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
-    <ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
-    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
-    <ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.B2Net\Redpoint.ThirdParty.B2Net.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj">
+			<Aliases>RDCommandLine</Aliases>
+		</ProjectReference>
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet.Middleware\Redpoint.ThirdParty.React.AspNet.Middleware.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.AspNet\Redpoint.ThirdParty.React.AspNet.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.React.Core\Redpoint.ThirdParty.React.Core.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
+		<ProjectReference Include="..\Redpoint.CloudFramework.Abstractions\Redpoint.CloudFramework.Abstractions.csproj" />
+		<ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
+		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+		<ProjectReference Include="..\Redpoint.Hashing\Redpoint.Hashing.csproj" />
+		<ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+		<ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.Package\Redpoint.CloudFramework.Analyzer.Package.csproj">
-      <IncludeAssets>analyzers;build</IncludeAssets>
-      <PrivateAssets>none</PrivateAssets>
-    </ProjectReference>
-    <ProjectReference Include="..\Redpoint.CloudFramework.CLI\Redpoint.CloudFramework.CLI.csproj">
-      <IncludeAssets>build;buildMultiTargeting;buildTransitive</IncludeAssets>
-      <PrivateAssets>none</PrivateAssets>
-    </ProjectReference>
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.Package\Redpoint.CloudFramework.Analyzer.Package.csproj">
+			<IncludeAssets>analyzers;build</IncludeAssets>
+			<PrivateAssets>none</PrivateAssets>
+		</ProjectReference>
+		<ProjectReference Include="..\Redpoint.CloudFramework.CLI\Redpoint.CloudFramework.CLI.csproj">
+			<IncludeAssets>build;buildMultiTargeting;buildTransitive</IncludeAssets>
+			<PrivateAssets>none</PrivateAssets>
+		</ProjectReference>
+	</ItemGroup>
 
 </Project>
