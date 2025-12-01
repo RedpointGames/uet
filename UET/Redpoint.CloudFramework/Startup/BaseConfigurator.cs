@@ -11,6 +11,8 @@ namespace Redpoint.CloudFramework.Startup
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using OpenTelemetry.Metrics;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Trace;
     using Quartz;
     using RDCommandLine::Microsoft.Extensions.Logging.Console;
     using Redpoint.CloudFramework.BigQuery;
@@ -50,6 +52,7 @@ namespace Redpoint.CloudFramework.Startup
         internal bool _requireGoogleCloudSecretManagerLoad = false;
         internal bool _isInteractiveCLIApp = false;
         internal Action<IHostEnvironment, IConfigurationBuilder>? _customConfigLayers = null;
+        internal double _tracingRate = 1.0;
 
         public TBase UsePrefixProvider<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : IPrefixProvider
         {
@@ -81,12 +84,40 @@ namespace Redpoint.CloudFramework.Startup
             return (TBase)(object)this;
         }
 
+        [Obsolete("Call SetTraceSamplingRate instead.")]
+        public TBase UseSentryTracing(double tracingRate)
+        {
+            _tracingRate = tracingRate;
+            return (TBase)(object)this;
+        }
+
+        [Obsolete("Call SetTraceSamplingRate instead.")]
+        public TBase UsePerformanceTracing(double tracingRate)
+        {
+            _tracingRate = tracingRate;
+            return (TBase)(object)this;
+        }
+
+        public TBase SetTraceSamplingRate(double tracingRate)
+        {
+            _tracingRate = tracingRate;
+            return (TBase)(object)this;
+        }
+
         protected void ValidateConfiguration()
         {
             if (_requireGoogleCloudSecretManagerLoad)
             {
                 // Use of RequireGoogleCloudSecretManagerConfiguration implies Secret Manager service.
                 _googleCloudUsage |= GoogleCloudUsageFlag.SecretManager;
+            }
+        }
+
+        protected static bool IsUsingOtelTracing
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT"));
             }
         }
 
@@ -115,8 +146,7 @@ namespace Redpoint.CloudFramework.Startup
                 config.AddJsonFile(configPath, optional: false, reloadOnChange: false);
             }
 
-            if (!_isInteractiveCLIApp &&
-                (_googleCloudUsage & GoogleCloudUsageFlag.SecretManager) != 0)
+            if (!_isInteractiveCLIApp && _googleCloudUsage.HasFlag(GoogleCloudUsageFlag.SecretManager))
             {
                 config.AddGoogleCloudSecretManager(env);
             }
@@ -188,7 +218,20 @@ namespace Redpoint.CloudFramework.Startup
             {
                 if (!hostEnvironment.IsDevelopment())
                 {
-                    services.AddOpenTelemetry()
+                    var telemetryBuilder = services.AddOpenTelemetry();
+                    var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME");
+                    if (!string.IsNullOrWhiteSpace(serviceName))
+                    {
+                        var serviceNamespace = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAMESPACE");
+                        var serviceVersion = Environment.GetEnvironmentVariable("SENTRY_RELEASE");
+                        Console.WriteLine($"Setting resource name for telemetry to service_name={serviceName},service_namespace={serviceNamespace},service_version={serviceVersion}");
+                        telemetryBuilder = telemetryBuilder
+                            .ConfigureResource(resource =>
+                            {
+                                resource.AddService(serviceName ?? "service-name-not-set", serviceNamespace, serviceVersion);
+                            });
+                    }
+                    telemetryBuilder = telemetryBuilder
                         .WithMetrics(builder => builder
                             .AddMeter("*")
                             .AddPrometheusHttpListener(options =>
@@ -199,6 +242,23 @@ namespace Redpoint.CloudFramework.Startup
                                     options.UriPrefixes = [prometheusPrefix];
                                 }
                             }));
+                    var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+                    if (IsUsingOtelTracing)
+                    {
+                        Console.WriteLine($"Enabling tracing with OTLP export endpoint: {otlpEndpoint}");
+                        telemetryBuilder = telemetryBuilder
+                            .WithTracing(tracing =>
+                            {
+                                tracing
+                                    .AddAspNetCoreInstrumentation()
+                                    .AddOtlpExporter(otlp =>
+                                    {
+                                        otlp.Endpoint = new Uri(otlpEndpoint!);
+                                        otlp.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+                                    })
+                                    .SetSampler(new TraceIdRatioBasedSampler(_tracingRate));
+                            });
+                    }
                 }
             }
             catch (Exception ex)
@@ -211,17 +271,17 @@ namespace Redpoint.CloudFramework.Startup
         {
             // Add the global services provided by Cloud Framework.
 
-            if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
+            if (_googleCloudUsage.HasFlag(GoogleCloudUsageFlag.Datastore))
             {
                 services.AddCloudFrameworkRepository(
                     enableMigrations: !_isInteractiveCLIApp,
                     enableRedis: true);
             }
-            if ((_googleCloudUsage & GoogleCloudUsageFlag.BigQuery) != 0)
+            if (_googleCloudUsage.HasFlag(GoogleCloudUsageFlag.BigQuery))
             {
                 services.AddSingleton<IBigQuery, DefaultBigQuery>();
             }
-            if (!_isInteractiveCLIApp && (_googleCloudUsage & GoogleCloudUsageFlag.SecretManager) != 0)
+            if (!_isInteractiveCLIApp && _googleCloudUsage.HasFlag(GoogleCloudUsageFlag.SecretManager))
             {
                 services.AddSecretManagerRuntime();
             }

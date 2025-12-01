@@ -147,7 +147,14 @@
                 })
                 .ConfigureServices((context, services) =>
                 {
-                    services.AddSingleton<IManagedTracer, NullManagedTracer>();
+                    if (IsUsingOtelTracing)
+                    {
+                        services.AddSingleton<IManagedTracer, OtelManagedTracer>();
+                    }
+                    else
+                    {
+                        services.AddSingleton<IManagedTracer, NullManagedTracer>();
+                    }
 
                     this.PreStartupConfigureServices(context.HostingEnvironment, context.Configuration, services);
                     this._serviceConfiguration?.Invoke(services);

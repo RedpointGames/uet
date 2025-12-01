@@ -7,7 +7,9 @@
     /// </summary>
     [Flags]
 #pragma warning disable CA1711 // Identifiers should not have incorrect suffix
+#pragma warning disable CA2217 // Do not mark enums with FlagsAttribute
     public enum GoogleCloudUsageFlag
+#pragma warning restore CA2217 // Do not mark enums with FlagsAttribute
 #pragma warning restore CA1711 // Identifiers should not have incorrect suffix
     {
         /// <summary>
@@ -23,19 +25,19 @@
         /// <summary>
         /// Use Google Cloud Logging.
         /// </summary>
-        [Obsolete("Google Cloud Logging support has been removed. Use Sentry instead.", true)]
+        [Obsolete("Google Cloud Logging support has been removed.", true)]
         Logging = 1,
 
         /// <summary>
         /// Use Google Cloud Trace.
         /// </summary>
-        [Obsolete("Google Cloud Trace support has been removed. Use Sentry instead.", true)]
+        [Obsolete("Google Cloud Trace support has been removed.", true)]
         Trace = 2,
 
         /// <summary>
         /// Use Google Cloud Error Reporting.
         /// </summary>
-        [Obsolete("Google Cloud Error Reporting support has been removed. Use Sentry instead.", true)]
+        [Obsolete("Google Cloud Error Reporting support has been removed.", true)]
         ErrorReporting = 4,
 
         /// <summary>
@@ -69,7 +71,7 @@
         /// Use all Google Cloud services that the framework uses.
         /// </summary>
 #pragma warning disable CA1069 // Enums values should not be duplicated
-        All = 255,
+        All = ~1,
 #pragma warning restore CA1069 // Enums values should not be duplicated
     }
 }

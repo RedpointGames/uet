@@ -151,25 +151,25 @@
 
                         string? lastEntry = null;
                         await client.Images.BuildImageFromDockerfileAsync(new ImageBuildParameters
+                        {
+                            Dockerfile = developerContainer.Dockerfile,
+                        }, CreateTarballForDockerfileDirectory(developerContainer.Context), Array.Empty<AuthConfig>(), new Dictionary<string, string>(), new ForwardingProgress<JSONMessage>((JSONMessage msg) =>
+                        {
+                            var entry = msg.Status ?? msg.Stream?.Trim();
+                            if (!string.IsNullOrWhiteSpace(entry))
                             {
-                                Dockerfile = developerContainer.Dockerfile,
-                            }, CreateTarballForDockerfileDirectory(developerContainer.Context), Array.Empty<AuthConfig>(), new Dictionary<string, string>(), new ForwardingProgress<JSONMessage>((JSONMessage msg) =>
-                            {
-                                var entry = msg.Status ?? msg.Stream?.Trim();
-                                if (!string.IsNullOrWhiteSpace(entry))
+                                if (lastEntry != entry)
                                 {
-                                    if (lastEntry != entry)
-                                    {
-                                        _logger.LogInformation($"Building {developerContainer.Name}: {entry}");
-                                    }
-                                    lastEntry = entry;
+                                    _logger.LogInformation($"Building {developerContainer.Name}: {entry}");
                                 }
+                                lastEntry = entry;
+                            }
 
-                                if (entry != null && entry.StartsWith("Successfully built ", StringComparison.InvariantCulture))
-                                {
-                                    developerContainer.ImageId = entry.Substring("Successfully built ".Length);
-                                }
-                            }), cancellationToken).ConfigureAwait(false);
+                            if (entry != null && entry.StartsWith("Successfully built ", StringComparison.InvariantCulture))
+                            {
+                                developerContainer.ImageId = entry.Substring("Successfully built ".Length);
+                            }
+                        }), cancellationToken).ConfigureAwait(false);
                         if (string.IsNullOrWhiteSpace(developerContainer.ImageId))
                         {
                             throw new DevelopmentStartupException($"Docker image for {developerContainer.Name} failed to build. Check the output for more information.");
@@ -210,7 +210,7 @@
                             6379
                         }
                     });
-                if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
+                if (_googleCloudUsage.HasFlag(GoogleCloudUsageFlag.Datastore))
                 {
                     expectedContainers.Add(
                         new ExpectedContainer
@@ -224,7 +224,8 @@
                             }
                         }
                     );
-                };
+                }
+                ;
 
                 var runningContainers = (await client.Containers.ListContainersAsync(new ContainersListParameters
                 {
@@ -239,7 +240,7 @@
                     }
                 }
 
-                if ((_googleCloudUsage & GoogleCloudUsageFlag.Datastore) != 0)
+                if (_googleCloudUsage.HasFlag(GoogleCloudUsageFlag.Datastore))
                 {
                     _logger.LogInformation("This application will connect to the local Redis emulator.");
                 }
