@@ -23,6 +23,8 @@
 		<PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.14.0-beta.1" />
 		<PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
 		<PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
+		<PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
+		<PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
 		<PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
 		<PackageVersion Include="SourceGear.sqlite3" Version="3.50.4.5" />
 		<PackageVersion Include="SQLitePCLRaw.provider.dynamic_cdecl" Version="3.0.2" />

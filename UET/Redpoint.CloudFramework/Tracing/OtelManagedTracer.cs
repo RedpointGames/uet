@@ -9,7 +9,9 @@
 
     internal class OtelManagedTracer : IManagedTracer
     {
-        static ActivitySource _source = new ActivitySource("Redpoint.CloudFramework.OtelManagedTracer");
+        internal static string _sourceName = "Redpoint.CloudFramework.OtelManagedTracer";
+
+        static ActivitySource _source = new ActivitySource(_sourceName);
 
         private class OtelSpan : ISpan
         {

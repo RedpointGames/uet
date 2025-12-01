@@ -251,11 +251,13 @@ namespace Redpoint.CloudFramework.Startup
                             {
                                 tracing
                                     .AddAspNetCoreInstrumentation()
+                                    .AddHttpClientInstrumentation()
                                     .AddOtlpExporter(otlp =>
                                     {
                                         otlp.Endpoint = new Uri(otlpEndpoint!);
                                         otlp.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
                                     })
+                                    .AddSource(OtelManagedTracer._sourceName)
                                     .SetSampler(new TraceIdRatioBasedSampler(_tracingRate));
                             });
                     }
