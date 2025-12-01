@@ -31,6 +31,14 @@ namespace Redpoint.CloudFramework.Startup
         /// </summary>
         TBase RequireGoogleCloudSecretManagerConfiguration();
 
+        [Obsolete("Call SetTraceSamplingRate instead.")]
+        TBase UseSentryTracing(double tracingRate);
+
+        [Obsolete("Call SetTraceSamplingRate instead.")]
+        TBase UsePerformanceTracing(double tracingRate);
+
+        TBase SetTraceSamplingRate(double tracingRate);
+
         TBase UseCustomConfigLayers(Action<IHostEnvironment, IConfigurationBuilder> customConfigLayers);
     }
 }
