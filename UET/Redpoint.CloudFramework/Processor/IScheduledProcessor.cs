@@ -3,9 +3,9 @@
     using Quartz;
     using System.Threading.Tasks;
 
-    public interface IScheduledProcessor
+    public interface IScheduledProcessor : IProcessor
     {
-        static abstract string RoleName { get; }
+        static abstract void ConfigureSchedule(TriggerBuilder trigger);
 
         Task ExecuteAsync(IJobExecutionContext context);
     }
