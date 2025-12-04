@@ -44,7 +44,8 @@
 
                 var scheduledJobKey = await ScheduledJobModel.GetKey(_globalRepository, T.RoleName);
                 var scheduledJob = await _globalRepository.LoadAsync<ScheduledJobModel>(string.Empty, scheduledJobKey, cancellationToken: cancellationToken);
-                var lastCompletedDate = scheduledJob?.dateLastCompletedUtc ?? Instant.MinValue;
+                // Instant.MinValue is not valid to be converted back to DateTimeUtc, so just use Unix epoch for "infinitely in the past".
+                var lastCompletedDate = scheduledJob?.dateLastCompletedUtc ?? Instant.FromUnixTimeSeconds(0);
                 var nextTime = T.CronExpression.GetNextOccurrence(lastCompletedDate.ToDateTimeUtc());
 
                 _logger.LogInformation($"{_typeName}.PollAsync: Next time to run is '{nextTime}'.");
