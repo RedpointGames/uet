@@ -1,0 +1,19 @@
+﻿namespace Redpoint.CloudFramework.Processor.Models
+{
+    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Repository;
+    using System.Threading.Tasks;
+
+    [Kind("redpointQuartzCalendar")]
+    internal sealed class RedpointQuartzCalendarModel : Model<RedpointQuartzTriggerModel>
+    {
+        public static async Task<Key> GetKey(IGlobalRepository globalRepository, string schedName, string calendarName)
+        {
+            var keyFactory = await globalRepository.GetKeyFactoryAsync<RedpointQuartzCalendarModel>(string.Empty);
+            return keyFactory.CreateKey($"{schedName}:{calendarName}");
+        }
+
+        // @todo
+    }
+}

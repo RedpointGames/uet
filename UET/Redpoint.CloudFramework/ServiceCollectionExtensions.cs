@@ -130,6 +130,10 @@
             services.AddQuartz(options =>
             {
                 options.UseSimpleTypeLoader();
+                options.UsePersistentStore<QuartzJobStore>(options =>
+                {
+                    options.
+                })
                 // @todo: In future we should support clustering, but for now we do not.
                 options.UseInMemoryStore();
             });
