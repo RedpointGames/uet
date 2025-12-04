@@ -13,6 +13,7 @@
     using System.Diagnostics.CodeAnalysis;
     using Quartz;
     using OpenTelemetry.Metrics;
+    using System.Reflection;
 
     internal class DefaultServiceAppConfigurator : BaseConfigurator<IServiceAppConfigurator>, IServiceAppConfigurator
     {
@@ -22,27 +23,51 @@
         private Func<IConfiguration, string, HelmConfiguration>? _helmConfig;
         private string[] _defaultRoleNames = Array.Empty<string>();
 
-        public IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor
+        public IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IProcessor
         {
             _processors[T.RoleName] = (services) =>
             {
                 services.AddTransient<T>();
-                services.AddHostedService<ContinuousProcessorHostedService<T>>();
+                InternalAddProcessor(services, typeof(T));
             };
             return this;
         }
 
-        public IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(Action<TriggerBuilder> triggerBuilder) where T : class, IScheduledProcessor
+        private static void InternalAddProcessor(IServiceCollection services, Type type)
         {
-            _processors[T.RoleName] = (services) =>
+            if (type.IsAssignableTo(typeof(IContinuousProcessor)))
             {
-                services.AddTransient<T>();
-                services.AddTransient<IQuartzScheduledProcessorBinding>(_ =>
-                {
-                    return new QuartzScheduledProcessorBinding<T>(T.RoleName, triggerBuilder);
-                });
-            };
-            return this;
+                typeof(DefaultServiceAppConfigurator)
+                    .GetMethod(
+                        $"{nameof(InternalAddContinuousProcessor)}`1",
+                        BindingFlags.NonPublic | BindingFlags.Static)!
+                    .Invoke(
+                        null,
+                        new object?[] { services });
+            }
+            else if (type.IsAssignableTo(typeof(IScheduledProcessor)))
+            {
+                typeof(DefaultServiceAppConfigurator)
+                    .GetMethod(
+                        $"{nameof(InternalAddScheduledProcessor)}`1",
+                        BindingFlags.NonPublic | BindingFlags.Static)!
+                    .Invoke(
+                        null,
+                        new object?[] { services });
+            }
+        }
+
+        private static void InternalAddContinuousProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(IServiceCollection services) where T : class, IContinuousProcessor
+        {
+            services.AddHostedService<ContinuousProcessorHostedService<T>>();
+        }
+
+        private static void InternalAddScheduledProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(IServiceCollection services) where T : class, IScheduledProcessor
+        {
+            services.AddTransient<IQuartzScheduledProcessorBinding>(_ =>
+            {
+                return new QuartzScheduledProcessorBinding<T>(T.RoleName, T.ConfigureSchedule);
+            });
         }
 
         public IServiceAppConfigurator UseDevelopmentDockerContainers(Func<IConfiguration, string, DevelopmentDockerContainer[]> factory)

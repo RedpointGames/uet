@@ -4,10 +4,8 @@
     using Microsoft.Extensions.Hosting;
     using System.Threading.Tasks;
 
-    public interface IContinuousProcessor
+    public interface IContinuousProcessor : IProcessor
     {
-        static abstract string RoleName { get; }
-
         Task ExecuteAsync(CancellationToken shutdownCancellationToken);
     }
 }

@@ -13,9 +13,7 @@
         [RequiresDynamicCode("This internally uses HostBuilder, which requires dynamic code.")]
         Task<int> StartServiceApp(string[] args);
 
-        IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor;
-
-        IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(Action<TriggerBuilder> triggerBuilder) where T : class, IScheduledProcessor;
+        IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IProcessor;
 
         IServiceAppConfigurator UseServiceConfiguration(Action<IServiceCollection> configureServices);
 
