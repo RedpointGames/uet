@@ -23,51 +23,27 @@
         private Func<IConfiguration, string, HelmConfiguration>? _helmConfig;
         private string[] _defaultRoleNames = Array.Empty<string>();
 
-        public IServiceAppConfigurator AddProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IProcessor
+        public IServiceAppConfigurator AddContinuousProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor
         {
             _processors[T.RoleName] = (services) =>
             {
                 services.AddTransient<T>();
-                InternalAddProcessor(services, typeof(T));
+                services.AddHostedService<ContinuousProcessorHostedService<T>>();
             };
             return this;
         }
 
-        private static void InternalAddProcessor(IServiceCollection services, Type type)
+        public IServiceAppConfigurator AddScheduledProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IScheduledProcessor
         {
-            if (type.IsAssignableTo(typeof(IContinuousProcessor)))
+            _processors[T.RoleName] = (services) =>
             {
-                typeof(DefaultServiceAppConfigurator)
-                    .GetMethod(
-                        $"{nameof(InternalAddContinuousProcessor)}`1",
-                        BindingFlags.NonPublic | BindingFlags.Static)!
-                    .Invoke(
-                        null,
-                        new object?[] { services });
-            }
-            else if (type.IsAssignableTo(typeof(IScheduledProcessor)))
-            {
-                typeof(DefaultServiceAppConfigurator)
-                    .GetMethod(
-                        $"{nameof(InternalAddScheduledProcessor)}`1",
-                        BindingFlags.NonPublic | BindingFlags.Static)!
-                    .Invoke(
-                        null,
-                        new object?[] { services });
-            }
-        }
-
-        private static void InternalAddContinuousProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(IServiceCollection services) where T : class, IContinuousProcessor
-        {
-            services.AddHostedService<ContinuousProcessorHostedService<T>>();
-        }
-
-        private static void InternalAddScheduledProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(IServiceCollection services) where T : class, IScheduledProcessor
-        {
-            services.AddTransient<IQuartzScheduledProcessorBinding>(_ =>
-            {
-                return new QuartzScheduledProcessorBinding<T>(T.RoleName, T.ConfigureSchedule);
-            });
+                services.AddTransient<T>();
+                services.AddTransient<IQuartzScheduledProcessorBinding>(_ =>
+                {
+                    return new QuartzScheduledProcessorBinding<T>(T.RoleName, T.ConfigureSchedule);
+                });
+            };
+            return this;
         }
 
         public IServiceAppConfigurator UseDevelopmentDockerContainers(Func<IConfiguration, string, DevelopmentDockerContainer[]> factory)
