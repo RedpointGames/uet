@@ -34,14 +34,20 @@
             _logger = logger;
         }
 
-        private async Task RunAsync(CancellationToken cancellationToken)
+        private async Task PollAsync(CancellationToken cancellationToken)
         {
+            _logger.LogInformation($"{_typeName}.PollAsync: Starting main loop for scheduled processor '{T.RoleName}'...");
+
             while (!cancellationToken.IsCancellationRequested)
             {
+                _logger.LogInformation($"{_typeName}.PollAsync: Checking for next occurrance of scheduled job '{T.RoleName}'...");
+
                 var scheduledJobKey = await ScheduledJobModel.GetKey(_globalRepository, T.RoleName);
                 var scheduledJob = await _globalRepository.LoadAsync<ScheduledJobModel>(string.Empty, scheduledJobKey, cancellationToken: cancellationToken);
                 var lastCompletedDate = scheduledJob?.dateLastCompletedUtc ?? Instant.MinValue;
                 var nextTime = T.CronExpression.GetNextOccurrence(lastCompletedDate.ToDateTimeUtc());
+
+                _logger.LogInformation($"{_typeName}.PollAsync: Next time to run is '{nextTime}'.");
 
                 var now = SystemClock.Instance.GetCurrentInstant();
 
@@ -50,17 +56,17 @@
                     // Time has elapsed, we need to run.
                     try
                     {
-                        _logger.LogInformation($"{_typeName}.RunAsync: Acquiring lock for scheduled job '{T.RoleName}'...");
+                        _logger.LogInformation($"{_typeName}.PollAsync: Acquiring lock for scheduled job '{T.RoleName}'...");
                         await _globalLockService.AcquireAndUse(string.Empty, scheduledJobKey, async () =>
                         {
                             try
                             {
-                                _logger.LogInformation($"{_typeName}.RunAsync: Executing scheduled job '{T.RoleName}'...");
+                                _logger.LogInformation($"{_typeName}.PollAsync: Executing scheduled job '{T.RoleName}'...");
                                 var instance = _serviceProvider.GetRequiredService<T>();
                                 await instance.ExecuteAsync(cancellationToken);
                                 cancellationToken.ThrowIfCancellationRequested();
 
-                                _logger.LogInformation($"{_typeName}.RunAsync: Scheduled processor completed successfully, updating date last completed...");
+                                _logger.LogInformation($"{_typeName}.PollAsync: Scheduled processor completed successfully, updating date last completed...");
                                 var scheduledJob = await _globalRepository.LoadAsync<ScheduledJobModel>(string.Empty, scheduledJobKey, cancellationToken: cancellationToken);
                                 if (scheduledJob == null)
                                 {
@@ -74,13 +80,13 @@
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, $"{_typeName}.RunAsync: Encountered an exception while running scheduled processor.");
+                                _logger.LogError(ex, $"{_typeName}.PollAsync: Encountered an exception while running scheduled processor.");
                             }
                         });
                     }
                     catch (LockAcquisitionException)
                     {
-                        _logger.LogInformation($"{_typeName}.RunAsync: Unable to acquire lock to run scheduled job '{T.RoleName}', another instance is executing this task. Waiting 5 minutes and then trying again...");
+                        _logger.LogInformation($"{_typeName}.PollAsync: Unable to acquire lock to run scheduled job '{T.RoleName}', another instance is executing this task. Waiting 5 minutes and then trying again...");
                         await Task.Delay(5 * 60 * 1000, cancellationToken);
                     }
                 }
@@ -90,10 +96,12 @@
                     var timeToWait = nextTime.HasValue
                         ? Duration.Min((Instant.FromDateTimeUtc(nextTime.Value) - now), Duration.FromHours(1))
                         : Duration.FromHours(1);
-                    _logger.LogInformation($"{_typeName}.RunAsync: Not yet time to run scheduled job, waiting {timeToWait}.");
+                    _logger.LogInformation($"{_typeName}.PollAsync: Not yet time to run scheduled job, waiting {timeToWait}.");
                     await Task.Delay((int)Math.Ceiling(timeToWait.TotalMilliseconds), cancellationToken);
                 }
             }
+
+            _logger.LogInformation($"{_typeName}.PollAsync: Exiting while loop.");
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -104,10 +112,20 @@
             var cancellationTokenSource = _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             _logger.LogInformation($"{_typeName}.StartAsync: Starting the running task via Task.Run.");
-            _runningTask = Task.Run(() =>
+            _runningTask = Task.Run(async () =>
             {
-                _logger.LogInformation($"{_typeName}.StartAsync: Calling ExecuteAsync inside Task.Run.");
-                return RunAsync(cancellationTokenSource.Token);
+            tryAgain:
+                _logger.LogInformation($"{_typeName}.StartAsync: Calling PollAsync inside Task.Run.");
+                try
+                {
+                    await PollAsync(cancellationTokenSource.Token);
+                }
+                catch (Exception ex) when (!cancellationTokenSource.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, $"{_typeName}.StartAsync: Exception while calling PollAsync.");
+                    await Task.Delay(1 * 60 * 1000, cancellationTokenSource.Token);
+                    goto tryAgain;
+                }
             }, cancellationTokenSource.Token);
         }
 
