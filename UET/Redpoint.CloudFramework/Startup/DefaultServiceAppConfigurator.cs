@@ -11,7 +11,6 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.CloudFramework.Tracing;
     using System.Diagnostics.CodeAnalysis;
-    using Quartz;
     using OpenTelemetry.Metrics;
     using System.Reflection;
 
@@ -38,10 +37,7 @@
             _processors[T.RoleName] = (services) =>
             {
                 services.AddTransient<T>();
-                services.AddTransient<IQuartzScheduledProcessorBinding>(_ =>
-                {
-                    return new QuartzScheduledProcessorBinding<T>(T.RoleName, T.ConfigureSchedule);
-                });
+                services.AddHostedService<ScheduledProcessorHostedService<T>>();
             };
             return this;
         }
