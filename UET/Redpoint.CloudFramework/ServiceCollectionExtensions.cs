@@ -20,7 +20,6 @@
     using Redpoint.CloudFramework.Metric;
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Options;
-    using Quartz;
     using Redpoint.CloudFramework.Processor;
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Repository.Validation;
@@ -115,25 +114,6 @@
             }
             services.AddSingleton<IGlobalShardedCounter, DefaultGlobalShardedCounter>();
             services.AddSingleton<IDatastoreContentionRetry, DefaultDatastoreContentionRetry>();
-        }
-
-        /// <summary>
-        /// Adds Quartz background processing services for Cloud Framework. You don't need to call this if you're using <see cref="CloudFramework"/> to define your application.
-        /// </summary>
-        /// <param name="services">The service collection to register services with.</param>
-        public static void AddCloudFrameworkQuartz(this IServiceCollection services)
-        {
-            services.TryAddEnumerable(new[]
-            {
-                ServiceDescriptor.Singleton<IPostConfigureOptions<QuartzOptions>, QuartzCloudFrameworkPostConfigureOptions>()
-            });
-            services.AddQuartz(options =>
-            {
-                options.UseSimpleTypeLoader();
-                // @todo: In future we should support clustering, but for now we do not.
-                options.UseInMemoryStore();
-            });
-            services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
         }
     }
 }

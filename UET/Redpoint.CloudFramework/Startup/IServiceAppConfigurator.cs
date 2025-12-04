@@ -6,7 +6,6 @@
     using System;
     using System.Threading.Tasks;
     using System.Diagnostics.CodeAnalysis;
-    using Quartz;
 
     public interface IServiceAppConfigurator : IBaseConfigurator<IServiceAppConfigurator>
     {

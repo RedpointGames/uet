@@ -3,7 +3,6 @@
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.Configuration;
-    using Quartz;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.Processor;
     using System;
@@ -33,8 +32,8 @@
 
         Task StartWebApp(IWebHost host);
 
-        IWebAppConfigurator AddDevelopmentProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor;
+        IWebAppConfigurator AddContinuousProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor;
 
-        IWebAppConfigurator AddDevelopmentProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(Action<TriggerBuilder> triggerBuilder) where T : class, IScheduledProcessor;
+        IWebAppConfigurator AddScheduledProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IScheduledProcessor;
     }
 }

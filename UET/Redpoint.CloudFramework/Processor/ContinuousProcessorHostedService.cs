@@ -3,6 +3,8 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     internal class ContinuousProcessorHostedService<T> : IHostedService, IAsyncDisposable where T : IContinuousProcessor
@@ -12,6 +14,8 @@
 
         private CancellationTokenSource? _cancellationTokenSource = null;
         private Task? _runningTask = null;
+
+        private static readonly string _typeName = $"ContinuousProcessorHostedService<{typeof(T).Name}>";
 
         public ContinuousProcessorHostedService(
             IServiceProvider serviceProvider,
@@ -25,14 +29,14 @@
         {
             await StopInternalAsync(cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StartAsync: Creating new CTS.");
+            _logger.LogInformation($"{_typeName}.StartAsync: Creating new CTS.");
             var cancellationTokenSource = _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StartAsync: Starting the running task via Task.Run.");
+            _logger.LogInformation($"{_typeName}.StartAsync: Starting the running task via Task.Run.");
             _runningTask = Task.Run(() =>
             {
                 var instance = _serviceProvider.GetRequiredService<T>();
-                _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StartAsync: Calling ExecuteAsync inside Task.Run.");
+                _logger.LogInformation($"{_typeName}.StartAsync: Calling ExecuteAsync inside Task.Run.");
                 return instance.ExecuteAsync(cancellationTokenSource.Token);
             }, cancellationTokenSource.Token);
         }
@@ -43,39 +47,39 @@
             {
                 if (_runningTask != null)
                 {
-                    _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopInternalAsync: Cancelling CTS.");
+                    _logger.LogInformation($"{_typeName}.StopInternalAsync: Cancelling CTS.");
                     _cancellationTokenSource.Cancel();
                     try
                     {
-                        _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopInternalAsync: Awaiting the running task to allow it to gracefully stop...");
+                        _logger.LogInformation($"{_typeName}.StopInternalAsync: Awaiting the running task to allow it to gracefully stop...");
                         await _runningTask.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopInternalAsync: Awaited task threw OperationCanceledException (this is normal).");
+                        _logger.LogInformation($"{_typeName}.StopInternalAsync: Awaited task threw OperationCanceledException (this is normal).");
                     }
                     finally
                     {
-                        _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopInternalAsync: Clearing _runningTask to null.");
+                        _logger.LogInformation($"{_typeName}.StopInternalAsync: Clearing _runningTask to null.");
                         _runningTask = null;
                     }
                 }
-                _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopInternalAsync: Disposing CTS.");
+                _logger.LogInformation($"{_typeName}.StopInternalAsync: Disposing CTS.");
                 _cancellationTokenSource.Dispose();
-                _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopInternalAsync: Clearing CTS to null.");
+                _logger.LogInformation($"{_typeName}.StopInternalAsync: Clearing CTS to null.");
                 _cancellationTokenSource = null;
             }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.StopAsync: Deferring to StopInternalAsync.");
+            _logger.LogInformation($"{_typeName}.StopAsync: Deferring to StopInternalAsync.");
             await StopInternalAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public async ValueTask DisposeAsync()
         {
-            _logger.LogInformation($"ContinuousProcessorHostedService<{typeof(T).Name}>.DisposeAsync: Deferring to StopAsync.");
+            _logger.LogInformation($"{_typeName}.DisposeAsync: Deferring to StopAsync.");
             await StopAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }

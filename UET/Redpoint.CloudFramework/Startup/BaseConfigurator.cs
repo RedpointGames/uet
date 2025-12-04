@@ -13,7 +13,6 @@ namespace Redpoint.CloudFramework.Startup
     using OpenTelemetry.Metrics;
     using OpenTelemetry.Resources;
     using OpenTelemetry.Trace;
-    using Quartz;
     using RDCommandLine::Microsoft.Extensions.Logging.Console;
     using Redpoint.CloudFramework.BigQuery;
     using Redpoint.CloudFramework.Configuration;
@@ -289,11 +288,6 @@ namespace Redpoint.CloudFramework.Startup
             }
 
             services.AddCloudFrameworkCore();
-
-            if (services.Any(x => x.ServiceType == typeof(IQuartzScheduledProcessorBinding)))
-            {
-                services.AddCloudFrameworkQuartz();
-            }
         }
     }
 }

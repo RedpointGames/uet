@@ -1,14 +1,14 @@
 ﻿namespace Redpoint.CloudFramework.Processor
 {
-    using Quartz;
+    using Cronos;
     using System.Threading.Tasks;
 
     public interface IScheduledProcessor
     {
         static abstract string RoleName { get; }
 
-        static abstract void ConfigureSchedule(TriggerBuilder trigger);
+        static abstract CronExpression CronExpression { get; }
 
-        Task ExecuteAsync(IJobExecutionContext context);
+        Task ExecuteAsync(CancellationToken cancellationToken);
     }
 }

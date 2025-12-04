@@ -12,7 +12,6 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using OpenTelemetry.Metrics;
-    using Quartz;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.DataProtection;
     using Redpoint.CloudFramework.Locking;
@@ -49,7 +48,7 @@
             return this;
         }
 
-        public IWebAppConfigurator AddDevelopmentProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor
+        public IWebAppConfigurator AddContinuousProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor
         {
             _processors[T.RoleName] = (services) =>
             {
@@ -59,15 +58,12 @@
             return this;
         }
 
-        public IWebAppConfigurator AddDevelopmentProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(Action<TriggerBuilder> triggerBuilder) where T : class, IScheduledProcessor
+        public IWebAppConfigurator AddScheduledProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IScheduledProcessor
         {
             _processors[T.RoleName] = (services) =>
             {
                 services.AddTransient<T>();
-                services.AddTransient<IQuartzScheduledProcessorBinding>(_ =>
-                {
-                    return new QuartzScheduledProcessorBinding<T>(T.RoleName, triggerBuilder);
-                });
+                services.AddHostedService<ScheduledProcessorHostedService<T>>();
             };
             return this;
         }
