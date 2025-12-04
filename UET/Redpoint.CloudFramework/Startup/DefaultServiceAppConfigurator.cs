@@ -18,7 +18,7 @@
     {
         private readonly Dictionary<string, Action<IServiceCollection>> _processors = new Dictionary<string, Action<IServiceCollection>>();
         private Func<IConfiguration, string, DevelopmentDockerContainer[]>? _dockerFactory;
-        private Action<IServiceCollection>? _serviceConfiguration;
+        private Action<IServiceCollection, IConfiguration, IHostEnvironment>? _serviceConfiguration;
         private Func<IConfiguration, string, HelmConfiguration>? _helmConfig;
         private string[] _defaultRoleNames = Array.Empty<string>();
 
@@ -154,7 +154,7 @@
                     }
 
                     this.PreStartupConfigureServices(context.HostingEnvironment, context.Configuration, services);
-                    this._serviceConfiguration?.Invoke(services);
+                    this._serviceConfiguration?.Invoke(services, context.Configuration, context.HostingEnvironment);
                     this.PostStartupConfigureServices(services);
 
                     foreach (var roleName in selectedRoleNames)
@@ -167,7 +167,7 @@
             return 0;
         }
 
-        public IServiceAppConfigurator UseServiceConfiguration(Action<IServiceCollection> configureServices)
+        public IServiceAppConfigurator UseServiceConfiguration(Action<IServiceCollection, IConfiguration, IHostEnvironment> configureServices)
         {
             _serviceConfiguration = configureServices;
             return this;

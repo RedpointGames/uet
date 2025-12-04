@@ -6,6 +6,7 @@
     using System;
     using System.Threading.Tasks;
     using System.Diagnostics.CodeAnalysis;
+    using Microsoft.Extensions.Hosting;
 
     public interface IServiceAppConfigurator : IBaseConfigurator<IServiceAppConfigurator>
     {
@@ -16,7 +17,7 @@
 
         IServiceAppConfigurator AddScheduledProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IScheduledProcessor;
 
-        IServiceAppConfigurator UseServiceConfiguration(Action<IServiceCollection> configureServices);
+        IServiceAppConfigurator UseServiceConfiguration(Action<IServiceCollection, IConfiguration, IHostEnvironment> configureServices);
 
         IServiceAppConfigurator UseDevelopmentDockerContainers(Func<IConfiguration, string, DevelopmentDockerContainer[]> factory);
 
