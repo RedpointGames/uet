@@ -63,8 +63,11 @@
                             try
                             {
                                 _logger.LogInformation($"{_typeName}.PollAsync: Executing scheduled job '{T.RoleName}'...");
-                                var instance = _serviceProvider.GetRequiredService<T>();
-                                await instance.ExecuteAsync(cancellationToken);
+                                {
+                                    await using var scope = _serviceProvider.CreateAsyncScope();
+                                    var instance = scope.ServiceProvider.GetRequiredService<T>();
+                                    await instance.ExecuteAsync(cancellationToken);
+                                }
                                 cancellationToken.ThrowIfCancellationRequested();
 
                                 _logger.LogInformation($"{_typeName}.PollAsync: Scheduled processor completed successfully, updating date last completed...");

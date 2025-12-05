@@ -33,11 +33,12 @@
             var cancellationTokenSource = _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             _logger.LogInformation($"{_typeName}.StartAsync: Starting the running task via Task.Run.");
-            _runningTask = Task.Run(() =>
+            _runningTask = Task.Run(async () =>
             {
-                var instance = _serviceProvider.GetRequiredService<T>();
+                await using var scope = _serviceProvider.CreateAsyncScope();
+                var instance = scope.ServiceProvider.GetRequiredService<T>();
                 _logger.LogInformation($"{_typeName}.StartAsync: Calling ExecuteAsync inside Task.Run.");
-                return instance.ExecuteAsync(cancellationTokenSource.Token);
+                await instance.ExecuteAsync(cancellationTokenSource.Token);
             }, cancellationTokenSource.Token);
         }
 
