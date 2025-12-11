@@ -251,6 +251,8 @@
                 Directory.Delete(Path.Combine(baseFolder, "Old"), true);
             }
 
+            var isRunningUnderWinPE = Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1";
+
             var targetPathForPath = Path.Combine(baseFolder, "Current");
             var needsToUpdateLink = true;
             var latestLink = new DirectoryInfo(Path.Combine(baseFolder, "Current"));
@@ -281,7 +283,7 @@
                 }
                 catch (IOException ex) when (
                     ex.Message.Contains("Incorrect function", StringComparison.Ordinal) &&
-                    Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1")
+                    isRunningUnderWinPE)
                 {
                     targetPathForPath = Path.Combine(baseFolder, version);
                 }
@@ -289,55 +291,55 @@
 
             if (OperatingSystem.IsWindows())
             {
-                foreach (var existingPath in (Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-                    .Concat((Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)))
+                if (!isRunningUnderWinPE)
                 {
-                    if (!existingPath.StartsWith(baseFolder, StringComparison.InvariantCultureIgnoreCase))
+                    foreach (var existingPath in (Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                        .Concat((Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)))
                     {
-                        var uetPath = Path.Combine(existingPath, "uet.exe");
-                        if (File.Exists(uetPath))
+                        if (!existingPath.StartsWith(baseFolder, StringComparison.InvariantCultureIgnoreCase))
                         {
-                            logger.LogError($"An unmanaged version of UET was found on your PATH at '{uetPath}'. Remove the unmanaged UET from this directory, or remove the directory from your PATH. Leaving an unmanaged version of UET on the PATH may result in unintended behaviour.");
+                            var uetPath = Path.Combine(existingPath, "uet.exe");
+                            if (File.Exists(uetPath))
+                            {
+                                logger.LogError($"An unmanaged version of UET was found on your PATH at '{uetPath}'. Remove the unmanaged UET from this directory, or remove the directory from your PATH. Leaving an unmanaged version of UET on the PATH may result in unintended behaviour.");
+                            }
                         }
                     }
-                }
 
-                var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
-                var hasPath = false;
-                var didRemove = false;
-                for (var i = path.Count - 1; i >= 0; i--)
-                {
-                    var entry = path[i];
-                    if (entry == targetPathForPath)
+                    var path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)!.Split(Path.PathSeparator).ToList();
+                    var hasPath = false;
+                    var didRemove = false;
+                    for (var i = path.Count - 1; i >= 0; i--)
                     {
-                        // We already have it in the PATH.
-                        hasPath = true;
+                        var entry = path[i];
+                        if (entry == targetPathForPath)
+                        {
+                            // We already have it in the PATH.
+                            hasPath = true;
+                        }
+                        else if (entry.StartsWith(baseFolder, StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Remove old versions from PATH.
+                            path.RemoveAt(i);
+                            didRemove = true;
+                        }
                     }
-                    else if (entry.StartsWith(baseFolder, StringComparison.OrdinalIgnoreCase))
+                    if (!hasPath)
                     {
-                        // Remove old versions from PATH.
-                        path.RemoveAt(i);
-                        didRemove = true;
+                        logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your PATH variable...");
+                        path.Add(targetPathForPath);
+                    }
+                    if (!hasPath || didRemove)
+                    {
+                        Environment.SetEnvironmentVariable("PATH", string.Join(Path.PathSeparator, path), EnvironmentVariableTarget.User);
+                        logger.LogInformation($"Your PATH environment variable has been updated. You may need to restart your terminal for the changes to take effect.");
                     }
                 }
-                if (!hasPath)
+                else
                 {
-                    logger.LogInformation($"Adding {Path.Combine(baseFolder, "Current")} to your PATH variable...");
-                    path.Add(targetPathForPath);
-                }
-                if (!hasPath || didRemove)
-                {
-                    Environment.SetEnvironmentVariable("PATH", string.Join(Path.PathSeparator, path), EnvironmentVariableTarget.User);
-                    logger.LogInformation($"Your PATH environment variable has been updated. You may need to restart your terminal for the changes to take effect.");
-                }
-                if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1")
-                {
-                    logger.LogInformation($"Creating {Path.Combine(baseFolder, "UpdatePathForWinPE.bat")} for environment import.");
-                    File.WriteAllText(
-                        Path.Combine(baseFolder, "UpdatePathForWinPE.bat"),
-                        $"""
-                        set PATH={string.Join(Path.PathSeparator, path)}
-                        """);
+                    logger.LogInformation($"Running under WinPE environment; copying new uet.exe to '{Path.Combine(baseFolder, "WinPE")}' folder assuming no further upgrades will happen in this session.");
+                    Directory.CreateDirectory(Path.Combine(baseFolder, "WinPE"));
+                    File.Copy(Path.Combine(targetPathForPath, "uet.exe"), Path.Combine(baseFolder, "WinPE", "uet.exe"));
                 }
             }
             else

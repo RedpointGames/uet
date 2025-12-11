@@ -156,19 +156,14 @@
                         Path.Combine(temporary.ReservedPath, "boot.bat"),
                         """
                         @echo off
-                        echo "Starting WinPE for UET agent bootstrap..."
+                        echo Starting WinPE for UET agent bootstrap...
                         wpeinit
                         set UET_RUNNING_UNDER_WINPE=1
-                        echo "Upgrading from version: "
+                        echo Upgrading from version:
                         uet --version
                         uet upgrade
-                        X:\ProgramData\UET\UpdatePathForWinPE.bat
-                        echo "Now executing version: "
-                        uet --version
-
-                        echo "Command prompt is now starting."
-                        @echo on
-                        cmd
+                        move X:\ProgramData\UET\WinPE\uet.exe X:\Windows\System32\uet.exe
+                        cmd.exe
                         """);
                 }
 
