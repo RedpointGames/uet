@@ -279,6 +279,12 @@
                     logger.LogWarning("You don't have permission to create symbolic links on this system. Your PATH will be set to the specific UET version instead, which will require you to restart your terminal to start using the new UET version.");
                     targetPathForPath = Path.Combine(baseFolder, version);
                 }
+                catch (IOException ex) when (
+                    ex.Message.Contains("Incorrect function", StringComparison.Ordinal) &&
+                    Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1")
+                {
+                    targetPathForPath = Path.Combine(baseFolder, version);
+                }
             }
 
             if (OperatingSystem.IsWindows())
@@ -323,6 +329,15 @@
                 {
                     Environment.SetEnvironmentVariable("PATH", string.Join(Path.PathSeparator, path), EnvironmentVariableTarget.User);
                     logger.LogInformation($"Your PATH environment variable has been updated. You may need to restart your terminal for the changes to take effect.");
+                }
+                if (Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1")
+                {
+                    logger.LogInformation($"Creating {Path.Combine(baseFolder, "UpdatePathForWinPE.bat")} for environment import.");
+                    File.WriteAllText(
+                        Path.Combine(baseFolder, "UpdatePathForWinPE.bat"),
+                        $"""
+                        set PATH={string.Join(Path.PathSeparator, path)}
+                        """);
                 }
             }
             else

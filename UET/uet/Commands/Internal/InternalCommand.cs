@@ -40,6 +40,7 @@
     using UET.Commands.Internal.RegisterGitLabRunner;
     using UET.Commands.Internal.TestDatabaseLibrary;
     using UET.Commands.Internal.VerifyDllFileIntegrity;
+    using UET.Commands.Internal.WindowsImaging;
 
     internal sealed class InternalCommand
     {
@@ -88,6 +89,7 @@
                 RegisterGitLabRunnerCommand.CreateRegisterGitLabRunnerCommand(),
                 TestDatabaseLibraryCommand.CreateTestDatabaseLibraryCommand(),
                 VerifyDllFileIntegrityCommand.CreateVerifyDllFileIntegrityCommand(),
+                WindowsImagingCommand.CreateWindowsImagingCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
