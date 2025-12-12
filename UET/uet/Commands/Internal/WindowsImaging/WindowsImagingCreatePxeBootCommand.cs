@@ -30,11 +30,14 @@
         public sealed class Options
         {
             public Option<string> Path;
+            public Option<bool> NoAutoUpgrade;
 
             public Options()
             {
-                Path = new Option<string>("--path") { IsRequired = false };
+                Path = new Option<string>("--path") { IsRequired = true };
                 Path.AddAlias("-p");
+                NoAutoUpgrade = new Option<bool>("--no-auto-upgrade");
+                NoAutoUpgrade.AddAlias("-n");
             }
         }
 
@@ -74,17 +77,20 @@
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
+                var path = context.ParseResult.GetValueForOption(_options.Path)!;
+                var noAutoUpgrade = context.ParseResult.GetValueForOption(_options.NoAutoUpgrade)!;
+
                 await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.WindowsADK", context.GetCancellationToken());
 
                 // @note: When accepted to WinGet repository, uncomment this.
                 // await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.WindowsADK.WinPEAddon", context.GetCancellationToken());
 
                 await using ((await _reservationManagerForUet.ReserveAsync("WinPEPreparation").ConfigureAwait(false))
-                    .AsAsyncDisposable(out var temporary)
+                    .AsAsyncDisposable(out var winPeDestination)
                     .ConfigureAwait(false))
                 {
                     _logger.LogInformation("Cleaning up existing files...");
-                    var targetPath = Path.Combine(temporary.ReservedPath, "amd64");
+                    var targetPath = Path.Combine(winPeDestination.ReservedPath, "amd64");
                     await DirectoryAsync.DeleteAsync(targetPath, true).ConfigureAwait(false);
 
                     var adkRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Windows Kits", "10", "Assessment and Deployment Kit");
@@ -107,6 +113,80 @@
                         return exitCode;
                     }
 
+                    _logger.LogInformation("Installing optional components into WinPE image...");
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "dism.exe"),
+                            Arguments = [
+                                "/mount-image",
+                                $"/imagefile:{Path.Combine(targetPath, "media", "sources", "boot.wim")}",
+                                $"/mountdir:{Path.Combine(targetPath, "mount")}",
+                            ],
+                        },
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        return exitCode;
+                    }
+                    try
+                    {
+                        var cabsToInstall = new[]
+                        {
+                            "WinPE-WMI",
+                            "WinPE-NetFx",
+                            "WinPE-Scripting",
+                            "WinPE-PowerShell",
+                            "WinPE-DismCmdlets",
+                            "WinPE-SecureBootCmdlets",
+                            "WinPE-StorageWMI",
+                            "WinPE-Setup",
+                            "WinPE-Setup-Client",
+                        };
+                        foreach (var cabToInstall in cabsToInstall)
+                        {
+                            _logger.LogInformation($"Installing {cabToInstall}...");
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "dism.exe"),
+                                    Arguments = [
+                                        "/add-package",
+                                        $"/image:{Path.Combine(targetPath, "mount")}",
+                                        $"/packagepath:{Path.Combine(winPeRoot, "amd64", "WinPE_OCs", $"{cabToInstall}.cab")}",
+                                    ],
+                                },
+                                CaptureSpecification.Passthrough,
+                                context.GetCancellationToken());
+                            if (exitCode != 0)
+                            {
+                                return exitCode;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "dism.exe"),
+                                Arguments = [
+                                    "/unmount-image",
+                                    $"/mountdir:{Path.Combine(targetPath, "mount")}",
+                                    "/commit",
+                                ],
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken());
+                    }
+                    if (exitCode != 0)
+                    {
+                        return exitCode;
+                    }
+
+                    Directory.CreateDirectory(path);
+
                     _logger.LogInformation("Downloading files...");
                     var files = new (string url, string filename)[]
                     {
@@ -118,7 +198,7 @@
                     {
                         foreach (var file in files)
                         {
-                            using (var stream = new FileStream(Path.Combine(temporary.ReservedPath, file.filename), FileMode.Create))
+                            using (var stream = new FileStream(Path.Combine(path, file.filename), FileMode.Create))
                             {
                                 _logger.LogInformation($"  {file.url}");
                                 await _simpleDownloadProgress.DownloadAndCopyToStreamAsync(
@@ -130,41 +210,66 @@
                         }
                     }
 
+                    var filesCopy = new (string source, string filename)[]
+                    {
+                        (Path.Combine(targetPath, "media", "Boot", "BCD"), Path.Combine(path, "BCD")),
+                        (Path.Combine(targetPath, "media", "Boot", "boot.sdi"), Path.Combine(path, "boot.sdi")),
+                        (Path.Combine(targetPath, "media", "sources", "boot.wim"), Path.Combine(path, "boot.wim")),
+                    };
+                    foreach (var file in filesCopy)
+                    {
+                        _logger.LogInformation($"Copying WinPE file '{file.source}' to '{file.filename}'...");
+                        File.Copy(file.source, file.filename, true);
+                    }
+
                     _logger.LogInformation("Creating boot scripts...");
                     await File.WriteAllTextAsync(
-                        Path.Combine(temporary.ReservedPath, "autoexec.ipxe"),
+                        Path.Combine(path, "autoexec.ipxe"),
                         """
                         #!ipxe
                         dhcp
-                        cpuid --ext 29 && set arch amd64 || set arch x86
                         kernel wimboot
-                        initrd boot.bat                                   boot.bat
-                        initrd winpeshl.ini                               winpeshl.ini
-                        initrd uet.exe                                    uet.exe
-                        initrd ${arch}/media/Boot/BCD                     BCD
-                        initrd ${arch}/media/Boot/boot.sdi                boot.sdi
-                        initrd ${arch}/media/sources/boot.wim             boot.wim
+                        initrd boot.bat                boot.bat
+                        initrd winpeshl.ini            winpeshl.ini
+                        initrd uet.exe                 uet.exe
+                        initrd BCD                     BCD
+                        initrd boot.sdi                boot.sdi
+                        initrd boot.wim                boot.wim
                         boot
                         """);
                     await File.WriteAllTextAsync(
-                        Path.Combine(temporary.ReservedPath, "winpeshl.ini"),
+                        Path.Combine(path, "winpeshl.ini"),
                         """
                         [LaunchApps]
                         "boot.bat"
                         """);
-                    await File.WriteAllTextAsync(
-                        Path.Combine(temporary.ReservedPath, "boot.bat"),
-                        """
-                        @echo off
-                        echo Starting WinPE for UET agent bootstrap...
-                        wpeinit
-                        set UET_RUNNING_UNDER_WINPE=1
-                        echo Upgrading from version:
-                        uet --version
-                        uet upgrade
-                        move X:\ProgramData\UET\WinPE\uet.exe X:\Windows\System32\uet.exe
-                        cmd.exe
-                        """);
+                    if (!noAutoUpgrade)
+                    {
+                        await File.WriteAllTextAsync(
+                            Path.Combine(path, "boot.bat"),
+                            """
+                            @echo off
+                            echo Starting WinPE for UET agent bootstrap...
+                            wpeinit
+                            set UET_RUNNING_UNDER_WINPE=1
+                            echo Upgrading from version:
+                            uet --version
+                            uet upgrade
+                            move X:\ProgramData\UET\WinPE\uet.exe X:\Windows\System32\uet.exe
+                            cmd.exe
+                            """);
+                    }
+                    else
+                    {
+                        await File.WriteAllTextAsync(
+                            Path.Combine(path, "boot.bat"),
+                            """
+                            @echo off
+                            echo Starting WinPE for UET agent bootstrap...
+                            wpeinit
+                            cmd.exe
+                            """);
+                    }
                 }
 
                 return 0;

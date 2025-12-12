@@ -55,14 +55,29 @@
             bool doNotSetAsCurrent,
             CancellationToken cancellationToken)
         {
+            var isRunningUnderWinPE = Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1";
+
             if (string.IsNullOrWhiteSpace(version))
             {
                 const string latestUrl = "https://github.com/RedpointGames/uet/releases/latest/download/package.version";
 
                 logger.LogInformation("Checking for the latest version...");
-                using (var client = new HttpClient())
+
+            retryVersionFetch:
+                try
                 {
-                    version = (await client.GetStringAsync(new Uri(latestUrl), cancellationToken).ConfigureAwait(false)).Trim();
+                    using (var client = new HttpClient())
+                    {
+                        version = (await client.GetStringAsync(new Uri(latestUrl), cancellationToken).ConfigureAwait(false)).Trim();
+                    }
+                }
+                catch (HttpRequestException ex) when (
+                    ex.Message.Contains("No such host is known", StringComparison.OrdinalIgnoreCase) &&
+                    isRunningUnderWinPE)
+                {
+                    logger.LogInformation("Unable to check for latest version; waiting on Internet connection to come up...");
+                    await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                    goto retryVersionFetch;
                 }
 
                 if (string.IsNullOrWhiteSpace(version))
@@ -161,55 +176,67 @@
                 logger.LogInformation($"Downloading {version}...");
                 using (var client = new HttpClient())
                 {
-                    using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
+                retryDownload:
+                    try
                     {
-                        var response = await client.GetAsync(
-                            new Uri(downloadUrl),
-                            HttpCompletionOption.ResponseHeadersRead,
-                            cancellationToken).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
-                        using (var stream = new PositionAwareStream(
-                            await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false),
-                            response.Content.Headers.ContentLength!.Value))
+                        using (var target = new FileStream(Path.Combine(baseFolder, version, filename + ".tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            var cts = new CancellationTokenSource();
-                            var progress = progressFactory.CreateProgressForStream(stream);
-                            var monitorTask = Task.Run(async () =>
+                            var response = await client.GetAsync(
+                                new Uri(downloadUrl),
+                                HttpCompletionOption.ResponseHeadersRead,
+                                cancellationToken).ConfigureAwait(false);
+                            response.EnsureSuccessStatusCode();
+                            using (var stream = new PositionAwareStream(
+                                await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false),
+                                response.Content.Headers.ContentLength!.Value))
                             {
-                                var consoleWidth = 0;
+                                var cts = new CancellationTokenSource();
+                                var progress = progressFactory.CreateProgressForStream(stream);
+                                var monitorTask = Task.Run(async () =>
+                                {
+                                    var consoleWidth = 0;
+                                    try
+                                    {
+                                        consoleWidth = Console.BufferWidth;
+                                    }
+                                    catch { }
+
+                                    var monitor = monitorFactory.CreateByteBasedMonitor();
+                                    await monitor.MonitorAsync(
+                                        progress,
+                                        null,
+                                        (message, count) =>
+                                        {
+                                            if (consoleWidth != 0)
+                                            {
+                                                Console.Write($"\r{message}".PadRight(consoleWidth));
+                                            }
+                                            else if (count % 50 == 0)
+                                            {
+                                                Console.WriteLine(message);
+                                            }
+                                        },
+                                        cts.Token).ConfigureAwait(false);
+                                }, cancellationToken);
+
+                                await stream.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
+
+                                cts.Cancel();
                                 try
                                 {
-                                    consoleWidth = Console.BufferWidth;
+                                    await monitorTask.ConfigureAwait(false);
                                 }
-                                catch { }
-
-                                var monitor = monitorFactory.CreateByteBasedMonitor();
-                                await monitor.MonitorAsync(
-                                    progress,
-                                    null,
-                                    (message, count) =>
-                                    {
-                                        if (consoleWidth != 0)
-                                        {
-                                            Console.Write($"\r{message}".PadRight(consoleWidth));
-                                        }
-                                        else if (count % 50 == 0)
-                                        {
-                                            Console.WriteLine(message);
-                                        }
-                                    },
-                                    cts.Token).ConfigureAwait(false);
-                            }, cancellationToken);
-
-                            await stream.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
-
-                            cts.Cancel();
-                            try
-                            {
-                                await monitorTask.ConfigureAwait(false);
+                                catch (OperationCanceledException) { }
                             }
-                            catch (OperationCanceledException) { }
                         }
+                    }
+                    catch (HttpRequestException ex) when (
+                        ex.Message.Contains("No such host is known", StringComparison.OrdinalIgnoreCase) &&
+                        isRunningUnderWinPE)
+                    {
+                        logger.LogInformation("Unable to download UET; waiting on Internet connection to come up...");
+                        await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+                        goto retryDownload;
                     }
                 }
                 Console.WriteLine();
@@ -250,8 +277,6 @@
             {
                 Directory.Delete(Path.Combine(baseFolder, "Old"), true);
             }
-
-            var isRunningUnderWinPE = Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1";
 
             var targetPathForPath = Path.Combine(baseFolder, "Current");
             var needsToUpdateLink = true;
