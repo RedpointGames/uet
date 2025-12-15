@@ -2,7 +2,9 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
+    using Redpoint.Uet.CommonPaths;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
@@ -14,6 +16,8 @@
         {
             public Option<string?> Version;
             public Option<bool> DoNotSetAsCurrent;
+            public Option<bool> Then;
+            public Argument<string[]> ThenArgs;
 
             public Options()
             {
@@ -24,6 +28,14 @@
                 DoNotSetAsCurrent = new Option<bool>(
                     "--do-not-set-as-current",
                     description: "If set, then the version will only be downloaded. It won't be set as the current version to use.");
+
+                Then = new Option<bool>(
+                    "--then",
+                    description: "If set, the additional arguments passed to the upgrade command will be the command to invoke on the upgraded version.");
+
+                ThenArgs = new Argument<string[]>(
+                    "then-args",
+                    description: "If --then has been passed, the command to invoke on the upgraded version.");
             }
         }
 
@@ -48,17 +60,20 @@
             private readonly ILogger<UpgradeCommandInstance> _logger;
             private readonly IProgressFactory _progressFactory;
             private readonly IMonitorFactory _monitorFactory;
+            private readonly IProcessExecutor _processExecutor;
 
             public UpgradeCommandInstance(
                 Options options,
                 ILogger<UpgradeCommandInstance> logger,
                 IProgressFactory progressFactory,
-                IMonitorFactory monitorFactory)
+                IMonitorFactory monitorFactory,
+                IProcessExecutor processExecutor)
             {
                 _options = options;
                 _logger = logger;
                 _progressFactory = progressFactory;
                 _monitorFactory = monitorFactory;
+                _processExecutor = processExecutor;
             }
 
             public async Task<int> ExecuteAsync(InvocationContext context)
@@ -66,17 +81,19 @@
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 var doNotSetAsCurrent = context.ParseResult.GetValueForOption(_options.DoNotSetAsCurrent);
                 var delaySeconds = 1;
+                var exitCode = -1;
                 do
                 {
                     try
                     {
-                        return (await UpgradeCommandImplementation.PerformUpgradeAsync(
+                        exitCode = (await UpgradeCommandImplementation.PerformUpgradeAsync(
                             _progressFactory,
                             _monitorFactory,
                             _logger,
                             version,
                             doNotSetAsCurrent,
                             context.GetCancellationToken()).ConfigureAwait(false)).ExitCode;
+                        break;
                     }
                     catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
                     {
@@ -97,6 +114,28 @@
                     }
                 }
                 while (true);
+
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+
+                var then = context.ParseResult.GetValueForOption(_options.Then);
+                var thenArgs = context.ParseResult.GetValueForArgument(_options.ThenArgs) ?? [];
+                if (then)
+                {
+                    _logger.LogInformation($"Invoking 'uet {string.Join(" ", thenArgs)}' with upgraded version...");
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = Path.Combine(UetPaths.UetRootPath, "Current", OperatingSystem.IsWindows() ? "uet.exe" : "uet"),
+                            Arguments = thenArgs.Select(x => new LogicalProcessArgument(x)),
+                        },
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                }
+
+                return exitCode;
             }
         }
     }
