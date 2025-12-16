@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WindowsCustomizations>
+  <PackageConfig xmlns="urn:schemas-Microsoft-com:Windows-ICD-Package-Config.v1.0">
+    <ID>{bec37109-fc1c-4fb3-a575-fb969ecf914c}</ID>
+    <Name>UET Cluster Auto-join</Name>
+    <Version>1.1</Version>
+    <OwnerType>ITAdmin</OwnerType>
+    <Rank>0</Rank>
+    <Notes></Notes>
+  </PackageConfig>
+  <Settings xmlns="urn:schemas-microsoft-com:windows-provisioning">
+    <Customizations>
+      <Common>
+        <Accounts>
+          <Users>
+            <User UserName="kubernetes" Name="kubernetes">
+              <Password>kubernetes</Password>
+              <UserGroup>Administrators</UserGroup>
+            </User>
+          </Users>
+        </Accounts>
+        <OOBE>
+          <Desktop>
+            <HideOobe>True</HideOobe>
+          </Desktop>
+        </OOBE>
+        <Policies>
+          <Experience>
+            <AllowCortana>No</AllowCortana>
+            <AllowDeviceDiscovery>No</AllowDeviceDiscovery>
+            <AllowFindMyDevice>No</AllowFindMyDevice>
+            <AllowTailoredExperiencesWithDiagnosticData>No</AllowTailoredExperiencesWithDiagnosticData>
+            <AllowThirdPartySuggestionsInWindowsSpotlight>No</AllowThirdPartySuggestionsInWindowsSpotlight>
+          </Experience>
+          <Power>
+            <AllowHibernate>Not allowed</AllowHibernate>
+          </Power>
+          <Privacy>
+            <AllowInputPersonalization>No</AllowInputPersonalization>
+            <DisableAdvertisingId>Yes</DisableAdvertisingId>
+            <LetAppsAccessLocation>Force deny</LetAppsAccessLocation>
+          </Privacy>
+          <Search>
+            <AllowWindowsIndexer>Off</AllowWindowsIndexer>
+          </Search>
+          <System>
+            <AllowLocation>No</AllowLocation>
+            <AllowTelemetry>Required diagnostic data</AllowTelemetry>
+            <DisableOneDriveFileSync>Yes</DisableOneDriveFileSync>
+          </System>
+          <Update>
+            <AllowAutoUpdate>Turn off automatic updates</AllowAutoUpdate>
+          </Update>
+          <WindowsAI>
+            <TurnOffWindowsCopilot>Disabled Windows Copilot</TurnOffWindowsCopilot>
+          </WindowsAI>
+          <WindowsInkWorkspace>
+            <AllowSuggestedAppsInWindowsInkWorkspace>No</AllowSuggestedAppsInWindowsInkWorkspace>
+            <AllowWindowsInkWorkspace>Disabled</AllowWindowsInkWorkspace>
+          </WindowsInkWorkspace>
+        </Policies>
+        <ProvisioningCommands>
+          <DeviceContext>
+            <CommandFiles>
+              <CommandFile Name="uet">$$uetpath$$</CommandFile>
+              <CommandFile Name="uetinstall">$$installbatchpath$$</CommandFile>
+            </CommandFiles>
+            <CommandLine>cmd /c uetinstall.bat</CommandLine>
+          </DeviceContext>
+        </ProvisioningCommands>
+        <SMISettings>
+          <AutoLogon>
+            <Enable>ENABLE</Enable>
+            <Password>kubernetes</Password>
+            <UserName>kubernetes</UserName>
+          </AutoLogon>
+          <BrandingNeutral>63</BrandingNeutral>
+        </SMISettings>
+      </Common>
+    </Customizations>
+  </Settings>
+</WindowsCustomizations>

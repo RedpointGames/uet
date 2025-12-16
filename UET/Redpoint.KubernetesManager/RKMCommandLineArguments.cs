@@ -21,8 +21,7 @@
                 if (File.Exists(serviceArgsPath))
                 {
                     var result = File.ReadAllLines(serviceArgsPath).Concat(globalArgsProvider.GlobalArgsArray).ToArray();
-                    // Once we use the service arguments once, delete it.
-                    File.Delete(serviceArgsPath);
+                    // @note: We no longer delete the service arguments file.
                     return result;
                 }
                 else
