@@ -11,6 +11,8 @@ namespace UET.Commands.Cluster
         public Option<bool> AutoUpgrade = new Option<bool>("--auto-upgrade", "If set, RKM will automatically keep itself up-to-date with the latest release on GitHub by auto-upgrading UET. If UET is upgraded on startup, RKM will automatically exit so the local service manager can start the new version. You should not enable this option unless you're willing to test the bleeding edge version of UET, which may result in cluster inoperability. This option is off by default.");
 
         public Option<bool> NoAutoUpgrade = new Option<bool>("--no-auto-upgrade", "If --auto-upgrade was previously passed, this turns off the auto-upgrade system. You can later run 'uet cluster start --auto-upgrade' to turn it back on again.");
+
+        public Option<bool> NoStreamLogs = new Option<bool>("--no-stream-logs", "Do not stream logs after the cluster service starts, instead exit.");
     }
 
 }
