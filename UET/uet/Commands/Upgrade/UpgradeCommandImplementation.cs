@@ -53,6 +53,7 @@
             ILogger logger,
             string? version,
             bool doNotSetAsCurrent,
+            bool waitForNetwork,
             CancellationToken cancellationToken)
         {
             var isRunningUnderWinPE = Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_WINPE") == "1";
@@ -73,7 +74,7 @@
                 }
                 catch (HttpRequestException ex) when (
                     ex.Message.Contains("No such host is known", StringComparison.OrdinalIgnoreCase) &&
-                    isRunningUnderWinPE)
+                    (isRunningUnderWinPE || waitForNetwork))
                 {
                     logger.LogInformation("Unable to check for latest version; waiting on Internet connection to come up...");
                     await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
@@ -232,7 +233,7 @@
                     }
                     catch (HttpRequestException ex) when (
                         ex.Message.Contains("No such host is known", StringComparison.OrdinalIgnoreCase) &&
-                        isRunningUnderWinPE)
+                        (isRunningUnderWinPE || waitForNetwork))
                     {
                         logger.LogInformation("Unable to download UET; waiting on Internet connection to come up...");
                         await Task.Delay(1000, cancellationToken).ConfigureAwait(false);

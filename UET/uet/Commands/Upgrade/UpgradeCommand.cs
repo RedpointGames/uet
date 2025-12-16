@@ -16,6 +16,7 @@
         {
             public Option<string?> Version;
             public Option<bool> DoNotSetAsCurrent;
+            public Option<bool> WaitForNetwork;
             public Option<bool> Then;
             public Argument<string[]> ThenArgs;
 
@@ -28,6 +29,10 @@
                 DoNotSetAsCurrent = new Option<bool>(
                     "--do-not-set-as-current",
                     description: "If set, then the version will only be downloaded. It won't be set as the current version to use.");
+
+                WaitForNetwork = new Option<bool>(
+                    "--wait-for-network",
+                    description: "If set, UET will retry downloading from GitHub until a network connection is available.");
 
                 Then = new Option<bool>(
                     "--then",
@@ -80,6 +85,7 @@
             {
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 var doNotSetAsCurrent = context.ParseResult.GetValueForOption(_options.DoNotSetAsCurrent);
+                var waitForNetwork = context.ParseResult.GetValueForOption(_options.WaitForNetwork);
                 var delaySeconds = 1;
                 var exitCode = -1;
                 do
@@ -92,6 +98,7 @@
                             _logger,
                             version,
                             doNotSetAsCurrent,
+                            waitForNetwork,
                             context.GetCancellationToken()).ConfigureAwait(false)).ExitCode;
                         break;
                     }

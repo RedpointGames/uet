@@ -101,6 +101,7 @@ namespace UET.Commands.Internal.Rkm
                                 _logger,
                                 string.Empty,
                                 false,
+                                false,
                                 context.GetCancellationToken()).ConfigureAwait(false);
                             if (upgradeResult.CurrentVersionWasChanged)
                             {

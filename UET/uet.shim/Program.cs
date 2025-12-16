@@ -109,6 +109,7 @@ await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).Confi
                     logger,
                     targetVersion == "BleedingEdge" ? string.Empty : targetVersion,
                     true,
+                    false,
                     cts.Token).ConfigureAwait(false);
                 if (targetVersion == "BleedingEdge")
                 {
