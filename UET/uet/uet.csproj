@@ -26,6 +26,8 @@
 		<None Remove="Commands\Internal\CMakeUbaServer\CMakeUba.proto" />
 		<None Remove="Commands\Internal\RunRemoteHost\RemoteHostApi.proto" />
 		<None Remove="Commands\Internal\TestGrpcPipes\TestPipes.proto" />
+		<None Remove="Commands\Internal\WindowsImaging\customizations.xml" />
+		<None Remove="Commands\Internal\WindowsImaging\enroll.ps1" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -107,6 +109,8 @@
 		<EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG3.cer" />
 		<EmbeddedResource Include="Commands\AppleCert\AppleWWDRCAG4.cer" />
 		<EmbeddedResource Include="Commands\AppleCert\DeveloperIDG2CA.cer" />
+		<EmbeddedResource Include="Commands\Internal\WindowsImaging\customizations.xml" />
+		<EmbeddedResource Include="Commands\Internal\WindowsImaging\enroll.ps1" />
 	</ItemGroup>
 
 	<ItemGroup>
