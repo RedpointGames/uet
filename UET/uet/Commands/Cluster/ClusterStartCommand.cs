@@ -28,7 +28,7 @@ namespace UET.Commands.Cluster
                 CLUSTERS ARE CONFIGURED ONLY FOR TRUSTED BUILD AND AUTOMATION WORKLOADS ON TRUSTED NETWORKS. Neither the cluster nor any workload should be exposed to the Internet or an untrusted network.
                 """;
             command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterStopCommandInstance>(options, services =>
+            command.AddCommonHandler<ClusterStartCommandInstance>(options, services =>
             {
                 services.AddSingleton<IRkmClusterControl, DefaultRkmClusterControl>();
                 services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
@@ -36,12 +36,12 @@ namespace UET.Commands.Cluster
             return command;
         }
 
-        private sealed class ClusterStopCommandInstance : ICommandInstance
+        private sealed class ClusterStartCommandInstance : ICommandInstance
         {
             private readonly IRkmClusterControl _clusterControl;
             private readonly ClusterOptions _options;
 
-            public ClusterStopCommandInstance(
+            public ClusterStartCommandInstance(
                 IRkmClusterControl clusterControl,
                 ClusterOptions options)
             {
@@ -51,12 +51,18 @@ namespace UET.Commands.Cluster
 
             public async Task<int> ExecuteAsync(InvocationContext context)
             {
+                var noStreamLogs = context.ParseResult.GetValueForOption(_options.NoStreamLogs);
+
                 var exitCode = await _clusterControl.CreateOrJoin(context, _options);
                 if (exitCode != 0)
                 {
                     return exitCode;
                 }
-                await _clusterControl.StreamLogs(context.GetCancellationToken());
+                if (!noStreamLogs)
+                {
+                    await _clusterControl.StreamLogs(context.GetCancellationToken());
+                }
+
                 return 0;
             }
         }
