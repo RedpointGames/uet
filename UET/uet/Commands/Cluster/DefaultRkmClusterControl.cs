@@ -39,7 +39,8 @@ namespace UET.Commands.Cluster
             var node = context.ParseResult.GetValueForOption(options.Node);
             var autoUpgrade = context.ParseResult.GetValueForOption(options.AutoUpgrade);
             var noAutoUpgrade = context.ParseResult.GetValueForOption(options.NoAutoUpgrade);
-            var args = Array.Empty<string>();
+            var waitForSysprep = context.ParseResult.GetValueForOption(options.WaitForSysprep);
+            var args = new List<string>();
             if (controller)
             {
                 args = ["--controller"];
@@ -47,6 +48,10 @@ namespace UET.Commands.Cluster
             if (!string.IsNullOrWhiteSpace(node))
             {
                 args = ["--node", node];
+            }
+            if (waitForSysprep)
+            {
+                args.Add("--wait-for-sysprep");
             }
             await File.WriteAllLinesAsync(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-args"), args);
 
