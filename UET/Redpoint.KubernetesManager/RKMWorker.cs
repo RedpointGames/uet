@@ -19,6 +19,7 @@ namespace Redpoint.KubernetesManager
         private readonly IComponent[] _components;
         private readonly RKMCommandLineArguments _commandLine;
         private readonly IProcessKiller _processKiller;
+        private readonly IRkmGlobalRootProvider _rkmGlobalRootProvider;
 
         public RKMWorker(
             ILogger<RKMWorker> logger,
@@ -29,7 +30,8 @@ namespace Redpoint.KubernetesManager
             INodeManifestClient nodeManifestClient,
             IComponent[] components,
             RKMCommandLineArguments commandLine,
-            IProcessKiller processKiller)
+            IProcessKiller processKiller,
+            IRkmGlobalRootProvider rkmGlobalRootProvider)
         {
             _logger = logger;
             _executorLogger = executorLogger;
@@ -40,6 +42,7 @@ namespace Redpoint.KubernetesManager
             _components = components;
             _commandLine = commandLine;
             _processKiller = processKiller;
+            _rkmGlobalRootProvider = rkmGlobalRootProvider;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,6 +56,52 @@ namespace Redpoint.KubernetesManager
                 Environment.ExitCode = 1;
                 _hostApplicationLifetime.StopApplication();
                 return;
+            }
+
+            if (_commandLine.Arguments.Contains("--wait-for-sysprep") &&
+                OperatingSystem.IsWindows())
+            {
+                var sysprepCompletePath = Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "sysprep-complete");
+                if (!File.Exists(sysprepCompletePath))
+                {
+                    var setupActLogPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+                        "Panther",
+                        "UnattendGC",
+                        "setupact.log");
+                    while (!stoppingToken.IsCancellationRequested)
+                    {
+                        if (!File.Exists(setupActLogPath))
+                        {
+                            _logger.LogInformation($"Sysprep has not run yet; '{setupActLogPath}' was not found on the system. RKM is delaying start...");
+                            await Task.Delay(10000, stoppingToken);
+                            continue;
+                        }
+
+                        var foundLogLine = false;
+                        try
+                        {
+                            var contents = await File.ReadAllTextAsync(setupActLogPath, stoppingToken);
+                            foundLogLine = contents.Contains("OOBE completion WNF notification is already published", StringComparison.OrdinalIgnoreCase);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Unable to check OOBE completion due to exception.");
+                        }
+                        if (!foundLogLine)
+                        {
+                            _logger.LogInformation($"Sysprep has not finished running yet; '{setupActLogPath}' did not contain the string 'OOBE completion WNF notification is already published'. RKM is delaying start...");
+                            await Task.Delay(10000, stoppingToken);
+                            continue;
+                        }
+
+                        // Sysprep has run. Create a file so that we don't need to run this check again
+                        // in case the sysprep files ever get deleted.
+                        await File.WriteAllTextAsync(sysprepCompletePath, "ok", stoppingToken);
+                        break;
+                    }
+                    stoppingToken.ThrowIfCancellationRequested();
+                }
             }
 
             // Set up the installation directory. RKM uses a unique directory for each
