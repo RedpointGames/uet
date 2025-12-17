@@ -24,7 +24,9 @@ data:
       --source-vip-file-path `
       C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip `
       --host-local-data-dir `
-      C:\RKM\$ActiveInstall\containerd-state\host-local
+      C:\RKM\$ActiveInstall\containerd-state\host-local `
+      --liveness-probe-port `
+      10966
     exit $LastExitCode
   kube_proxy.ps1: |
     $global:ErrorActionPreference = 'Stop';
