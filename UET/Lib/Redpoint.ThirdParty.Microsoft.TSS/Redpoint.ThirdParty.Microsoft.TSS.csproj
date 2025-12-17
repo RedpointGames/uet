@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)../ThirdPartyCommon.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>TSS.Net</AssemblyName>
+    <RootNamespace>TSS.Net</RootNamespace>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+  <PropertyGroup>
+    <Description>A fork of Microsoft.TSS (https://github.com/microsoft/TSS.MSR) that supports trimmed applications.</Description>
+    <PackageId>Redpoint.ThirdParty.Microsoft.TSS</PackageId>
+    <PackageTags>tpm</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>June Rhodes, Microsoft</Authors>
+    <Company></Company>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+</Project>
