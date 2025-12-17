@@ -221,6 +221,7 @@
                             "WinPE-StorageWMI",
                             "WinPE-Setup",
                             "WinPE-Setup-Client",
+                            "WinPE-SecureStartup",
                         };
                         foreach (var cabToInstall in cabsToInstall)
                         {
