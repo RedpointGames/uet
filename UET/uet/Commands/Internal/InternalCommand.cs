@@ -41,6 +41,7 @@
     using UET.Commands.Internal.TestDatabaseLibrary;
     using UET.Commands.Internal.VerifyDllFileIntegrity;
     using UET.Commands.Internal.WindowsImaging;
+    using UET.Commands.Internal.Tpm;
 
     internal sealed class InternalCommand
     {
@@ -90,6 +91,7 @@
                 TestDatabaseLibraryCommand.CreateTestDatabaseLibraryCommand(),
                 VerifyDllFileIntegrityCommand.CreateVerifyDllFileIntegrityCommand(),
                 WindowsImagingCommand.CreateWindowsImagingCommand(),
+                TpmCommand.CreateTpmCommand(),
             };
 
             var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
