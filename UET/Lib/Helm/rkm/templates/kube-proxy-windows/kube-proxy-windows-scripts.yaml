@@ -16,6 +16,11 @@ data:
 
     $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
 
+    # Make sure all of our network adapters are on the Private network profile.
+    # This fixes issues when machines are provisioned by PXE Boot and default
+    # to the Public profile.
+    Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+
     .\uet.exe `
       cluster `
       allocate-source-vip `
