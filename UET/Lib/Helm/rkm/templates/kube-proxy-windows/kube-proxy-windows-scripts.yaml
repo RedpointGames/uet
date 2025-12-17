@@ -16,6 +16,11 @@ data:
 
     $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
 
+    # Make sure all of our network adapters are on the Private network profile.
+    # This fixes issues when machines are provisioned by PXE Boot and default
+    # to the Public profile.
+    Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+
     .\uet.exe `
       cluster `
       allocate-source-vip `
@@ -24,7 +29,9 @@ data:
       --source-vip-file-path `
       C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip `
       --host-local-data-dir `
-      C:\RKM\$ActiveInstall\containerd-state\host-local
+      C:\RKM\$ActiveInstall\containerd-state\host-local `
+      --liveness-probe-port `
+      10966
     exit $LastExitCode
   kube_proxy.ps1: |
     $global:ErrorActionPreference = 'Stop';
