@@ -21,14 +21,12 @@
     internal class WindowsNetworkingConfiguration : INetworkingConfiguration
     {
         private readonly ILogger<WindowsNetworkingConfiguration> _logger;
-        private readonly IHnsApi _hnsService;
         private readonly ILocalEthernetInfo _localEthernetInfo;
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
         private readonly IWslDistro _wslDistro;
         private readonly IWslTranslation _wslTranslation;
         private readonly IPathProvider _pathProvider;
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
-        private readonly IResourceManager _resourceManager;
         private readonly IWindowsFirewall _windowsFirewall;
         private readonly IServiceControl _serviceControl;
         private readonly IRkmVersionProvider _rkmVersionProvider;
@@ -36,28 +34,24 @@
 
         public WindowsNetworkingConfiguration(
             ILogger<WindowsNetworkingConfiguration> logger,
-            IHnsApi hnsService,
             ILocalEthernetInfo localEthernetInfo,
             IHostApplicationLifetime hostApplicationLifetime,
             IWslDistro wslDistro,
             IWslTranslation wslTranslation,
             IPathProvider pathProvider,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
-            IResourceManager resourceManager,
             IWindowsFirewall windowsFirewall,
             IServiceControl serviceControl,
             IRkmVersionProvider rkmVersionProvider,
             IProcessExecutor processExecutor)
         {
             _logger = logger;
-            _hnsService = hnsService;
             _localEthernetInfo = localEthernetInfo;
             _hostApplicationLifetime = hostApplicationLifetime;
             _wslDistro = wslDistro;
             _wslTranslation = wslTranslation;
             _pathProvider = pathProvider;
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
-            _resourceManager = resourceManager;
             _windowsFirewall = windowsFirewall;
             _serviceControl = serviceControl;
             _rkmVersionProvider = rkmVersionProvider;

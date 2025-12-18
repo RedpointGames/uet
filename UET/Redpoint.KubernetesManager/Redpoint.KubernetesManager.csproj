@@ -10,14 +10,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Remove="Corefile-windows" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Include="Corefile-windows" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="KubernetesClient.Aot" />
 		<PackageReference Include="Microsoft.Dism" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />

@@ -32,7 +32,6 @@ namespace Redpoint.KubernetesManager
             }
             services.AddSingleton<IProcessKiller, DefaultProcessKiller>();
             services.AddSingleton<IWindowsFeatureManager, WindowsFeatureManager>();
-            services.AddSingleton<IResourceManager, DefaultResourceManager>();
             services.AddSingleton<ICertificateGenerator, DefaultCertificateGenerator>();
             services.AddSingleton<ICertificateManager, DefaultCertificateManager>();
             services.AddSingleton<ILocalEthernetInfo, DefaultLocalEthernetInfo>();
