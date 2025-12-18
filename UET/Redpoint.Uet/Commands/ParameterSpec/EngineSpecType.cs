@@ -1,6 +1,6 @@
-﻿namespace UET.Commands.EngineSpec
+﻿namespace Redpoint.Uet.Commands.ParameterSpec
 {
-    internal enum EngineSpecType
+    public enum EngineSpecType
     {
         Path,
 

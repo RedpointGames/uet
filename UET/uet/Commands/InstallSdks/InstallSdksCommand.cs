@@ -12,10 +12,10 @@
     using System.Text.Json.Serialization;
     using System.Text.Json;
     using System.Threading.Tasks;
-    using UET.Commands.EngineSpec;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.CommonPaths;
+    using Redpoint.Uet.Commands.ParameterSpec;
 
     internal static class InstallSdksCommand
     {

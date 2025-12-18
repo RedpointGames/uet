@@ -1,15 +1,15 @@
-﻿namespace UET.Services
+﻿namespace Redpoint.Uet.Services
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.Commands.Build;
     using Redpoint.Uet.Configuration.Plugin;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Text.Json;
-    using UET.Commands.Build;
     using UET.Commands.EngineSpec;
 
     internal sealed class DefaultReleaseVersioning : IReleaseVersioning

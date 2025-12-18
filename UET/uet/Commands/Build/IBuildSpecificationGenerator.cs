@@ -2,10 +2,10 @@
 {
     using Redpoint.Uet.BuildPipeline.Environment;
     using Redpoint.Uet.BuildPipeline.Executors;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
-    using UET.Commands.EngineSpec;
 
     internal interface IBuildSpecificationGenerator
     {

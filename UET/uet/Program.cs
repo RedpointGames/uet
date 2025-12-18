@@ -30,8 +30,6 @@ using UET.Commands.Transfer;
 using UET.Commands.Uefs;
 using UET.Commands.Upgrade;
 
-[assembly: InternalsVisibleTo("Redpoint.Uet.Tests")]
-
 if (Environment.GetEnvironmentVariable("CI") == "true")
 {
     Crayon.Output.Enable();

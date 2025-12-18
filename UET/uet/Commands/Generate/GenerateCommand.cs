@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.SdkManagement;
     using System;
@@ -18,7 +19,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using UET.Commands.Build;
-    using UET.Commands.EngineSpec;
 
     internal sealed class GenerateCommand
     {

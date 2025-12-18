@@ -3,7 +3,7 @@
 	<Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
 	<ItemGroup>
-	  <ProjectReference Include="..\uet\uet.csproj" />
+	  <ProjectReference Include="..\Redpoint.Uet\Redpoint.Uet.csproj" />
 	</ItemGroup>
 
 </Project>

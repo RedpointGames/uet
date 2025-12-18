@@ -8,12 +8,15 @@
     using Redpoint.Uet.BuildPipeline.Environment;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Engine;
+    using Redpoint.Uet.Commands.Build;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Core.BugReport;
     using Redpoint.Uet.Core.Permissions;
+    using Redpoint.Uet.Services;
     using Redpoint.Uet.Uat;
     using System;
     using System.Diagnostics;
@@ -21,7 +24,6 @@
     using System.Linq;
     using System.Text.Json;
     using System.Text.Json.Serialization;
-    using UET.Commands.EngineSpec;
     using UET.Services;
 
     internal sealed class DefaultBuildSpecificationGenerator : IBuildSpecificationGenerator

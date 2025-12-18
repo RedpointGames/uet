@@ -1,15 +1,17 @@
-﻿namespace UET.BuildConfig
+﻿namespace Redpoint.Uet.BuildConfig
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.Configuration;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Nodes;
 
-    internal class BuildConfigLoader
+    [SuppressMessage("Design", "CA1052:Static holder types should be Static or NotInheritable", Justification = "Must be non-static for use with ILogger.")]
+    public class BuildConfigLoader
     {
         private static void FixSchemaForBuildConfigPath(
             IServiceProvider serviceProvider,
@@ -92,7 +94,7 @@
             }
         }
 
-        internal static BuildConfigLoadResult TryLoad(
+        public static BuildConfigLoadResult TryLoad(
             IServiceProvider serviceProvider,
             string buildConfigPath)
         {

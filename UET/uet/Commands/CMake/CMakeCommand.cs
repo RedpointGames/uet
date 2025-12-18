@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -11,7 +12,6 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using UET.Commands.EngineSpec;
     using UET.Services;
 
     internal sealed class CMakeCommand

@@ -1,8 +1,8 @@
 ﻿namespace Redpoint.Uet.Tests
 {
+    using Redpoint.Uet.Commands.ParameterSpec;
     using System.CommandLine;
     using System.CommandLine.Parsing;
-    using UET.Commands.EngineSpec;
     using Xunit;
 
     public class EngineSpecTests

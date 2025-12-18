@@ -1,9 +1,9 @@
-﻿namespace UET.Commands.EngineSpec
+﻿namespace Redpoint.Uet.Commands.ParameterSpec
 {
     using System;
     using System.CommandLine.Parsing;
 
-    internal sealed class PathSpec
+    public sealed class PathSpec
     {
         private PathSpec()
         {
@@ -25,6 +25,8 @@
 
         public static PathSpec ParsePathSpec(ArgumentResult result, bool ignoreBuildJson)
         {
+            ArgumentNullException.ThrowIfNull(result);
+
             var path = result.Tokens.Count == 0
                 ? Environment.CurrentDirectory
                 : string.Join(" ", result.Tokens);
@@ -54,6 +56,8 @@
 
         public static PathSpec[] ParsePathSpecs(ArgumentResult result, bool ignoreBuildJson)
         {
+            ArgumentNullException.ThrowIfNull(result);
+
             var pathSpecs = new List<PathSpec>();
             if (result.Argument.Arity.MinimumNumberOfValues >= 1 &&
                 result.Tokens.Count == 0)

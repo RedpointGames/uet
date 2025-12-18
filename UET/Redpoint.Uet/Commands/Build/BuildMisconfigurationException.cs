@@ -1,11 +1,10 @@
-﻿namespace UET.Commands.Build
+﻿namespace Redpoint.Uet.Commands.Build
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.Serialization;
 
-    [SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "This exception is only used internally.")]
-    internal sealed class BuildMisconfigurationException : Exception
+    public sealed class BuildMisconfigurationException : Exception
     {
         public BuildMisconfigurationException()
         {
