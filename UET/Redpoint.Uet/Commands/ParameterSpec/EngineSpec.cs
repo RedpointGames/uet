@@ -8,11 +8,13 @@
     using System.Collections.Specialized;
     using System.CommandLine;
     using System.CommandLine.Parsing;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json;
     using System.Text.RegularExpressions;
     using System.Web;
 
-    internal sealed class EngineSpec
+    [SuppressMessage("Design", "CA1724", Justification = "")]
+    public sealed class EngineSpec
     {
         private EngineSpec()
         {
@@ -24,6 +26,8 @@
             Option<PathSpec[]> pathSpecs,
             Option<DistributionSpec?>? distributionOpt)
         {
+            ArgumentNullException.ThrowIfNull(pathSpecs);
+
             return ParseEngineSpec(
                 result => (result.GetValueForOption(pathSpecs) ?? Array.Empty<PathSpec>()).FirstOrDefault(),
                 pathSpecs.Name,
@@ -34,6 +38,8 @@
             Option<PathSpec> pathSpec,
             Option<DistributionSpec?>? distributionOpt)
         {
+            ArgumentNullException.ThrowIfNull(pathSpec);
+
             return ParseEngineSpec(
                 result => result.GetValueForOption(pathSpec),
                 pathSpec.Name,
@@ -222,6 +228,8 @@
 
         public static EngineSpec? TryParseEngineSpecExact(string engine)
         {
+            ArgumentNullException.ThrowIfNull(engine);
+
             return TryParseEngine(engine);
         }
 
@@ -535,6 +543,8 @@
 
         public static EngineSpec ParseEngineSpecWithoutPath(ArgumentResult result)
         {
+            ArgumentNullException.ThrowIfNull(result);
+
             var engine = string.Join(" ", result.Tokens);
 
             var engineResult = TryParseEngine(engine);
@@ -561,15 +571,16 @@
 
         public string? RemoteZfs { get; private init; }
 
+        [SuppressMessage("Design", "CA1056:URI-like properties should not be strings", Justification = "Git URLs do not conform to Uri requirements.")]
         public string? GitUrl { get; private init; }
 
         public string? GitCommit { get; private init; }
 
         public NameValueCollection? GitQueryString { get; private init; }
 
-        public string[]? FolderLayers { get; private init; }
+        public IReadOnlyList<string>? FolderLayers { get; private init; }
 
-        public string[]? ZipLayers { get; private init; }
+        public IReadOnlyList<string>? ZipLayers { get; private init; }
 
         public string? WindowsSharedGitCachePath { get; private init; }
 
@@ -607,7 +618,7 @@
                     return BuildEngineSpecification.ForGitCommitWithZips(
                         GitUrl!,
                         GitCommit!,
-                        ZipLayers,
+                        ZipLayers?.ToArray(),
                         isEngineBuild: false,
                         windowsSharedGitCachePath:
                             windowsSharedGitCachePath ?? WindowsSharedGitCachePath,

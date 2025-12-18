@@ -82,6 +82,7 @@
 		<ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
 		<ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
 		<ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet\Redpoint.Uet.csproj" />
 		<ProjectReference Include="..\Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj" />
 		<ProjectReference Include="..\Redpoint.Unreal.TcpMessaging\Redpoint.Unreal.TcpMessaging.csproj" />
 		<ProjectReference Include="..\Redpoint.Windows.HandleManagement\Redpoint.Windows.HandleManagement.csproj" />

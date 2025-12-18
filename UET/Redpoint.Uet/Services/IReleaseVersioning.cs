@@ -4,7 +4,7 @@
     using Redpoint.Uet.Configuration.Plugin;
     using System.Threading.Tasks;
 
-    internal interface IReleaseVersioning
+    public interface IReleaseVersioning
     {
         Task<(string versionName, string versionNumber)> ComputePluginVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,

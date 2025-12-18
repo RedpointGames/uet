@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33122.133
+# Visual Studio Version 18
+VisualStudioVersion = 18.1.11304.174 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redpoint.Unreal.Serialization", "Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj", "{0793FE80-7AE3-453B-82E1-DEA8EB08F055}"
 EndProject
@@ -367,6 +367,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.Database.Tests", "Redpoint.Uet.Database.Tests\Redpoint.Uet.Database.Tests.csproj", "{BA658978-818D-40D0-B769-306F7B4D3999}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.Microsoft.TSS", "Lib\Redpoint.ThirdParty.Microsoft.TSS\Redpoint.ThirdParty.Microsoft.TSS.csproj", "{69D81015-F802-F58B-CCE9-7A12672C5A8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet", "Redpoint.Uet\Redpoint.Uet.csproj", "{6148C285-86F8-813F-5513-E1A176AA26D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1002,6 +1004,10 @@ Global
 		{69D81015-F802-F58B-CCE9-7A12672C5A8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69D81015-F802-F58B-CCE9-7A12672C5A8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69D81015-F802-F58B-CCE9-7A12672C5A8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6148C285-86F8-813F-5513-E1A176AA26D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6148C285-86F8-813F-5513-E1A176AA26D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6148C285-86F8-813F-5513-E1A176AA26D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6148C285-86F8-813F-5513-E1A176AA26D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1132,6 +1138,7 @@ Global
 		{D197613B-FA2D-4D4D-B3B7-29A2CD6127D2} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 		{BA658978-818D-40D0-B769-306F7B4D3999} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 		{69D81015-F802-F58B-CCE9-7A12672C5A8D} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
+		{6148C285-86F8-813F-5513-E1A176AA26D9} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}

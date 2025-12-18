@@ -1,6 +1,6 @@
 ﻿namespace UET.Commands.EngineSpec
 {
-    internal enum EngineSpecType
+    public enum EngineSpecType
     {
         Path,
 

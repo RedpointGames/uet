@@ -38,6 +38,7 @@
     using Redpoint.Uet.Core.BugReport;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using Redpoint.Uet.Database;
+    using Redpoint.Uet;
 
     internal static class CommandExtensions
     {
@@ -82,6 +83,7 @@
             services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddUefs();
             services.AddPackageManagement();
+            services.AddUet();
             services.AddUETAutomation();
             services.AddUETUAT();
             services.AddUETBuildPipeline();
@@ -99,7 +101,6 @@
             services.AddUetDatabase();
             services.AddCredentialDiscovery();
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
-            services.AddSingleton<IReleaseVersioning, DefaultReleaseVersioning>();
             services.AddSingleton<IGitCredentialHelperProvider, DefaultGitCredentialHelperProvider>();
             services.AddUba();
         }

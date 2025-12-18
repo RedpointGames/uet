@@ -1,6 +1,6 @@
 ﻿namespace UET.Commands.EngineSpec
 {
-    internal enum PathSpecType
+    public enum PathSpecType
     {
         BuildConfig,
         UProject,
