@@ -1,4 +1,4 @@
-﻿namespace UET.BuildConfig
+﻿namespace Redpoint.Uet.BuildConfig
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;

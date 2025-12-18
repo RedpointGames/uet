@@ -6,7 +6,9 @@
     using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.BuildConfig;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
@@ -20,8 +22,6 @@
     using System.Text;
     using System.Threading.Tasks;
     using System.Xml;
-    using UET.BuildConfig;
-    using UET.Commands.EngineSpec;
 
     internal sealed class FormatCommand
     {

@@ -1,4 +1,4 @@
-﻿namespace UET.BuildConfig
+﻿namespace Redpoint.Uet.BuildConfig
 {
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -9,6 +9,6 @@
 
         public required IReadOnlyList<string> ErrorList { get; set; }
 
-        public required Redpoint.Uet.Configuration.BuildConfig? BuildConfig { get; set; }
+        public required Configuration.BuildConfig? BuildConfig { get; set; }
     }
 }

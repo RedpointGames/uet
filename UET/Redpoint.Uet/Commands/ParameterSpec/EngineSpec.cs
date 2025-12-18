@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.EngineSpec
+﻿namespace Redpoint.Uet.Commands.ParameterSpec
 {
     using Redpoint.Registry;
     using Redpoint.Uet.BuildPipeline.Executors;
@@ -12,6 +12,7 @@
     using System.Text.Json;
     using System.Text.RegularExpressions;
     using System.Web;
+    using UET.Commands.EngineSpec;
 
     [SuppressMessage("Design", "CA1724", Justification = "")]
     public sealed class EngineSpec

@@ -1,4 +1,4 @@
-﻿namespace UET.Services
+﻿namespace Redpoint.Uet.Services
 {
     using System.Text.Json.Serialization;
 

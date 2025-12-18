@@ -2,7 +2,6 @@
 {
     using Microsoft.Extensions.Logging;
     using System.CommandLine;
-    using UET.Commands.EngineSpec;
     using System.CommandLine.Invocation;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
@@ -20,6 +19,7 @@
     using System.Globalization;
     using System.Text;
     using Redpoint.PathResolution;
+    using Redpoint.Uet.Commands.ParameterSpec;
 
     internal sealed class AndroidKeepWirelessEnabledCommand
     {

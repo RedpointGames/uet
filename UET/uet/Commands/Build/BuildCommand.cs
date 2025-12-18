@@ -3,7 +3,6 @@
     using System;
     using System.CommandLine;
     using System.Threading.Tasks;
-    using UET.Commands.EngineSpec;
     using System.CommandLine.Invocation;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +21,8 @@
     using Redpoint.Uet.CommonPaths;
     using System.CommandLine.Parsing;
     using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
+    using Redpoint.Uet.Commands.Build;
+    using Redpoint.Uet.Commands.ParameterSpec;
 
     internal sealed class BuildCommand
     {

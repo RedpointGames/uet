@@ -9,6 +9,7 @@
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
     using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
     using Redpoint.Uet.BuildPipeline.Executors.Local;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Workspace;
@@ -18,7 +19,6 @@
     using System.Diagnostics;
     using System.Text.Json;
     using System.Threading.Tasks;
-    using UET.Commands.EngineSpec;
     using UET.Commands.Internal.Runback;
 
     internal sealed class CIBuildCommand

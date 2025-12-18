@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.EngineSpec
+﻿namespace Redpoint.Uet.Commands.ParameterSpec
 {
     public enum EngineSpecType
     {

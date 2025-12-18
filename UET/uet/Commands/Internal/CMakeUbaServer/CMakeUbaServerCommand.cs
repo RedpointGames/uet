@@ -21,8 +21,8 @@
     using System.Threading;
     using System.Threading.Tasks;
     using UET.Commands.Config;
-    using UET.Commands.EngineSpec;
     using static CMakeUba.CMakeUbaService;
+    using Redpoint.Uet.Commands.ParameterSpec;
 
     internal class CMakeUbaServerCommand
     {

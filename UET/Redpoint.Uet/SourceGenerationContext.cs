@@ -1,8 +1,8 @@
 ﻿namespace UET.Commands.EngineSpec
 {
+    using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.Uet.Services;
     using System.Text.Json.Serialization;
-    using UET.Commands.ParameterSpec;
-    using UET.Services;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UProjectFile))]

@@ -1,4 +1,4 @@
-﻿namespace UET.Services
+﻿namespace Redpoint.Uet.Services
 {
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.Configuration.Plugin;

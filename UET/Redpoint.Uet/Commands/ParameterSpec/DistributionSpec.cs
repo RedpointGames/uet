@@ -1,12 +1,12 @@
-﻿namespace UET.Commands.EngineSpec
+﻿namespace Redpoint.Uet.Commands.ParameterSpec
 {
+    using Redpoint.Uet.BuildConfig;
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using System;
     using System.CommandLine;
     using System.CommandLine.Parsing;
-    using UET.BuildConfig;
 
     public sealed class DistributionSpec
     {

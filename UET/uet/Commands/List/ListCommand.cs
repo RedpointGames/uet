@@ -8,8 +8,8 @@
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
-    using UET.Commands.EngineSpec;
-    using UET.BuildConfig;
+    using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.Uet.BuildConfig;
 
     internal sealed class ListCommand
     {

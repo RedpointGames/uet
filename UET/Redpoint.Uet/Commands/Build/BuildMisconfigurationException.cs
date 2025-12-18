@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.Build
+﻿namespace Redpoint.Uet.Commands.Build
 {
     using System;
     using System.Diagnostics.CodeAnalysis;

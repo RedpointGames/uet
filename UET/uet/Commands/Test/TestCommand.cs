@@ -3,10 +3,13 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.BuildConfig;
     using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.Local;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Plugin.Automation;
     using Redpoint.Uet.BuildPipeline.Providers.Test.Project.Automation;
+    using Redpoint.Uet.Commands.Build;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
@@ -16,9 +19,7 @@
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
-    using UET.BuildConfig;
     using UET.Commands.Build;
-    using UET.Commands.EngineSpec;
     using static Crayon.Output;
 
     internal sealed class TestCommand
