@@ -21,20 +21,22 @@
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.PathResolution;
+    using Redpoint.CommandLine;
 
-    internal class RunRemoteHostCommand
+    internal class RunRemoteHostCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunRemoteHostCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("run-remote-host");
+                })
+            .Build();
+
         public sealed class Options
         {
-        }
-
-        public static Command CreateRunRemoteHostCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-remote-host");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunRemoteHostCommandInstance>(options);
-            return command;
         }
 
         private sealed class RunRemoteHostCommandInstance : RemoteHostServiceBase, ICommandInstance, IDisposable
@@ -215,7 +217,7 @@
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 try
                 {

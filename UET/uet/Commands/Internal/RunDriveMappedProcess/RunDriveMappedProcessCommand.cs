@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.RunDriveMappedProcess
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
     using System;
@@ -10,8 +11,18 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal sealed class RunDriveMappedProcessCommand
+    internal sealed class RunDriveMappedProcessCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunDriveMappedProcessCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("run-drive-mapped-process");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> ProcessPath;
@@ -32,15 +43,6 @@
             }
         }
 
-        public static Command CreateRunDriveMappedProcessCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-drive-mapped-process");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunDriveMappedProcessCommandInstance>(options);
-            return command;
-        }
-
         private sealed class RunDriveMappedProcessCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDriveMappedProcessCommandInstance> _logger;
@@ -57,7 +59,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsWindowsVersionAtLeast(6, 2))
                 {

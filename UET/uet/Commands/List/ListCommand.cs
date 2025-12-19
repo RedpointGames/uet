@@ -1,18 +1,31 @@
 ﻿namespace UET.Commands.List
 {
+    using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
+    using Redpoint.Uet.BuildConfig;
+    using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.Configuration.Engine;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using System;
-    using Microsoft.Extensions.Logging;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
-    using Redpoint.Uet.Commands.ParameterSpec;
-    using Redpoint.Uet.BuildConfig;
 
-    internal sealed class ListCommand
+    internal sealed class ListCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ListCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("list", "List the distributions in a BuildConfig.json file.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<PathSpec> Path;
@@ -27,19 +40,6 @@
                 Path.AddAlias("-p");
                 Path.Arity = ArgumentArity.ExactlyOne;
             }
-        }
-
-        public static Command CreateListCommand()
-        {
-            var options = new Options();
-            var command = new Command("list", "List the distributions in a BuildConfig.json file.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ListCommandInstance>(
-                options,
-                services =>
-                {
-                });
-            return command;
         }
 
         private sealed class ListCommandInstance : ICommandInstance
@@ -58,7 +58,7 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
 

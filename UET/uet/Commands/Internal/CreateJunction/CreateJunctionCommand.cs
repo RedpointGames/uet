@@ -1,6 +1,8 @@
 ﻿namespace UET.Commands.Internal.CreateJunction
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.IO;
     using System;
     using System.Collections.Generic;
@@ -9,9 +11,21 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using UET.Commands.Internal.CreateGitHubRelease;
+    using UET.Commands.Internal.GenerateJsonSchema;
 
-    internal sealed class CreateJunctionCommand
+    internal sealed class CreateJunctionCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CreateJunctionCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("create-junction");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<DirectoryInfo> LinkPath;
@@ -24,15 +38,6 @@
                 TargetPath = new Option<DirectoryInfo?>("--target-path");
                 TargetRaw = new Option<string?>("--target-raw");
             }
-        }
-
-        public static Command CreateCreateJunctionCommand()
-        {
-            var options = new Options();
-            var command = new Command("create-junction");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CreateJunctionCommandInstance>(options);
-            return command;
         }
 
         private sealed class CreateJunctionCommandInstance : ICommandInstance
@@ -48,7 +53,7 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600))
                 {

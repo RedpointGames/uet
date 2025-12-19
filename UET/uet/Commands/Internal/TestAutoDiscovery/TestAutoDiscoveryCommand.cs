@@ -2,25 +2,27 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.AutoDiscovery;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class TestAutoDiscoveryCommand
+    internal sealed class TestAutoDiscoveryCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestAutoDiscoveryCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("test-autodiscovery");
+                })
+            .Build();
+
         internal sealed class Options
         {
-        }
-
-        public static Command CreateTestAutoDiscoveryCommand()
-        {
-            var options = new Options();
-            var command = new Command("test-autodiscovery");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TestAutoDiscoveryCommandInstance>(options);
-            return command;
         }
 
         private sealed class TestAutoDiscoveryCommandInstance : ICommandInstance
@@ -36,7 +38,7 @@
                 _networkAutoDiscovery = networkAutoDiscovery;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 await using (await _networkAutoDiscovery.RegisterServiceAsync(
                     $"{Environment.MachineName}._discoverytest._tcp.local",

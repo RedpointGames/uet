@@ -3,6 +3,8 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.Services;
     using Redpoint.ProcessExecution;
     using Redpoint.Registry;
     using Redpoint.ServiceControl;
@@ -18,34 +20,35 @@
     using UET.Services;
 
     [SupportedOSPlatform("windows5.0")]
-    internal class ClusterSwitchVfpModeCommand
+    internal class ClusterSwitchVfpModeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ClusterSwitchVfpModeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command(
+                        "switch-vfp-mode",
+                        "Change the mode of the VFP network extension on Windows.")
+                    {
+                        FullDescription =
+                            """
+                            This command changes the mode of the VFP network extension on Windows. The VFP network extension must be in 'forwarding' mode for Windows container networking to work under Kubernetes, but Windows client SKUs have it set to the more limited 'filtering' mode by default.
+
+                            After changing the mode with this command, the computer must be restarted for the changes to take effect.
+
+                            This command must be run as an Administrator.
+                            """
+                    };
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<bool> Filter = new Option<bool>("--filter", "Switch the VFP extension into filtering mode.");
             public Option<bool> Forward = new Option<bool>("--forward", "Switch the VFP extension into forwarding mode.");
             public Option<bool> Verify = new Option<bool>("--verify", "If set, this command verifies if the machine is in the target mode instead of changing the mode.");
-        }
-
-        public static Command CreateClusterSwitchVfpModeCommand()
-        {
-            var options = new Options();
-            var command = new Command(
-                "switch-vfp-mode",
-                "Change the mode of the VFP network extension on Windows.")
-            {
-                FullDescription =
-                """
-                This command changes the mode of the VFP network extension on Windows. The VFP network extension must be in 'forwarding' mode for Windows container networking to work under Kubernetes, but Windows client SKUs have it set to the more limited 'filtering' mode by default.
-
-                After changing the mode with this command, the computer must be restarted for the changes to take effect.
-
-                This command must be run as an Administrator.
-                """
-            };
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterSwitchVfpModeCommandInstance>(options);
-            return command;
         }
 
         private sealed class ClusterSwitchVfpModeCommandInstance : ICommandInstance
@@ -72,7 +75,7 @@
 
             private const string _envRunningUnderTrustedInstaller = "UET_SWITCH_VFP_MODE_RUNNING_UNDER_TRUSTEDINSTALLER";
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
                 {

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Redpoint.CommandLine;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
 using System.CommandLine.Invocation;
@@ -29,7 +30,7 @@ namespace UET.Commands.Cluster
             _logger = logger;
         }
 
-        public async Task<int> CreateOrJoin(InvocationContext context, ClusterOptions options)
+        public async Task<int> CreateOrJoin(ICommandInvocationContext context, ClusterOptions options)
         {
             // Compute the base directory of all RKM installs.
             Directory.CreateDirectory(_rkmGlobalRootProvider.RkmGlobalRoot);

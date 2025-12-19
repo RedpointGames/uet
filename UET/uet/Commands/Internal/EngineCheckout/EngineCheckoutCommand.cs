@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.EngineCheckout
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.PhysicalGit;
@@ -8,8 +9,18 @@
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class EngineCheckoutCommand
+    internal sealed class EngineCheckoutCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<EngineCheckoutCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("engine-checkout");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Path;
@@ -24,15 +35,6 @@
                 Branch = new Option<string>("--branch");
                 LfsStoragePath = new Option<string>("--lfs-storage-path");
             }
-        }
-
-        public static Command CreateEngineCheckoutCommand()
-        {
-            var options = new Options();
-            var command = new Command("engine-checkout");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<EngineCheckoutCommandInstance>(options);
-            return command;
         }
 
         private sealed class EngineCheckoutCommandInstance : ICommandInstance
@@ -51,7 +53,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 Directory.CreateDirectory(context.ParseResult.GetValueForOption(_options.Path)!);
 

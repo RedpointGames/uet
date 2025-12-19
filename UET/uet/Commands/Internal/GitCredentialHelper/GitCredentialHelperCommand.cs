@@ -1,5 +1,7 @@
 ﻿namespace UET.Commands.Internal.GitCredentialHelper
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.CommandLine;
     using Redpoint.CredentialDiscovery;
     using System;
     using System.Collections.Generic;
@@ -8,9 +10,22 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using UET.Commands.Internal.GenerateJsonSchema;
 
-    internal sealed class GitCredentialHelperCommand
+    internal sealed class GitCredentialHelperCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<GitCredentialHelperCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command(
+                        "git-credential-helper",
+                        "Used as the credential helper for Git when running on a build server. This allows us to provide credentials from environment variables without setting the username and password in remote URLs.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Argument<string> Operation;
@@ -20,17 +35,6 @@
                 Operation = new Argument<string>("operation");
                 Operation.AddCompletions("get", "store", "erase");
             }
-        }
-
-        public static Command CreateGitCredentialHelperCommand()
-        {
-            var options = new Options();
-            var command = new Command(
-                "git-credential-helper",
-                "Used as the credential helper for Git when running on a build server. This allows us to provide credentials from environment variables without setting the username and password in remote URLs.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<GitCredentialHelperCommandInstance>(options);
-            return command;
         }
 
         private sealed class GitCredentialHelperCommandInstance : ICommandInstance
@@ -46,7 +50,7 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var doTrace = Environment.GetEnvironmentVariable("UET_TRACE") == "1";
 

@@ -2,6 +2,7 @@
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.GrpcPipes;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -10,19 +11,20 @@
     using TestPipes;
     using static TestPipes.TestService;
 
-    internal sealed class TestGrpcPipesCommand
+    internal sealed class TestGrpcPipesCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestGrpcPipesCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("test-grpc-pipes");
+                })
+            .Build();
+
         internal sealed class Options
         {
-        }
-
-        public static Command CreateTestGrpcPipesCommand()
-        {
-            var options = new Options();
-            var command = new Command("test-grpc-pipes");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TestGrpcPipesCommandInstance>(options);
-            return command;
         }
 
         private sealed class TestGrpcPipesCommandInstance : TestServiceBase, ICommandInstance
@@ -39,7 +41,7 @@
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var pipeName = $"test-grpc-pipes-{Environment.ProcessId}";
 

@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.EnginePerforceToGit
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using System.CommandLine;
@@ -9,8 +10,30 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal sealed class EnginePerforceToGitCommand
+    internal sealed class EnginePerforceToGitCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<EnginePerforceToGitCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("engine-perforce-to-git", "Synchronise snapshots from Perforce into a Git repository with large files stored in Git LFS.")
+                    {
+                        FullDescription =
+                            """
+                            If you need a reference for workspace mappings to use with this tool:
+                
+                            - Open P4V, go to View -> Workspaces.
+                            - In the Filter, replace "Owner" with "Name" and set "RedpointGames_Latest" as the value.
+                            - You should see the "RedpointGames_Latest" workspace in the results.
+                            - Right-click on it, 'View Workspace'.
+                            - Copy the Options and View sections to Notepad, and use them to set up your own workspace.
+                            """
+                    };
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> P4Client;
@@ -96,27 +119,6 @@
             }
         }
 
-        public static Command CreateEnginePerforceToGitCommand()
-        {
-            var options = new Options();
-            var command = new Command("engine-perforce-to-git", "Synchronise snapshots from Perforce into a Git repository with large files stored in Git LFS.")
-            {
-                FullDescription =
-                """
-                If you need a reference for workspace mappings to use with this tool:
-                
-                - Open P4V, go to View -> Workspaces.
-                - In the Filter, replace "Owner" with "Name" and set "RedpointGames_Latest" as the value.
-                - You should see the "RedpointGames_Latest" workspace in the results.
-                - Right-click on it, 'View Workspace'.
-                - Copy the Options and View sections to Notepad, and use them to set up your own workspace.
-                """
-            };
-            command.AddAllOptions(options);
-            command.AddCommonHandler<EnginePerforceToGitCommandInstance>(options);
-            return command;
-        }
-
         private sealed class EnginePerforceToGitCommandInstance : ICommandInstance
         {
             private readonly ILogger<EnginePerforceToGitCommandInstance> _logger;
@@ -168,7 +170,7 @@
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var p4Client = context.ParseResult.GetValueForOption(_options.P4Client) ?? string.Empty;
                 var p4Tickets = context.ParseResult.GetValueForOption(_options.P4Tickets) ?? string.Empty;

@@ -2,28 +2,32 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Text;
     using System.Threading.Tasks;
 
-    internal sealed class GenerateJsonSchemaCommand
+    internal sealed class GenerateJsonSchemaCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<GenerateJsonSchemaCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("generate-json-schema");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IJsonSchemaGenerator, DefaultJsonSchemaGenerator>();
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<FileInfo?> OutputPath = new Option<FileInfo?>("--output-path");
-        }
-
-        public static Command CreateGenerateJsonSchemaCommand()
-        {
-            var options = new Options();
-            var command = new Command("generate-json-schema");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<GenerateJsonSchemaCommandInstance>(options, services =>
-            {
-                services.AddSingleton<IJsonSchemaGenerator, DefaultJsonSchemaGenerator>();
-            });
-            return command;
         }
 
         private sealed class GenerateJsonSchemaCommandInstance : ICommandInstance
@@ -42,7 +46,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!;
                 if (outputPath?.DirectoryName != null)

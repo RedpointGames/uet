@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uet.CommonPaths;
@@ -10,8 +11,18 @@
     using System.Threading.Tasks;
     using UET.Commands.Build;
 
-    internal sealed class UpgradeCommand
+    internal sealed class UpgradeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<UpgradeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("upgrade", "Upgrades your version of UET.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string?> Version;
@@ -44,21 +55,6 @@
             }
         }
 
-        public static Command CreateUpgradeCommand(HashSet<Command> globalCommands)
-        {
-            var options = new Options();
-            var command = new Command("upgrade", "Upgrades your version of UET.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UpgradeCommandInstance>(
-                options,
-                services =>
-                {
-                    services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
-                });
-            globalCommands.Add(command);
-            return command;
-        }
-
         internal sealed class UpgradeCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -81,7 +77,7 @@
                 _processExecutor = processExecutor;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var version = context.ParseResult.GetValueForOption(_options.Version);
                 var doNotSetAsCurrent = context.ParseResult.GetValueForOption(_options.DoNotSetAsCurrent);

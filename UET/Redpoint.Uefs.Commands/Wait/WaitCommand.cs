@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Commands.Wait
 {
+    using Redpoint.CommandLine;
     using Redpoint.GrpcPipes;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Commands.Mount;
@@ -10,41 +11,34 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    public static class WaitCommand
+    public class WaitCommand : ICommandDescriptorProvider
     {
-        internal sealed class Options
-        {
-        }
-
-        public static Command CreateWaitCommand()
-        {
-            var options = new Options();
-            var command = new Command("wait", "Waits for all pull operations to complete.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<WaitCommandInstance>(options);
-            return command;
-        }
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithInstance<WaitCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("wait", "Waits for all pull operations to complete.");
+                })
+            .Build();
 
         private sealed class WaitCommandInstance : ICommandInstance
         {
             private readonly IRetryableGrpc _retryableGrpc;
             private readonly IMonitorFactory _monitorFactory;
             private readonly UefsClient _uefsClient;
-            private readonly Options _options;
 
             public WaitCommandInstance(
                 IRetryableGrpc retryableGrpc,
                 IMonitorFactory monitorFactory,
-                UefsClient uefsClient,
-                Options options)
+                UefsClient uefsClient)
             {
                 _retryableGrpc = retryableGrpc;
                 _monitorFactory = monitorFactory;
                 _uefsClient = uefsClient;
-                _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 Console.WriteLine($"waiting for all pull operations to complete...");
 

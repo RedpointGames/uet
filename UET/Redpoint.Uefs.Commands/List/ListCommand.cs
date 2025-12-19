@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Commands.List
 {
+    using Redpoint.CommandLine;
     using Redpoint.Uefs.Protocol;
     using System;
     using System.CommandLine;
@@ -7,20 +8,16 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    public static class ListCommand
+    public class ListCommand : ICommandDescriptorProvider
     {
-        internal sealed class Options
-        {
-        }
-
-        public static Command CreateListCommand()
-        {
-            var options = new Options();
-            var command = new Command("list", "List UEFS mounts on the local system daemon.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ListCommandInstance>(options);
-            return command;
-        }
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithInstance<ListCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("list", "List UEFS mounts on the local system daemon.");
+                })
+            .Build();
 
         private sealed class ListCommandInstance : ICommandInstance
         {
@@ -31,7 +28,7 @@
                 _client = client;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var mounts = (await _client.ListAsync(new ListRequest())).Mounts;
 

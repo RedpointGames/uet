@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.RemoveStalePrecompiledHeaders
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Database;
     using Redpoint.Uet.Database.Models;
     using System;
@@ -11,8 +12,18 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal sealed class RemoveStalePrecompiledHeadersCommand
+    internal sealed class RemoveStalePrecompiledHeadersCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RemoveStalePrecompiledHeadersCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("remove-stale-precompiled-headers");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<DirectoryInfo> EnginePath = new Option<DirectoryInfo>("--engine-path") { IsRequired = true };
@@ -20,15 +31,6 @@
             public Option<string> TargetName = new Option<string>("--target-name") { IsRequired = true };
             public Option<string> TargetPlatform = new Option<string>("--target-platform") { IsRequired = true };
             public Option<string> TargetConfiguration = new Option<string>("--target-configuration") { IsRequired = true };
-        }
-
-        public static Command CreateRemoveStalePrecompiledHeadersCommand()
-        {
-            var options = new Options();
-            var command = new Command("remove-stale-precompiled-headers");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RemoveStalePrecompiledHeadersCommandInstance>(options);
-            return command;
         }
 
         private sealed class RemoveStalePrecompiledHeadersCommandInstance : ICommandInstance
@@ -47,7 +49,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var enginePath = context.ParseResult.GetValueForOption(_options.EnginePath)!;
                 var projectPath = context.ParseResult.GetValueForOption(_options.ProjectPath)!;

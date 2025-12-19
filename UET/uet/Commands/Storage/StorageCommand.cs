@@ -1,29 +1,24 @@
 ﻿namespace UET.Commands.Storage
 {
+    using Redpoint.CommandLine;
     using System.Collections.Generic;
     using System.CommandLine;
+    using UET.Commands.New.Plugin;
     using UET.Commands.Storage.List;
     using UET.Commands.Storage.Purge;
 
-    internal sealed class StorageCommand
+    internal sealed class StorageCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        public static Command CreateStorageCommand(HashSet<Command> globalCommands)
-        {
-            var subcommands = new List<Command>
-            {
-                StorageListCommand.CreateListCommand(),
-                StoragePurgeCommand.CreatePurgeCommand(),
-                StorageAutoPurgeCommand.CreateAutoPurgeCommand(),
-            };
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithCommand(
+                builder =>
+                {
+                    builder.AddCommand<StorageListCommand>();
+                    builder.AddCommand<StoragePurgeCommand>();
+                    builder.AddCommand<StorageAutoPurgeCommand>();
 
-            var command = new Command("storage", "View or remove storage used by UET.");
-            foreach (var subcommand in subcommands)
-            {
-                globalCommands.Add(subcommand);
-                command.AddCommand(subcommand);
-            }
-            globalCommands.Add(command);
-            return command;
-        }
+                    return new Command("storage", "View or remove storage used by UET.");
+                })
+            .Build();
     }
 }

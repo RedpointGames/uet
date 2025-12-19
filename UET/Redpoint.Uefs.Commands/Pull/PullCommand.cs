@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Commands.Pull
 {
     using Grpc.Core;
+    using Redpoint.CommandLine;
     using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.ProgressMonitor;
@@ -12,23 +13,24 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    public static class PullCommand
+    public class PullCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<PullCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("pull", "Pulls the latest UEFS package from a registry.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> PackageTag = new Option<string>("--tag", description: "The registry tag to pull.");
             public Option<string> GitUrl = new Option<string>("--git-url", description: "The Git repository URL to pull.");
             public Option<string> GitCommit = new Option<string>("--git-commit", description: "The Git commit to pull.");
             public Option<bool> NoWait = new Option<bool>("--no-wait", description: "Start the pull operation on the daemon, but don't poll until it finishes.");
-        }
-
-        public static Command CreatePullCommand()
-        {
-            var options = new Options();
-            var command = new Command("pull", "Pulls the latest UEFS package from a registry.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<PullCommandInstance>(options);
-            return command;
         }
 
         private sealed class PullCommandInstance : ICommandInstance
@@ -69,7 +71,7 @@
                 return await operation.RunAndWaitForCompleteAsync().ConfigureAwait(false);
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var packageTag = context.ParseResult.GetValueForOption(_options.PackageTag);
                 var gitUrl = context.ParseResult.GetValueForOption(_options.GitUrl);

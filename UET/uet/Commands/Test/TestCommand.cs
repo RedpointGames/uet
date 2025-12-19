@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.BuildConfig;
     using Redpoint.Uet.BuildPipeline.Executors;
@@ -22,8 +23,43 @@
     using UET.Commands.Build;
     using static Crayon.Output;
 
-    internal sealed class TestCommand
+    internal sealed class TestCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("test", "Run tests in the editor for a project or plugin.")
+                    {
+                        FullDescription =
+                        """
+                        This command runs tests for either an Unreal Engine project or plugin. The behaviour of this command depends on the arguments that you've passed to it and the current directory.
+
+                        -------------
+
+                        If this command is run in a directory with a .uproject or .uplugin file (but no BuildConfig.json file), this command runs automation tests against the Unreal Engine project or plugin using the editor binary for the current platform.
+
+                        If you don't specify --prefix, all automation tests are run. This is usually a lot more tests than you want, so you should specify --prefix in most cases.
+
+                        -------------
+
+                        If this command is run in a directory with a BuildConfig.json file, where that BuildConfig.json file describes a plugin, you must specify --name.
+
+                        The specified --name must match a test predefined in the 'Tests' section (outside of 'Distributions').
+                        """
+                    };
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
@@ -61,34 +97,6 @@
             }
         }
 
-        public static Command CreateTestCommand()
-        {
-            var command = new Command("test", "Run tests in the editor for a project or plugin.")
-            {
-                FullDescription = """
-                This command runs tests for either an Unreal Engine project or plugin. The behaviour of this command depends on the arguments that you've passed to it and the current directory.
-
-                -------------
-
-                If this command is run in a directory with a .uproject or .uplugin file (but no BuildConfig.json file), this command runs automation tests against the Unreal Engine project or plugin using the editor binary for the current platform.
-
-                If you don't specify --prefix, all automation tests are run. This is usually a lot more tests than you want, so you should specify --prefix in most cases.
-
-                -------------
-
-                If this command is run in a directory with a BuildConfig.json file, where that BuildConfig.json file describes a plugin, you must specify --name.
-
-                The specified --name must match a test predefined in the 'Tests' section (outside of 'Distributions').
-                """
-            };
-            command.AddServicedOptionsHandler<TestCommandInstance, Options>(
-                services =>
-                {
-                    services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
-                });
-            return command;
-        }
-
         private sealed class TestCommandInstance : ICommandInstance
         {
             private readonly ILogger<TestCommandInstance> _logger;
@@ -114,7 +122,7 @@
                 _serviceProvider = serviceProvider;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;

@@ -1,12 +1,23 @@
 ﻿namespace UET.Commands.Internal.RunDownstreamTest
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class RunDownstreamTestCommand
+    internal sealed class RunDownstreamTestCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunDownstreamTestCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("run-downstream-test");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> DownstreamTest;
@@ -23,15 +34,6 @@
             }
         }
 
-        public static Command CreateRunDownstreamTestCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-downstream-test");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunDownstreamTestCommandInstance>(options);
-            return command;
-        }
-
         private sealed class RunDownstreamTestCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDownstreamTestCommandInstance> _logger;
@@ -42,7 +44,7 @@
                 _logger = logger;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 _logger.LogError("Not yet implemented.");
                 return Task.FromResult(1);

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.CommandLine;
 using Redpoint.Concurrency;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
@@ -16,23 +17,23 @@ using System.Threading;
 
 namespace UET.Commands.Cluster
 {
-    internal sealed class ClusterCheckConnectivityCommand
+    internal sealed class ClusterCheckConnectivityCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ClusterCheckConnectivityCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command(
+                        "check-connectivity",
+                        "Perform various connectivity tests in a loop, exiting if any fail.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> HealthCheckPath = new Option<FileInfo>("--health-check-path");
-        }
-
-        public static Command CreateClusterCheckConnectivityCommand()
-        {
-            var options = new Options();
-            var command = new Command(
-                "check-connectivity",
-                "Perform various connectivity tests in a loop, exiting if any fail.");
-            command.IsHidden = true;
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterCheckConnectivityCommandInstance>(options);
-            return command;
         }
 
         private sealed class ClusterCheckConnectivityCommandInstance : ICommandInstance
@@ -144,7 +145,7 @@ namespace UET.Commands.Cluster
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var healthCheckPath = context.ParseResult.GetValueForOption(_options.HealthCheckPath);
 

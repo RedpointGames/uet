@@ -2,23 +2,36 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.Core;
+    using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.SdkManagement;
+    using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
-    using System.Text.Json.Serialization;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading.Tasks;
-    using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
-    using Redpoint.Uet.Core.Permissions;
-    using Redpoint.Uet.CommonPaths;
-    using Redpoint.Uet.Commands.ParameterSpec;
 
-    internal static class InstallSdksCommand
+    internal sealed class InstallSdksCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<InstallSdksCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("install-sdks", "Install the platform SDKs required for a particular engine version, and set up environment variables on the local machine to use them.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
@@ -40,15 +53,6 @@
                 ConsolePlatforms.AddAlias("-c");
                 ConsolePlatforms.Arity = ArgumentArity.ZeroOrMore;
             }
-        }
-
-        public static Command CreateInstallSdksCommand()
-        {
-            var options = new Options();
-            var command = new Command("install-sdks", "Install the platform SDKs required for a particular engine version, and set up environment variables on the local machine to use them.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<InstallSdksCommandInstance>(options);
-            return command;
         }
 
         private sealed class InstallSdksCommandInstance : ICommandInstance
@@ -73,7 +77,7 @@
                 _worldPermissionApplier = worldPermissionApplier;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsWindows())
                 {

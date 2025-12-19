@@ -1,6 +1,6 @@
 ﻿namespace UET.Commands.Uefs
 {
-    using System.CommandLine;
+    using Redpoint.CommandLine;
     using Redpoint.Uefs.Commands.Build;
     using Redpoint.Uefs.Commands.Hash;
     using Redpoint.Uefs.Commands.List;
@@ -11,25 +11,29 @@
     using Redpoint.Uefs.Commands.Unmount;
     using Redpoint.Uefs.Commands.Verify;
     using Redpoint.Uefs.Commands.Wait;
+    using System.CommandLine;
 
-    internal sealed class UefsCommand
+    internal sealed class UefsCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        public static Command CreateUefsCommand()
-        {
-            var rootCommand = new Command("uefs", "Run a UEFS command from UET.");
-            rootCommand.AddCommand(UefsInstallCommand.CreateInstallCommand());
-            rootCommand.AddCommand(UefsUninstallCommand.CreateUninstallCommand());
-            rootCommand.AddCommand(BuildCommand.CreateBuildCommand());
-            rootCommand.AddCommand(MountCommand.CreateMountCommand());
-            rootCommand.AddCommand(UnmountCommand.CreateUnmountCommand());
-            rootCommand.AddCommand(ListCommand.CreateListCommand());
-            rootCommand.AddCommand(PushCommand.CreatePushCommand());
-            rootCommand.AddCommand(HashCommand.CreateHashCommand());
-            rootCommand.AddCommand(PullCommand.CreatePullCommand());
-            rootCommand.AddCommand(WaitCommand.CreateWaitCommand());
-            rootCommand.AddCommand(VerifyCommand.CreateVerifyCommand());
-            rootCommand.AddCommand(LoginCommand.CreateLoginCommand());
-            return rootCommand;
-        }
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithCommand(
+                builder =>
+                {
+                    builder.AddCommand<UefsInstallCommand>();
+                    builder.AddCommand<UefsUninstallCommand>();
+                    builder.AddCommandWithoutGlobalContext<BuildCommand>();
+                    builder.AddCommandWithoutGlobalContext<MountCommand>();
+                    builder.AddCommandWithoutGlobalContext<UnmountCommand>();
+                    builder.AddCommandWithoutGlobalContext<ListCommand>();
+                    builder.AddCommandWithoutGlobalContext<PushCommand>();
+                    builder.AddCommandWithoutGlobalContext<HashCommand>();
+                    builder.AddCommandWithoutGlobalContext<PullCommand>();
+                    builder.AddCommandWithoutGlobalContext<WaitCommand>();
+                    builder.AddCommandWithoutGlobalContext<VerifyCommand>();
+                    builder.AddCommandWithoutGlobalContext<LoginCommand>();
+
+                    return new Command("uefs", "Run a UEFS command from UET.");
+                })
+            .Build();
     }
 }

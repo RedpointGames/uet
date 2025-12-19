@@ -1,25 +1,27 @@
 ﻿namespace UET.Commands.Internal.TestUefsConnection
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uefs.Protocol;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    internal sealed class TestUefsConnectionCommand
+    internal sealed class TestUefsConnectionCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestUefsConnectionCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("test-uefs-connection");
+                })
+            .Build();
+
         internal sealed class Options
         {
-        }
-
-        public static Command CreateTestUefsConnectionCommand()
-        {
-            var options = new Options();
-            var command = new Command("test-uefs-connection");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TestUefsConnectionCommandInstance>(options);
-            return command;
         }
 
         private sealed class TestUefsConnectionCommandInstance : ICommandInstance
@@ -35,7 +37,7 @@
                 _uefsClient = uefsClient;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var results = await _uefsClient.ListAsync(new ListRequest());
                 if (!string.IsNullOrWhiteSpace(results.Err))

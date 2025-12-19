@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.CreateGitHubRelease
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using System;
     using System.Collections.Generic;
@@ -37,7 +38,7 @@
                 new MediaTypeHeaderValue("application/json"));
         }
 
-        public async Task CreateVersionReleaseAsync(InvocationContext context, string version, (string name, string label, FileInfo path)[] files, HttpClient client)
+        public async Task CreateVersionReleaseAsync(ICommandInvocationContext context, string version, (string name, string label, FileInfo path)[] files, HttpClient client)
         {
             // If the release doesn't exist, create it first.
             ReleaseResponse release;
@@ -209,7 +210,7 @@
             }
         }
 
-        public async Task UpdateLatestReleaseAsync(InvocationContext context, string version, (string name, string label, FileInfo path)[] files, HttpClient client)
+        public async Task UpdateLatestReleaseAsync(ICommandInvocationContext context, string version, (string name, string label, FileInfo path)[] files, HttpClient client)
         {
             var latestDescription =
                 $"""

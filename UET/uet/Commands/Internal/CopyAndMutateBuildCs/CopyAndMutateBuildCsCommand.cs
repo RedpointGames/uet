@@ -1,6 +1,8 @@
 ﻿namespace UET.Commands.Internal.CopyAndMutateBuildCs
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Configuration.Plugin;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -8,9 +10,20 @@
     using System.Linq;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using UET.Commands.Config;
 
-    internal sealed class CopyAndMutateBuildCsCommand
+    internal sealed class CopyAndMutateBuildCsCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CopyAndMutateBuildCsCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("copy-and-mutate-build-cs");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> InputBasePath;
@@ -27,15 +40,6 @@
             }
         }
 
-        public static Command CreateCopyAndMutateBuildCsCommand()
-        {
-            var options = new Options();
-            var command = new Command("copy-and-mutate-build-cs");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CopyAndMutateBuildCsCommandInstance>(options);
-            return command;
-        }
-
         private sealed class CopyAndMutateBuildCsCommandInstance : ICommandInstance
         {
             private readonly ILogger<CopyAndMutateBuildCsCommandInstance> _logger;
@@ -49,7 +53,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var inputBasePath = context.ParseResult.GetValueForOption(_options.InputBasePath)!.Replace('/', Path.DirectorySeparatorChar);
                 var inputFileList = context.ParseResult.GetValueForOption(_options.InputFileList)!;

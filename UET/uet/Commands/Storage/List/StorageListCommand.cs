@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Storage.List
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Workspace.Reservation;
     using Redpoint.Uet.Workspace.Storage;
     using System;
@@ -17,18 +18,21 @@
     using UET.Commands.Build;
     using UET.Services;
 
-    internal sealed class StorageListCommand
+    internal sealed class StorageListCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<StorageListCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("list", "List the storage consumed by UET and UEFS.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<bool> NoDiskUsage = new Option<bool>("--no-disk-usage", "Skip computing disk usage of folders.");
-        }
-
-        public static Command CreateListCommand()
-        {
-            var command = new Command("list", "List the storage consumed by UET and UEFS.");
-            command.AddServicedOptionsHandler<StorageListCommandInstance, Options>();
-            return command;
         }
 
         [SupportedOSPlatform("windows")]
@@ -52,7 +56,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var noDiskUsage = context.ParseResult.GetValueForOption(_options.NoDiskUsage);
 

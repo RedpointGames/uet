@@ -20,8 +20,9 @@
     using System.Text;
     using Redpoint.PathResolution;
     using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.CommandLine;
 
-    internal sealed class AndroidKeepWirelessEnabledCommand
+    internal sealed class AndroidKeepWirelessEnabledCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
         internal sealed class Options
         {
@@ -46,14 +47,17 @@
             }
         }
 
-        public static Command CreateAndroidKeepWirelessEnabledCommand()
-        {
-            var options = new Options();
-            var command = new Command("keep-wireless-enabled", "Automatically keep 'Wireless debugging' enabled on connected Android devices.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CreateAndroidKeepWirelessEnabledCommandInstance>(options);
-            return command;
-        }
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CreateAndroidKeepWirelessEnabledCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("keep-wireless-enabled", "Automatically keep 'Wireless debugging' enabled on connected Android devices.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
 
         private sealed class CreateAndroidKeepWirelessEnabledCommandInstance : ICommandInstance
         {
@@ -86,7 +90,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsWindows())
                 {

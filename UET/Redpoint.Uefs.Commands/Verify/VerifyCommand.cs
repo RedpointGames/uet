@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Commands.Verify
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.GrpcPipes;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Commands.Mount;
@@ -11,21 +12,22 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    public static class VerifyCommand
+    public class VerifyCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<VerifyCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("verify", "Verify the on-demand cache against the backing storage.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<bool> NoWait = new Option<bool>("--no-wait", description: "Start the verify operation on the daemon, but don't poll until it finishes.");
             public Option<bool> Fix = new Option<bool>("--fix", description: "Clear cached chunks that are invalid so that they are re-fetched from remote source when needed.");
-        }
-
-        public static Command CreateVerifyCommand()
-        {
-            var options = new Options();
-            var command = new Command("verify", "Verify the on-demand cache against the backing storage.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<VerifyCommandInstance>(options);
-            return command;
         }
 
         private sealed class VerifyCommandInstance : ICommandInstance
@@ -50,7 +52,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var fix = context.ParseResult.GetValueForOption(_options.Fix);
                 var noWait = context.ParseResult.GetValueForOption(_options.NoWait);

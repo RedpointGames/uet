@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.AppleCert
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Security.Cryptography;
@@ -8,7 +9,7 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal sealed class AppleCertCreateCommand
+    internal sealed class AppleCertCreateCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
         internal sealed class Options
         {
@@ -40,14 +41,17 @@
             }
         }
 
-        public static Command CreateAppleCertCreateCommand()
-        {
-            var options = new Options();
-            var command = new Command("create", "(step 1) Create a private key and signing request to submit to the Apple Developer portal.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CreateAppleCertCreateCommandInstance>(options);
-            return command;
-        }
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CreateAppleCertCreateCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("create", "(step 1) Create a private key and signing request to submit to the Apple Developer portal.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
 
         private sealed class CreateAppleCertCreateCommandInstance : ICommandInstance
         {
@@ -64,7 +68,7 @@
 
             private static readonly Regex _nameRegex = new Regex("^[a-zA-Z]+[a-zA-Z0-9]*$");
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var name = context.ParseResult.GetValueForOption(_options.Name);
                 var appleEmailAddress = context.ParseResult.GetValueForOption(_options.AppleEmailAddress);

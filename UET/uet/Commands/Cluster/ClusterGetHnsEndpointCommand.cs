@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.CommandLine;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
 using Redpoint.Windows.HostNetworkingService;
@@ -12,30 +13,33 @@ using System.Threading;
 namespace UET.Commands.Cluster
 {
     [SupportedOSPlatform("windows")]
-    internal sealed class ClusterGetHnsEndpointCommand
+    internal sealed class ClusterGetHnsEndpointCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ClusterGetHnsEndpointCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command(
+                        "get-hns-endpoint",
+                        "Outputs the HNS endpoint for the given HNS network, or exits with an exit code 1.");
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton(_ =>
+                    {
+                        return IHnsApi.GetInstance();
+                    });
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> NetworkName = new Option<string>("--network-name", "The HNS network name.");
             public Option<string> EndpointName = new Option<string>("--endpoint-name", "The HNS endpoint name.");
-        }
-
-        public static Command CreateClusterGetHnsEndpointCommand()
-        {
-            var options = new Options();
-            var command = new Command(
-                "get-hns-endpoint",
-                "Outputs the HNS endpoint for the given HNS network, or exits with an exit code 1.");
-            command.IsHidden = true;
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterGetHnsEndpointCommandInstance>(options, services =>
-            {
-                services.AddSingleton(_ =>
-                {
-                    return IHnsApi.GetInstance();
-                });
-            });
-            return command;
         }
 
         private sealed class ClusterGetHnsEndpointCommandInstance : ICommandInstance
@@ -51,7 +55,7 @@ namespace UET.Commands.Cluster
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var networkName = context.ParseResult.GetValueForOption(_options.NetworkName);
                 var endpointName = context.ParseResult.GetValueForOption(_options.EndpointName);

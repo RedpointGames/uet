@@ -1,6 +1,9 @@
 ﻿namespace UET.Commands.Uefs
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using Redpoint.ServiceControl;
     using Redpoint.Uet.CommonPaths;
@@ -9,25 +12,18 @@
     using System.CommandLine.Invocation;
     using System.Reflection;
     using System.Threading.Tasks;
+    using UET.Commands.Cluster;
 
-    internal sealed class UefsInstallCommand
+    internal sealed class UefsInstallCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        internal sealed class Options
-        {
-        }
-
-        public static Command CreateInstallCommand()
-        {
-            var options = new Options();
-            var command = new Command("install", "Install or upgrade the UEFS daemon on this machine.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UefsInstallCommandInstance>(
-                options,
-                services =>
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithInstance<UefsInstallCommandInstance>()
+            .WithCommand(
+                builder =>
                 {
-                });
-            return command;
-        }
+                    return new Command("install", "Install or upgrade the UEFS daemon on this machine.");
+                })
+            .Build();
 
         private sealed class UefsInstallCommandInstance : ICommandInstance
         {
@@ -48,7 +44,7 @@
                 _monitorFactory = monitorFactory;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!_serviceControl.HasPermissionToInstall)
                 {

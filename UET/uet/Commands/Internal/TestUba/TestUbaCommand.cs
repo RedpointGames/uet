@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.TestUba
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
@@ -11,8 +12,18 @@
     using System.Threading.Tasks;
     using UET.Services;
 
-    internal sealed class TestUbaCommand
+    internal sealed class TestUbaCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestUbaCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("test-uba");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<DirectoryInfo> UbaPath;
@@ -27,15 +38,6 @@
                 RemoteAgentPort = new Option<int>("--remote-agent-port") { IsRequired = true };
                 CommandPath = new Option<FileInfo>("--command-path") { IsRequired = true };
             }
-        }
-
-        public static Command CreateTestUbaCommand()
-        {
-            var options = new Options();
-            var command = new Command("test-uba");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TestUbaCommandInstance>(options);
-            return command;
         }
 
         private sealed class TestUbaCommandInstance : ICommandInstance
@@ -57,7 +59,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 UbaNative.Init(context.ParseResult.GetValueForOption(_options.UbaPath)!.FullName);
 

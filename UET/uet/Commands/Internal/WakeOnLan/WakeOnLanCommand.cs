@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.WakeOnLan
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Net;
@@ -8,8 +9,20 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal sealed partial class WakeOnLanCommand
+    internal sealed partial class WakeOnLanCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<WakeOnLanCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("wake-on-lan");
+                    command.AddAlias("wol");
+                    return command;
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> MacAddress;
@@ -30,16 +43,6 @@
             }
         }
 
-        public static Command CreateWakeOnLanCommand()
-        {
-            var options = new Options();
-            var command = new Command("wake-on-lan");
-            command.AddAlias("wol");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<WakeOnLanCommandInstance>(options);
-            return command;
-        }
-
         private sealed partial class WakeOnLanCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -56,7 +59,7 @@
             [GeneratedRegex("^([0-9a-fA-F]{2})\\:([0-9a-fA-F]{2})\\:([0-9a-fA-F]{2})\\:([0-9a-fA-F]{2})\\:([0-9a-fA-F]{2})\\:([0-9a-fA-F]{2})$", RegexOptions.None, "en-US")]
             private static partial Regex MacAddressRegex();
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var macAddress = context.ParseResult.GetValueForOption(_options.MacAddress);
                 var ipAddress = context.ParseResult.GetValueForOption(_options.IpAddress);
@@ -67,7 +70,7 @@
                 }
 
                 macAddress = macAddress.ToUpperInvariant();
-                var parsedMacAddress = MacAddressRegex().Match(macAddress); 
+                var parsedMacAddress = MacAddressRegex().Match(macAddress);
                 var byteMacAddress = new byte[]
                 {
                     Convert.ToByte(parsedMacAddress.Groups[1].Value, 16),

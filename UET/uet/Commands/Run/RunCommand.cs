@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.PackageManagement;
     using Redpoint.ProcessExecution;
@@ -31,8 +32,40 @@
     using System.Threading.Tasks;
     using static Crayon.Output;
 
-    internal sealed class RunCommand
+    internal sealed class RunCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("run", "Run the editor, game or related tool such as UAT or UBT.")
+                    {
+                        FullDescription =
+                            """
+                            This command runs the editor, game or related tool such as UAT or UBT. This is primarily useful so you don't have to remember the exact path to tools such as UAT.
+
+                            The 'target' argument specifies what to run, and it can be any of the following:
+
+                            editor:         Run the Unreal Engine editor.
+                            editor-cmd:     Run the Unreal Engine editor as a command-line application.
+                            game:           Run the Unreal Engine game for this project on the current platform. This uses the editor binary to quickly launch the game. This can only be used in a project context.
+                            uat:            Run UnrealAutomationTool.
+                            ubt:            Run UnrealBuildTool.
+                            uba-visualizer: Run the Unreal Build Accelerator visualizer.
+                            adb:            Run the Android Debug Bridge.
+                            xcode:          Run the version of Xcode that this Unreal Engine version requires.
+                            fastlane:       Install and run Fastlane.
+ 
+                            If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
+                            """
+                    };
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
@@ -106,32 +139,6 @@
             }
         }
 
-        public static Command CreateRunCommand()
-        {
-            var command = new Command("run", "Run the editor, game or related tool such as UAT or UBT.")
-            {
-                FullDescription = """
-                This command runs the editor, game or related tool such as UAT or UBT. This is primarily useful so you don't have to remember the exact path to tools such as UAT.
-
-                The 'target' argument specifies what to run, and it can be any of the following:
-
-                editor:         Run the Unreal Engine editor.
-                editor-cmd:     Run the Unreal Engine editor as a command-line application.
-                game:           Run the Unreal Engine game for this project on the current platform. This uses the editor binary to quickly launch the game. This can only be used in a project context.
-                uat:            Run UnrealAutomationTool.
-                ubt:            Run UnrealBuildTool.
-                uba-visualizer: Run the Unreal Build Accelerator visualizer.
-                adb:            Run the Android Debug Bridge.
-                xcode:          Run the version of Xcode that this Unreal Engine version requires.
-                fastlane:       Install and run Fastlane.
- 
-                If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
-                """
-            };
-            command.AddServicedOptionsHandler<RunCommandInstance, Options>();
-            return command;
-        }
-
         private sealed class RunCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunCommandInstance> _logger;
@@ -175,7 +182,7 @@
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 try
                 {

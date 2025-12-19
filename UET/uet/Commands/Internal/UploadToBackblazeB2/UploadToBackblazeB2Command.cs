@@ -2,14 +2,25 @@
 {
     using B2Net.Models;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Net.Sockets;
     using System.Threading.Tasks;
 
-    internal sealed class UploadToBackblazeB2Command
+    internal sealed class UploadToBackblazeB2Command : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<UploadToBackblazeB2CommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("upload-to-backblaze-b2", "Uploads a ZIP file to Backblaze B2.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> ZipPath;
@@ -22,15 +33,6 @@
                 BucketName = new Option<string>("--bucket-name") { IsRequired = true };
                 FolderEnvVar = new Option<string>("--folder-env-var") { IsRequired = true };
             }
-        }
-
-        public static Command CreateUploadToBackblazeB2Command()
-        {
-            var options = new Options();
-            var command = new Command("upload-to-backblaze-b2", "Uploads a ZIP file to Backblaze B2.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UploadToBackblazeB2CommandInstance>(options);
-            return command;
         }
 
         private sealed class UploadToBackblazeB2CommandInstance : ICommandInstance
@@ -52,7 +54,7 @@
                 _progressFactory = progressFactory;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var zipPath = context.ParseResult.GetValueForOption(_options.ZipPath)!;
                 var bucketName = context.ParseResult.GetValueForOption(_options.BucketName)!;
