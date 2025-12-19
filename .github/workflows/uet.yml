@@ -79,20 +79,6 @@ jobs:
       uses: ./.github/actions/dotnet-sdk
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UEFS Client
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=win-x64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Build UEFS Daemon
       shell: pwsh
       run: |
@@ -129,23 +115,6 @@ jobs:
       uses: ./.github/actions/dotnet-sdk
       with:
         UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UEFS Client
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=osx-arm64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/Redpoint.Uefs.Client/Redpoint.Uefs.Client.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-        # Ensure the thing we built will actually run...
-        ./UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs --help
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
     - name: Build UEFS Daemon
       shell: pwsh
       run: |
@@ -896,11 +865,9 @@ jobs:
         UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal create-github-release `
           --version ${env:UET_PACKAGE_VERSION} `
           --file "uet.exe=UET for Windows=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
-          --file "uefs.exe=UEFS Client for Windows=UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs.exe" `
           --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs-daemon.exe" `
           --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
           --file "uet=UET for macOS=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
-          --file "uefs=UEFS Client for macOS=UET/Redpoint.Uefs.Client/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs" `
           --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon" `
           --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
           --file "uet.linux=UET for Linux=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `

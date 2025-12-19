@@ -26,7 +26,6 @@ runs:
         name: uefs-win
         if-no-files-found: error
         path: |
-          UET/Redpoint.Uefs.Client/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs.exe
           UET/Redpoint.Uefs.Daemon/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs-daemon.exe
     - name: Upload Shim Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-win' }}
@@ -60,7 +59,6 @@ runs:
         name: uefs-mac
         if-no-files-found: error
         path: |
-          UET/Redpoint.Uefs.Client/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs
           UET/Redpoint.Uefs.Daemon/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon
     - name: Upload Shim Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-mac' }}
