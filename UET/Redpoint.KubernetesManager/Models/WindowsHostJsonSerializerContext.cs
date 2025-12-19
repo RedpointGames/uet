@@ -1,4 +1,4 @@
-﻿using Redpoint.KubernetesManager.Models.Hcs;
+﻿using Redpoint.KubernetesManager.Abstractions.Hcs;
 using System;
 using System.Collections.Generic;
 using System.Linq;

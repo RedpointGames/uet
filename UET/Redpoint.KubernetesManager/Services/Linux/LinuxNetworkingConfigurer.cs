@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.Services.Linux
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;

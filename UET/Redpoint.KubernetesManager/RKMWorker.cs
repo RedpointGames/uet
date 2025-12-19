@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Redpoint.KubernetesManager.Abstractions;
 using Redpoint.KubernetesManager.Components;
+using Redpoint.KubernetesManager.PerpetualProcess;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.KubernetesManager.Signalling;
 using Redpoint.KubernetesManager.Signalling.Data;

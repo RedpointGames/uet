@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.Services
 {
     using Redpoint.KubernetesManager.Models;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Services.Wsl;
     using System;
     using System.Globalization;
     using System.Net;

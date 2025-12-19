@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.Components
 {
     using Redpoint.IO;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Signalling;
     using System;

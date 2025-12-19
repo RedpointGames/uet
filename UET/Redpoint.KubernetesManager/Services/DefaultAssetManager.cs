@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.Abstractions;
     using System.Formats.Tar;
     using System.IO.Compression;
     using System.Threading.Tasks;

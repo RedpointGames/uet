@@ -3,6 +3,8 @@ using Microsoft.Extensions.Options;
 using Redpoint.AutoDiscovery;
 using Redpoint.CommandLine;
 using Redpoint.Concurrency;
+using Redpoint.KubernetesManager.HostedService.Containerd;
+using Redpoint.KubernetesManager.HostedService.Kubelet;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -46,8 +48,8 @@ namespace UET.Commands.Cluster
                         builder.AddCommand<ClusterAllocateSourceVipCommand>();
                         builder.AddCommand<ClusterSwitchVfpModeCommand>();
                     }
-                    builder.AddCommand<ClusterRunContainerdCommand>();
-                    builder.AddCommand<ClusterRunKubeletCommand>();
+                    builder.AddCommandWithoutGlobalContext<RunContainerdCommand>();
+                    builder.AddCommandWithoutGlobalContext<RunKubeletCommand>();
                     builder.AddCommand<ClusterCheckConnectivityCommand>();
 
                     var command = new Command(

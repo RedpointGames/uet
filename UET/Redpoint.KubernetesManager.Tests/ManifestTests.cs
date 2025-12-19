@@ -1,12 +1,10 @@
 ﻿namespace Redpoint.KubernetesManager.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Microsoft.VisualStudio.TestPlatform.Utilities;
     using Redpoint.Concurrency;
-    using Redpoint.KubernetesManager.Services;
-    using Redpoint.KubernetesManager.Services.Manifest;
+    using Redpoint.KubernetesManager.Manifest;
+    using Redpoint.KubernetesManager.Manifest.Client;
     using System.Net;
     using System.Net.WebSockets;
     using System.Text;
@@ -32,7 +30,7 @@
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddXUnit(_output);
             });
-            services.AddSingleton<IGenericManifestClient, DefaultGenericManifestClient>();
+            services.AddRkmManifest();
 
             var client = services.BuildServiceProvider().GetRequiredService<IGenericManifestClient>();
 

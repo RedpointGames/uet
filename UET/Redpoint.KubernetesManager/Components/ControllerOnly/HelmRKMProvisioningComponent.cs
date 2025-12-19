@@ -1,10 +1,11 @@
 ﻿namespace Redpoint.KubernetesManager.Components.ControllerOnly
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Services.Helm;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Services.Wsl;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
     using Redpoint.KubernetesManager.Versions;

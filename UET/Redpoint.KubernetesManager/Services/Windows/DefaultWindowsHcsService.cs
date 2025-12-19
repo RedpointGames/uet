@@ -1,8 +1,8 @@
 ﻿namespace Redpoint.KubernetesManager.Implementations
 {
+    using Redpoint.KubernetesManager.Abstractions;
+    using Redpoint.KubernetesManager.Abstractions.Hcs;
     using Redpoint.KubernetesManager.Models;
-    using Redpoint.KubernetesManager.Models.Hcs;
-    using Redpoint.KubernetesManager.Services.Windows;
     using System;
     using System.Collections.Generic;
     using System.Linq;

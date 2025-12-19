@@ -8,31 +8,26 @@
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Hosting;
     using System.Text.Json;
+    using Redpoint.KubernetesManager.ControllerApi;
 
     internal class DefaultControllerApiService : IControllerApiService
     {
         private readonly ILogger<DefaultControllerApiService> _logger;
         private readonly ILocalEthernetInfo _localEthernetInfo;
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
-        private readonly IPathProvider _pathProvider;
-        private readonly ICertificateManager _certificateManager;
-        private readonly IKubeConfigManager _kubeConfigManager;
+        private readonly IEnumerable<IControllerEndpoint> _endpoints;
         private Task? _apiTask = null;
 
         public DefaultControllerApiService(
             ILogger<DefaultControllerApiService> logger,
             ILocalEthernetInfo localEthernetInfo,
             IHostApplicationLifetime hostApplicationLifetime,
-            IPathProvider pathProvider,
-            ICertificateManager certificateManager,
-            IKubeConfigManager kubeConfigManager)
+            IEnumerable<IControllerEndpoint> endpoints)
         {
             _logger = logger;
             _localEthernetInfo = localEthernetInfo;
             _hostApplicationLifetime = hostApplicationLifetime;
-            _pathProvider = pathProvider;
-            _certificateManager = certificateManager;
-            _kubeConfigManager = kubeConfigManager;
+            _endpoints = endpoints;
         }
 
         public void StartApiForNodes()
@@ -58,34 +53,19 @@
 
                     try
                     {
-                        if (context.Request.Url?.AbsolutePath == "/manifest")
+                        var handled = false;
+                        foreach (var endpoint in _endpoints)
                         {
-                            var remoteAddress = context.Request.RemoteEndPoint.Address;
-                            var nodeName = context.Request.QueryString.Get("nodeName");
-
-                            var certificateAuthority = await File.ReadAllTextAsync(_certificateManager.GetCertificatePemPath("ca", "ca"));
-
-                            var nodeCertificate = await _certificateManager.EnsureGeneratedForNodeAsync(nodeName!, remoteAddress);
-                            var nodeKubeletConfig = await _kubeConfigManager.EnsureGeneratedForNodeAsync(certificateAuthority, nodeName!);
-
-                            var nodeManifest = new NodeManifest
+                            if (context.Request.Url?.AbsolutePath == endpoint.Path)
                             {
-                                ServerRKMInstallationId = _pathProvider.RKMInstallationId,
-                                NodeName = nodeName!,
-                                CertificateAuthority = certificateAuthority,
-                                NodeCertificate = nodeCertificate.CertificatePem,
-                                NodeCertificateKey = nodeCertificate.PrivateKeyPem,
-                                NodeKubeletConfig = nodeKubeletConfig,
-                            };
-
-                            context.Response.StatusCode = (int)HttpStatusCode.OK;
-                            context.Response.AddHeader("Content-Type", "text/yaml");
-                            using (var writer = new StreamWriter(context.Response.OutputStream, leaveOpen: true))
-                            {
-                                await writer.WriteLineAsync(JsonSerializer.Serialize(
-                                    nodeManifest,
-                                    KubernetesJsonSerializerContext.Default.NodeManifest));
+                                handled = true;
+                                await endpoint.HandleAsync(context);
+                                break;
                             }
+                        }
+                        if (!handled)
+                        {
+                            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                         }
                     }
                     catch (OperationCanceledException) when (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested)

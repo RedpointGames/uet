@@ -1,7 +1,8 @@
-﻿namespace Redpoint.KubernetesManager.Services.Windows
+﻿namespace Redpoint.KubernetesManager.Services.Wsl
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Services;
     using System;
     using System.Diagnostics;

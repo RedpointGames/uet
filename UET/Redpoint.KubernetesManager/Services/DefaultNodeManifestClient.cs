@@ -9,6 +9,7 @@
     using Microsoft.Extensions.Logging;
     using System.Net.Http.Headers;
     using System.Text.Json;
+    using Redpoint.KubernetesManager.Abstractions;
 
     internal class DefaultNodeManifestClient : INodeManifestClient, IDisposable
     {

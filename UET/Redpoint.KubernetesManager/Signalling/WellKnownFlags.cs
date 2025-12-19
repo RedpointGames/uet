@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Signalling
 {
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Abstractions;
 
     internal static class WellKnownFlags
     {

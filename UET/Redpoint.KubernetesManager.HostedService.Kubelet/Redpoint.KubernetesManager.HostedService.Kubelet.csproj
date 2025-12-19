@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
+	  <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
+	  <ProjectReference Include="..\Redpoint.KubernetesManager.Abstractions\Redpoint.KubernetesManager.Abstractions.csproj" />
+	  <ProjectReference Include="..\Redpoint.KubernetesManager.HostedService\Redpoint.KubernetesManager.HostedService.csproj" />
+	  <ProjectReference Include="..\Redpoint.KubernetesManager.Manifest\Redpoint.KubernetesManager.Manifest.csproj" />
+	  <ProjectReference Include="..\Redpoint.KubernetesManager.PerpetualProcess\Redpoint.KubernetesManager.PerpetualProcess.csproj" />
+	  <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+	</ItemGroup>
+
+</Project>

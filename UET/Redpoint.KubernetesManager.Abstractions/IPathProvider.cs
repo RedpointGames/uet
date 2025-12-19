@@ -1,0 +1,13 @@
+﻿namespace Redpoint.KubernetesManager.Abstractions
+{
+    public interface IPathProvider
+    {
+        public string RKMRoot { get; }
+
+        public string RKMInstallationId { get; }
+
+        public string RKMVersion { get; }
+
+        void EnsureRKMRoot();
+    }
+}

@@ -1,5 +1,6 @@
-﻿namespace Redpoint.KubernetesManager.Services.Windows
+﻿namespace Redpoint.KubernetesManager.Services.Wsl
 {
+    using Redpoint.KubernetesManager.Abstractions;
     using System;
     using System.Net;
 

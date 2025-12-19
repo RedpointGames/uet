@@ -16,6 +16,8 @@
     using Redpoint.Registry;
     using Redpoint.ServiceControl;
     using Redpoint.ProcessExecution;
+    using Redpoint.KubernetesManager.Abstractions;
+    using Redpoint.KubernetesManager.Services.Wsl;
 
     [SupportedOSPlatform("windows")]
     internal class WindowsNetworkingConfiguration : INetworkingConfiguration

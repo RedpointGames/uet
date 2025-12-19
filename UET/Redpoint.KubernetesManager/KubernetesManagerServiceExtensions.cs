@@ -14,7 +14,12 @@ using Redpoint.KubernetesManager.Implementations;
 using Redpoint.Windows.HostNetworkingService;
 using Redpoint.Windows.Firewall;
 using Redpoint.KubernetesManager.Services.Helm;
-using Redpoint.KubernetesManager.Services.Manifest;
+using Redpoint.KubernetesManager.ControllerApi;
+using Redpoint.KubernetesManager.Manifest;
+using Redpoint.KubernetesManager.PerpetualProcess;
+using Redpoint.KubernetesManager.Abstractions;
+using Redpoint.KubernetesManager.Services.Wsl;
+using Redpoint.KubernetesManager.Services.Linux;
 
 namespace Redpoint.KubernetesManager
 {
@@ -30,7 +35,6 @@ namespace Redpoint.KubernetesManager
                 services.AddSingleton<IAssetManager, DefaultAssetManager>();
                 services.AddSingleton<IWslDistro, DefaultWslDistro>();
             }
-            services.AddSingleton<IProcessKiller, DefaultProcessKiller>();
             services.AddSingleton<IWindowsFeatureManager, WindowsFeatureManager>();
             services.AddSingleton<ICertificateGenerator, DefaultCertificateGenerator>();
             services.AddSingleton<ICertificateManager, DefaultCertificateManager>();
@@ -38,7 +42,6 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IKubeConfigGenerator, DefaultKubeConfigGenerator>();
             services.AddSingleton<IKubeConfigManager, DefaultKubeConfigManager>();
             services.AddSingleton<IEncryptionConfigManager, DefaultEncryptionConfigManager>();
-            services.AddSingleton<IProcessMonitorFactory, DefaultProcessMonitorFactory>();
             services.AddSingleton<IKubernetesClientFactory, DefaultKubernetesClientFactory>();
             services.AddSingleton<IControllerAutodiscoveryService, DefaultControllerAutodiscoveryService>();
             services.AddSingleton<IControllerApiService, DefaultControllerApiService>();
@@ -47,7 +50,11 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IWslTranslation, DefaultWslTranslation>();
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
             services.AddSingleton<IHelmDeployment, DefaultHelmDeployment>();
-            services.AddSingleton<IGenericManifestClient, DefaultGenericManifestClient>();
+
+            services.AddRkmManifest();
+            services.AddRkmPerpetualProcess();
+
+            services.AddSingleton<IControllerEndpoint, GetLegacyManifestControllerEndpoint>();
 
             // Register controller-only components.
             if (withPathProvider)
