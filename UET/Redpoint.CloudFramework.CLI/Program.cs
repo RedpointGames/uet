@@ -16,7 +16,7 @@ Crayon.Output.Disable();
 Environment.SetEnvironmentVariable("NODE_NO_WARNINGS", "1");
 
 var rootCommand = CommandLineBuilder.NewBuilder()
-    .AddGlobalRuntimeServices((builder, services) =>
+    .AddGlobalRuntimeServices((builder, services, _) =>
     {
         services.AddLogging(builder =>
         {
@@ -33,12 +33,12 @@ var rootCommand = CommandLineBuilder.NewBuilder()
         services.AddPathResolution();
         services.AddSingleton<IYarnInstallationService, DefaultYarnInstallationService>();
     })
-    .SetGlobalExecutionHandler(async (sp, executeCommand) =>
+    .SetGlobalExecutionHandler(async (execution) =>
     {
-        var logger = sp.GetRequiredService<ILogger<Program>>();
+        var logger = execution.ServiceProvider.GetRequiredService<ILogger<Program>>();
         try
         {
-            return await executeCommand().ConfigureAwait(true);
+            return await execution.ExecuteCommandAsync().ConfigureAwait(true);
         }
         catch (Exception ex)
         {

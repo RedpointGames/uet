@@ -13,14 +13,14 @@
         /// </summary>
         /// <param name="globalRuntimeServices">The callback that should register services in the service collection.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType AddGlobalRuntimeServices(CommandServiceRegistration globalRuntimeServices);
+        TSelfType AddGlobalRuntimeServices(CommandRuntimeServiceRegistration globalRuntimeServices);
 
         /// <summary>
         /// Registers global parsing services that are available for constructor injection when option classes are constructed in order to parse the command line. Option classes are constructed regardless of whether that particular command is invoked, so you often want to limit what services are registered and available for parsing.
         /// </summary>
         /// <param name="globalParsingServices">The callback that should register services in the minimal service collection used for parsing.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType AddGlobalParsingServices(CommandServiceRegistration globalParsingServices);
+        TSelfType AddGlobalParsingServices(CommandParsingServiceRegistration globalParsingServices);
 
         /// <summary>
         /// Sets the global execution handler, which can be used to perform additional wrapping logic around the execution of all commands built with the command line handler. You can use this to catch and log exceptions globally, as well as perform any required startup and shutdown logic around command execution.
@@ -49,21 +49,21 @@
         /// </summary>
         /// <param name="globalRuntimeServices">The callback that should register services in the service collection.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType AddGlobalRuntimeServices(CommandServiceRegistration<TGlobalContext> globalRuntimeServices);
+        TSelfType AddGlobalRuntimeServices(CommandRuntimeServiceRegistration<TGlobalContext> globalRuntimeServices);
 
         /// <summary>
         /// Registers global parsing services that are available for constructor injection when option classes are constructed in order to parse the command line. Option classes are constructed regardless of whether that particular command is invoked, so you often want to limit what services are registered and available for parsing.
         /// </summary>
         /// <param name="globalParsingServices">The callback that should register services in the minimal service collection used for parsing.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType AddGlobalParsingServices(CommandServiceRegistration<TGlobalContext> globalParsingServices);
+        TSelfType AddGlobalParsingServices(CommandParsingServiceRegistration<TGlobalContext> globalParsingServices);
 
         /// <summary>
         /// Sets the global execution handler, which can be used to perform additional wrapping logic around the execution of all commands built with the command line handler. You can use this to catch and log exceptions globally, as well as perform any required startup and shutdown logic around command execution.
         /// </summary>
         /// <param name="commandExecutionHandler">The callback that is used to execute commands.</param>
         /// <returns>The current command line builder instance.</returns>
-        TSelfType SetGlobalExecutionHandler(CommandExecutionHandler commandExecutionHandler);
+        TSelfType SetGlobalExecutionHandler(CommandExecutionHandler<TGlobalContext> commandExecutionHandler);
 
         /// <summary>
         /// Adds a global option instance to the root command.
