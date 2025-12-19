@@ -1,10 +1,11 @@
-﻿namespace UET.Commands.Cluster
+﻿namespace Redpoint.KubernetesManager.HostedService.Containerd
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Redpoint.CommandLine;
     using Redpoint.KubernetesManager.HostedService;
     using Redpoint.KubernetesManager.Manifest;
+    using Redpoint.KubernetesManager.PerpetualProcess;
     using System;
     using System.CommandLine;
 

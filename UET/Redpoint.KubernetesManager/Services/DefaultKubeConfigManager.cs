@@ -1,8 +1,9 @@
 ﻿namespace Redpoint.KubernetesManager.Services
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Models;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Services.Wsl;
 
     internal class DefaultKubeConfigManager : IKubeConfigManager, IDisposable
     {

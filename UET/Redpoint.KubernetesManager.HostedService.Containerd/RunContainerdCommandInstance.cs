@@ -1,6 +1,7 @@
-﻿namespace UET.Commands.Cluster
+﻿namespace Redpoint.KubernetesManager.HostedService.Containerd
 {
     using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.HostedService;
     using System.Threading.Tasks;
 
     internal sealed class RunContainerdCommandInstance : ICommandInstance

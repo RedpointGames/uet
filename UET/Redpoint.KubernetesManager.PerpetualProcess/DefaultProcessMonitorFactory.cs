@@ -1,9 +1,8 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.PerpetualProcess
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Redpoint.KubernetesManager.Models;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Abstractions;
 
     internal class DefaultProcessMonitorFactory : IProcessMonitorFactory
     {
@@ -26,7 +25,7 @@
 
         public IProcessMonitor CreatePerpetualProcess(string filename, string[] arguments, Dictionary<string, string>? environment, Func<CancellationToken, Task>? beforeStart = null, Func<CancellationToken, Task>? afterStart = null)
         {
-            return CreatePerpetualProcess(new ProcessSpecification(
+            return CreatePerpetualProcess(new PerpetualProcessSpecification(
                 filename: filename,
                 arguments: arguments,
                 environment: environment,
@@ -34,7 +33,7 @@
                 afterStart: afterStart));
         }
 
-        public IProcessMonitor CreatePerpetualProcess(ProcessSpecification processSpecification)
+        public IProcessMonitor CreatePerpetualProcess(PerpetualProcessSpecification processSpecification)
         {
             return new SingleProcessMonitor(
                 _loggerFactory.CreateLogger(Path.GetFileName(processSpecification.Filename)),
@@ -47,14 +46,14 @@
 
         public IProcessMonitor CreateTerminatingProcess(string filename, string[] arguments, Dictionary<string, string>? environment = null, bool silent = false)
         {
-            return CreatePerpetualProcess(new ProcessSpecification(
+            return CreatePerpetualProcess(new PerpetualProcessSpecification(
                 filename: filename,
                 arguments: arguments,
                 environment: environment,
                 silent: silent));
         }
 
-        public IProcessMonitor CreateTerminatingProcess(ProcessSpecification processSpecification)
+        public IProcessMonitor CreateTerminatingProcess(PerpetualProcessSpecification processSpecification)
         {
             return new SingleProcessMonitor(
                 _loggerFactory.CreateLogger(Path.GetFileName(processSpecification.Filename)),

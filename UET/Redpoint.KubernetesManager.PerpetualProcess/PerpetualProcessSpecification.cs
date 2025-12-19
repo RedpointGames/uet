@@ -1,10 +1,10 @@
-﻿namespace Redpoint.KubernetesManager.Models
+﻿namespace Redpoint.KubernetesManager.PerpetualProcess
 {
     using System.Diagnostics.CodeAnalysis;
 
-    public class ProcessSpecification
+    public class PerpetualProcessSpecification
     {
-        public ProcessSpecification(
+        public PerpetualProcessSpecification(
             string filename,
             string[] arguments,
             Dictionary<string, string>? environment = null,

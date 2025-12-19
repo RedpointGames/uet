@@ -6,7 +6,8 @@
     using Redpoint.KubernetesManager.Signalling;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Abstractions;
+    using Redpoint.KubernetesManager.Services.Wsl;
 
     /// <summary>
     /// The certificate generating component generates the certificate authority

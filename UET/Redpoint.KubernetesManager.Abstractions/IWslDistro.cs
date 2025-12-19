@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Services.Windows
+﻿namespace Redpoint.KubernetesManager.Abstractions
 {
     using System.Net;
     using System.Runtime.Versioning;

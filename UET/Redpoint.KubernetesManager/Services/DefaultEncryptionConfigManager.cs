@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.Services
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.Abstractions;
     using System;
     using System.Security.Cryptography;
     using System.Threading.Tasks;

@@ -1,15 +1,15 @@
-﻿namespace UET.Commands.Cluster
+﻿namespace Redpoint.KubernetesManager.HostedService.Containerd
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.IO;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Manifest;
     using Redpoint.KubernetesManager.Manifest.Client;
     using Redpoint.KubernetesManager.Manifests;
-    using Redpoint.KubernetesManager.Services;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.PerpetualProcess;
     using Redpoint.ProcessExecution;
     using Redpoint.ServiceControl;
     using System;
@@ -907,7 +907,7 @@
 
             // Create the containerd process specification.
             var containerdProcess = _processMonitorFactory.CreatePerpetualProcess(
-                new Redpoint.KubernetesManager.Models.ProcessSpecification(
+                new PerpetualProcessSpecification(
                     filename: Path.Combine(containerdInstallPath, "bin", "containerd"),
                     arguments:
                     [

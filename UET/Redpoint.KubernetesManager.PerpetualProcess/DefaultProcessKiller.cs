@@ -1,7 +1,7 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.PerpetualProcess
 {
     using Microsoft.Extensions.Logging;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Abstractions;
     using System;
     using System.Diagnostics;
     using System.Text;

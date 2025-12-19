@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.Cluster
+﻿namespace Redpoint.KubernetesManager.HostedService.Kubelet
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -8,17 +8,10 @@
     using Redpoint.KubernetesManager.Manifest;
     using Redpoint.KubernetesManager.Manifest.Client;
     using Redpoint.KubernetesManager.Manifests;
-    using Redpoint.KubernetesManager.Services;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.PerpetualProcess;
     using Redpoint.ProcessExecution;
     using System;
-    using System.CommandLine.Invocation;
     using System.Diagnostics;
-    using System.Formats.Tar;
-    using System.IO.Compression;
-    using System.Net;
-    using System.Text;
-    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -196,7 +189,7 @@
 
             // Create the kubelet process specification.
             var kubeletProcess = _processMonitorFactory.CreatePerpetualProcess(
-                new Redpoint.KubernetesManager.Models.ProcessSpecification(
+                new PerpetualProcessSpecification(
                     filename: Path.Combine(kubeletInstallPath, $"kubelet{(OperatingSystem.IsWindows() ? ".exe" : "")}"),
                     arguments:
                     [

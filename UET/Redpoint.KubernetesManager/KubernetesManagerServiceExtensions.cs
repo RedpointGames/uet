@@ -15,8 +15,11 @@ using Redpoint.Windows.HostNetworkingService;
 using Redpoint.Windows.Firewall;
 using Redpoint.KubernetesManager.Services.Helm;
 using Redpoint.KubernetesManager.ControllerApi;
-using Redpoint.KubernetesManager.HostedService;
 using Redpoint.KubernetesManager.Manifest;
+using Redpoint.KubernetesManager.PerpetualProcess;
+using Redpoint.KubernetesManager.Abstractions;
+using Redpoint.KubernetesManager.Services.Wsl;
+using Redpoint.KubernetesManager.Services.Linux;
 
 namespace Redpoint.KubernetesManager
 {

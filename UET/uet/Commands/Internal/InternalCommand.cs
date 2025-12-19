@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal
 {
     using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.HostedService.Rkm;
     using System.CommandLine;
     using UET.Commands.Internal.CIBuild;
     using UET.Commands.Internal.CMakeUbaRun;
@@ -22,7 +23,6 @@
     using UET.Commands.Internal.RemoteZfsTest;
     using UET.Commands.Internal.RemoveStalePrecompiledHeaders;
     using UET.Commands.Internal.ReparentAdditionalPropertiesInTargets;
-    using UET.Commands.Internal.Rkm;
     using UET.Commands.Internal.RunDownstreamTest;
     using UET.Commands.Internal.RunDriveMappedProcess;
     using UET.Commands.Internal.RunGauntletTestFromBuildGraph;

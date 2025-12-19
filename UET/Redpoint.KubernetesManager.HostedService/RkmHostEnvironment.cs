@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 
-namespace UET.Commands.Internal.Rkm
+namespace Redpoint.KubernetesManager.HostedService
 {
     public sealed class RkmHostEnvironment : IHostEnvironment
     {

@@ -1,17 +1,15 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.PerpetualProcess
 {
-    using Redpoint.KubernetesManager.Models;
-
     public interface IProcessMonitorFactory
     {
         [Obsolete("Use ProcessSpecification instead.")]
         IProcessMonitor CreatePerpetualProcess(string filename, string[] arguments, Dictionary<string, string>? environment, Func<CancellationToken, Task>? beforeStart = null, Func<CancellationToken, Task>? afterStart = null);
 
-        IProcessMonitor CreatePerpetualProcess(ProcessSpecification processSpecification);
+        IProcessMonitor CreatePerpetualProcess(PerpetualProcessSpecification processSpecification);
 
         [Obsolete("Use ProcessSpecification instead.")]
         IProcessMonitor CreateTerminatingProcess(string filename, string[] arguments, Dictionary<string, string>? environment = null, bool silent = false);
 
-        IProcessMonitor CreateTerminatingProcess(ProcessSpecification processSpecification);
+        IProcessMonitor CreateTerminatingProcess(PerpetualProcessSpecification processSpecification);
     }
 }

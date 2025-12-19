@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.Abstractions
 {
     public interface IPathProvider
     {

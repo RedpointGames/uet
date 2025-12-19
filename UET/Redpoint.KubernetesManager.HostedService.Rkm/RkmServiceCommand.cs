@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.Internal.Rkm
+﻿namespace Redpoint.KubernetesManager.HostedService.Rkm
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;

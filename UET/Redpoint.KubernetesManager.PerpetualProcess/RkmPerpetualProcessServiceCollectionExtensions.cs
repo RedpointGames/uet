@@ -1,8 +1,7 @@
-﻿namespace Redpoint.KubernetesManager.HostedService
+﻿namespace Redpoint.KubernetesManager.PerpetualProcess
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
-    using Redpoint.KubernetesManager.Services;
     using System;
     using System.Collections.Generic;
     using System.Linq;

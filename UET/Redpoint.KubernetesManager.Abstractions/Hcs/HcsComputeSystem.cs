@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Models.Hcs
+﻿namespace Redpoint.KubernetesManager.Abstractions.Hcs
 {
     using System.Text.Json.Serialization;
 

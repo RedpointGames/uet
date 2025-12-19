@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Components.NodeOnly
 {
-    using Redpoint.KubernetesManager.Services;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
     using System.Threading.Tasks;

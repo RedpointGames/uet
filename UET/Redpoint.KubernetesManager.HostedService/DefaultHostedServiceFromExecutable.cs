@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.Cluster
+﻿namespace Redpoint.KubernetesManager.HostedService
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Hosting.WindowsServices;
@@ -6,7 +6,6 @@
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using UET.Commands.Internal.Rkm;
 
     internal class DefaultHostedServiceFromExecutable : IHostedServiceFromExecutable
     {

@@ -1,6 +1,6 @@
-﻿namespace Redpoint.KubernetesManager.Services.Windows
+﻿namespace Redpoint.KubernetesManager.Abstractions
 {
-    using Redpoint.KubernetesManager.Models.Hcs;
+    using Redpoint.KubernetesManager.Abstractions.Hcs;
     using System.Runtime.Versioning;
 
     [SupportedOSPlatform("windows")]

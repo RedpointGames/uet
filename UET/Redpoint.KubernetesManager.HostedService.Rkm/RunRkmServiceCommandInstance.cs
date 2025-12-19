@@ -4,9 +4,8 @@ using Redpoint.KubernetesManager.Abstractions;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ProgressMonitor;
 using System.Globalization;
-using UET.Commands.Cluster;
 
-namespace UET.Commands.Internal.Rkm
+namespace Redpoint.KubernetesManager.HostedService.Rkm
 {
     internal sealed class RunRkmServiceCommandInstance : ICommandInstance
     {

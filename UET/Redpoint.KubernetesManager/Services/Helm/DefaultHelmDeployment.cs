@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Services.Helm
 {
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
     using Redpoint.ProcessExecution;

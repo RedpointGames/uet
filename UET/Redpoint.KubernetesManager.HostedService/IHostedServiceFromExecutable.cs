@@ -1,4 +1,4 @@
-﻿namespace UET.Commands.Cluster
+﻿namespace Redpoint.KubernetesManager.HostedService
 {
     using System.Threading.Tasks;
 

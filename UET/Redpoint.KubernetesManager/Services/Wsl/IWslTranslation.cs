@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Services.Windows
+﻿namespace Redpoint.KubernetesManager.Services.Wsl
 {
     using System.Net;
 

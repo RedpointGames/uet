@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Components
 {
     using Redpoint.KubernetesManager.Models;
-    using Redpoint.KubernetesManager.Services;
     using Redpoint.KubernetesManager.Services.Windows;
     using Redpoint.KubernetesManager.Signalling;
     using System;
@@ -10,6 +9,7 @@
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Redpoint.ServiceControl;
+    using Redpoint.KubernetesManager.Abstractions;
 
     /// <summary>
     /// The containerd component sets up and runs the containerd process.

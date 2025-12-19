@@ -3,6 +3,8 @@ using Microsoft.Extensions.Options;
 using Redpoint.AutoDiscovery;
 using Redpoint.CommandLine;
 using Redpoint.Concurrency;
+using Redpoint.KubernetesManager.HostedService.Containerd;
+using Redpoint.KubernetesManager.HostedService.Kubelet;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;

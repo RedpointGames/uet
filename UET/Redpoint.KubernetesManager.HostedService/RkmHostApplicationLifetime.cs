@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Redpoint.Concurrency;
 
-namespace UET.Commands.Internal.Rkm
+namespace Redpoint.KubernetesManager.HostedService
 {
     internal sealed class RkmHostApplicationLifetime : IHostApplicationLifetime, IDisposable
     {

@@ -1,10 +1,9 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.PerpetualProcess
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Mono.Unix.Native;
-    using Redpoint.KubernetesManager.Models;
-    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Abstractions;
     using System.Diagnostics;
     using System.Globalization;
 
@@ -30,7 +29,7 @@
             IPathProvider? pathProvider,
             IHostApplicationLifetime hostApplicationLifetime,
             IWslDistro? wslDistro,
-            ProcessSpecification processSpecification,
+            PerpetualProcessSpecification processSpecification,
             bool perpetual)
         {
             _logger = logger;

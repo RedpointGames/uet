@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.ControllerApi
 {
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
     using System;
