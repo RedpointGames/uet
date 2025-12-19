@@ -84,7 +84,7 @@
                     builder.AddCommand<CMakeUbaRunCommand>();
                     builder.AddCommand<EnginePerforceToGitCommand>();
                     builder.AddCommand<InstallXcodeCommand>();
-                    builder.AddCommand<RkmServiceCommand>();
+                    builder.AddCommandWithoutGlobalContext<RkmServiceCommand>();
                     builder.AddCommand<PatchCommand>();
                     builder.AddCommand<ServiceCommand>();
                     builder.AddCommand<GitCredentialHelperCommand>();

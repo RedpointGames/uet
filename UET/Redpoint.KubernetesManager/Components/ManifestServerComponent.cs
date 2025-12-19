@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
+    using Redpoint.KubernetesManager.Manifest;
     using Redpoint.KubernetesManager.Manifests;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;

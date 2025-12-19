@@ -1,18 +1,16 @@
 ﻿using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using UET.Services;
 
 namespace UET.Commands.Internal.Rkm
 {
-    internal sealed class RkmHostEnvironment : IHostEnvironment
+    public sealed class RkmHostEnvironment : IHostEnvironment
     {
         public RkmHostEnvironment(
-            ISelfLocation selfLocation,
             string applicationName)
         {
             EnvironmentName = "Production";
             ApplicationName = applicationName;
-            ContentRootPath = Path.GetDirectoryName(selfLocation.GetUetLocalLocation(true))!;
+            ContentRootPath = Environment.CurrentDirectory;
             ContentRootFileProvider = null!;
         }
 

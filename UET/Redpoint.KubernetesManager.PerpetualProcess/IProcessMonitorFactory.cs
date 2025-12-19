@@ -2,11 +2,6 @@
 {
     using Redpoint.KubernetesManager.Models;
 
-    public interface IProcessMonitor
-    {
-        Task<int> RunAsync(CancellationToken cancellationToken);
-    }
-
     public interface IProcessMonitorFactory
     {
         [Obsolete("Use ProcessSpecification instead.")]
@@ -19,5 +14,4 @@
 
         IProcessMonitor CreateTerminatingProcess(ProcessSpecification processSpecification);
     }
-
 }

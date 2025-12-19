@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Tests
 {
-    using Redpoint.KubernetesManager.Manifests;
+    using Redpoint.KubernetesManager.Manifest;
     using System.Text.Json.Serialization;
 
     internal class TestManifest : IVersionedManifest

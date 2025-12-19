@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Manifests
+﻿namespace Redpoint.KubernetesManager.Manifest
 {
     public interface IVersionedManifest
     {

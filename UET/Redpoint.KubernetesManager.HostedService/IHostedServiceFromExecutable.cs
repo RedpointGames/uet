@@ -2,7 +2,7 @@
 {
     using System.Threading.Tasks;
 
-    internal interface IHostedServiceFromExecutable
+    public interface IHostedServiceFromExecutable
     {
         Task RunHostedServicesAsync(CancellationToken cancellationToken);
     }

@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UET.Services;
 
-namespace UET.Commands.Internal.RkmService
+namespace UET.Commands.Cluster
 {
     class UetRkmVersionProvider : IRkmVersionProvider
     {

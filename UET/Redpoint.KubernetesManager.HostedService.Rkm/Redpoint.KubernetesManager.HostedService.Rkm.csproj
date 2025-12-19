@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService\Redpoint.KubernetesManager.HostedService.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj" />
+	</ItemGroup>
+
+</Project>

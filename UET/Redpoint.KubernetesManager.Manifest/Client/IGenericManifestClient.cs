@@ -1,6 +1,6 @@
-﻿namespace Redpoint.KubernetesManager.Services.Manifest
+﻿namespace Redpoint.KubernetesManager.Manifest.Client
 {
-    using Redpoint.KubernetesManager.Manifests;
+    using Redpoint.KubernetesManager.Manifest;
     using System;
     using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;

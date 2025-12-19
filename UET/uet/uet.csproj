@@ -54,6 +54,9 @@
 		<ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
 		<ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
 		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService.Containerd\Redpoint.KubernetesManager.HostedService.Containerd.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService.Kubelet\Redpoint.KubernetesManager.HostedService.Kubelet.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService.Rkm\Redpoint.KubernetesManager.HostedService.Rkm.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj" />
 		<ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
 		<ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />

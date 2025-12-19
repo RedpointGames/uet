@@ -1,19 +1,17 @@
-﻿namespace Redpoint.KubernetesManager.Services.Manifest
+﻿namespace Redpoint.KubernetesManager.Manifest.Client
 {
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
-    using Redpoint.KubernetesManager.Manifests;
+    using Redpoint.KubernetesManager.Manifest;
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Net.WebSockets;
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
 
-    public class DefaultGenericManifestClient : IGenericManifestClient
+    internal class DefaultGenericManifestClient : IGenericManifestClient
     {
         private readonly ILogger<DefaultGenericManifestClient> _logger;
         private readonly IHostApplicationLifetime? _hostApplicationLifetime;

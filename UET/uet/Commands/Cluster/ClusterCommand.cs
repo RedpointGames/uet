@@ -46,8 +46,8 @@ namespace UET.Commands.Cluster
                         builder.AddCommand<ClusterAllocateSourceVipCommand>();
                         builder.AddCommand<ClusterSwitchVfpModeCommand>();
                     }
-                    builder.AddCommand<ClusterRunContainerdCommand>();
-                    builder.AddCommand<ClusterRunKubeletCommand>();
+                    builder.AddCommandWithoutGlobalContext<RunContainerdCommand>();
+                    builder.AddCommandWithoutGlobalContext<RunKubeletCommand>();
                     builder.AddCommand<ClusterCheckConnectivityCommand>();
 
                     var command = new Command(

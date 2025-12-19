@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal interface IWslDistro
+    public interface IWslDistro
     {
         [SupportedOSPlatform("windows")]
         string WslPath { get; }
