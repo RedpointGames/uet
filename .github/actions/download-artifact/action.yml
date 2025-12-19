@@ -23,7 +23,7 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: uefs-win
-        path: UET/
+        path: UET/Redpoint.Uefs.Daemon/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/win-x64/publish/
         merge-multiple: true
     - name: Download Shim Win
       if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-win' }}
@@ -52,7 +52,7 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: uefs-mac
-        path: UET/
+        path: UET/Redpoint.Uefs.Daemon/bin/Release/${{ inputs.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/
         merge-multiple: true
     - name: Download Shim Mac
       if: ${{ inputs.UET_ARTIFACT_NAME == 'shim-mac' }}
