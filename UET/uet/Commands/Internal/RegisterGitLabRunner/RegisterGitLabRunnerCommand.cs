@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.RegisterGitLabRunner
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -12,21 +13,22 @@
     using System.Text.Json;
     using System.Threading.Tasks;
 
-    internal sealed class RegisterGitLabRunnerCommand
+    internal sealed class RegisterGitLabRunnerCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RegisterGitLabRunnerCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command(
+                        "register-gitlab-runner",
+                        "Register a GitLab runner with the GitLab API using the new authentication flow.");
+                })
+            .Build();
+
         internal sealed class Options
         {
-        }
-
-        public static Command CreateRegisterGitLabRunnerCommand()
-        {
-            var options = new Options();
-            var command = new Command(
-                "register-gitlab-runner",
-                "Register a GitLab runner with the GitLab API using the new authentication flow.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RegisterGitLabRunnerCommandInstance>(options);
-            return command;
         }
 
         private sealed class RegisterGitLabRunnerCommandInstance : ICommandInstance
@@ -39,7 +41,7 @@
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var baseUrl = Environment.GetEnvironmentVariable("UET_GITLAB_BASE_URL");
                 var personalAccessToken = Environment.GetEnvironmentVariable("UET_GITLAB_PERSONAL_ACCESS_TOKEN");

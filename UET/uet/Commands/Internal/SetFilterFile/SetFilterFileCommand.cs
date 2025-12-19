@@ -1,12 +1,23 @@
 ﻿namespace UET.Commands.Internal.SetFilterFile
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class SetFilterFileCommand
+    internal sealed class SetFilterFileCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<SetFilterFileCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("set-filter-file");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> PackageInclude;
@@ -19,15 +30,6 @@
                 PackageExclude = new Option<string>("--package-exclude");
                 OutputPath = new Option<string>("--output-path");
             }
-        }
-
-        public static Command CreateSetFilterFileCommand()
-        {
-            var options = new Options();
-            var command = new Command("set-filter-file");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<SetFilterFileCommandInstance>(options);
-            return command;
         }
 
         private sealed class SetFilterFileCommandInstance : ICommandInstance
@@ -43,7 +45,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var packageInclude = context.ParseResult.GetValueForOption(_options.PackageInclude);
                 var packageExclude = context.ParseResult.GetValueForOption(_options.PackageExclude);

@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.Internal.InstallPackage
 {
+    using Redpoint.CommandLine;
     using Redpoint.PackageManagement;
     using Redpoint.Uet.SdkManagement;
     using System;
@@ -10,8 +11,18 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal sealed class InstallPackageCommand
+    internal sealed class InstallPackageCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<InstallPackageCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("install-package");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Argument<string> Package;
@@ -27,15 +38,6 @@
             }
         }
 
-        public static Command CreateInstallPackageCommand()
-        {
-            var options = new Options();
-            var command = new Command("install-package");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<InstallPackageCommandInstance>(options);
-            return command;
-        }
-
         private sealed class InstallPackageCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -49,7 +51,7 @@
                 _packageManager = packageManager;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var package = context.ParseResult.GetValueForArgument(_options.Package)!;
 

@@ -2,6 +2,7 @@
 {
     using k8s.KubeConfigModels;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Database;
     using Redpoint.Uet.Database.Models;
@@ -14,8 +15,18 @@
     using System.Text.Json;
     using System.Threading.Tasks;
 
-    internal sealed class VerifyDllFileIntegrityCommand
+    internal sealed class VerifyDllFileIntegrityCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<VerifyDllFileIntegrityCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("verify-dll-file-integrity");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> FileList;
@@ -26,15 +37,6 @@
                 FileList = new Option<FileInfo>("--file-list");
                 Folder = new Option<DirectoryInfo>("--folder");
             }
-        }
-
-        public static Command CreateVerifyDllFileIntegrityCommand()
-        {
-            var options = new Options();
-            var command = new Command("verify-dll-file-integrity");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<VerifyDllFileIntegrityCommandInstance>(options);
-            return command;
         }
 
         private sealed class VerifyDllFileIntegrityCommandInstance : ICommandInstance
@@ -150,7 +152,7 @@
                 return invalidFiles.Count;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsWindows())
                 {

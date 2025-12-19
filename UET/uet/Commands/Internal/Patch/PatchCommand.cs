@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.Patch
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Patching;
     using System;
     using System.Collections.Generic;
@@ -10,8 +11,18 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal sealed class PatchCommand
+    internal sealed class PatchCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<PatchCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("patch");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> EnginePath;
@@ -20,15 +31,6 @@
             {
                 EnginePath = new Option<string>("--engine-path");
             }
-        }
-
-        public static Command CreatePatchCommand()
-        {
-            var options = new Options();
-            var command = new Command("patch");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<PatchCommandInstance>(options);
-            return command;
         }
 
         private sealed class PatchCommandInstance : ICommandInstance
@@ -44,7 +46,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 await _patcher.PatchBuildGraphAsync(
                     context.ParseResult.GetValueForOption(_options.EnginePath)!,

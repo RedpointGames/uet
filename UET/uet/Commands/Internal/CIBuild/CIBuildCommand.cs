@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
     using Redpoint.Uet.BuildPipeline.Environment;
     using Redpoint.Uet.BuildPipeline.Executors;
@@ -21,8 +22,18 @@
     using System.Threading.Tasks;
     using UET.Commands.Internal.Runback;
 
-    internal sealed class CIBuildCommand
+    internal sealed class CIBuildCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CIBuildCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("ci-build", "Build a single node of a BuildGraph job from a build server.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Executor;
@@ -36,15 +47,6 @@
                 Executor.AddAlias("-x");
                 Executor.FromAmong("gitlab", "jenkins");
             }
-        }
-
-        public static Command CreateCIBuildCommand()
-        {
-            var options = new Options();
-            var command = new Command("ci-build", "Build a single node of a BuildGraph job from a build server.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CIBuildCommandInstance>(options);
-            return command;
         }
 
         private sealed class CIBuildCommandInstance : ICommandInstance
@@ -78,7 +80,7 @@
                 _buildJobJsonSourceGenerationContext = BuildJobJsonSourceGenerationContext.Create(serviceProvider);
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var executorName = context.ParseResult.GetValueForOption(_options.Executor);
 

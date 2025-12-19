@@ -1,16 +1,42 @@
 ﻿namespace UET.Commands.Config
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.Collections.Generic;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using UET.Commands.Cluster;
 
-    internal sealed class ConfigCommand
+    internal sealed class ConfigCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ConfigCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("config", "Quickly change settings that affect how Unreal Engine projects and plugins are built.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .WithParsingServices(
+                (_, services) =>
+                {
+                    services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
+                    services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
+                    services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
+                    services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
+                    services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
+                    services.AddSingleton<IBooleanConfigSetting, UbaPreferRemoteBooleanConfigSetting>();
+                    services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<bool> List;
@@ -39,22 +65,6 @@
             }
         }
 
-        public static Command CreateConfigCommand()
-        {
-            var command = new Command("config", "Quickly change settings that affect how Unreal Engine projects and plugins are built.");
-            command.AddServicedOptionsHandler<ConfigCommandInstance, Options>(extraParsingServices: services =>
-            {
-                services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
-                services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
-                services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
-                services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
-                services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
-                services.AddSingleton<IBooleanConfigSetting, UbaPreferRemoteBooleanConfigSetting>();
-                services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
-            });
-            return command;
-        }
-
         private sealed class ConfigCommandInstance : ICommandInstance
         {
             private readonly ILogger<ConfigCommandInstance> _logger;
@@ -71,7 +81,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var name = context.ParseResult.GetValueForArgument(_options.Name);
                 var list = context.ParseResult.GetValueForOption(_options.List);

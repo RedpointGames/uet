@@ -1,5 +1,6 @@
 ﻿namespace UET.Commands.New
 {
+    using Redpoint.CommandLine;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -8,24 +9,19 @@
     using System.Threading.Tasks;
     using UET.Commands.New.Plugin;
 
-    internal sealed class NewCommand
+    internal sealed class NewCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        public static Command CreateNewCommand(HashSet<Command> globalCommands)
-        {
-            var subcommands = new List<Command>
-            {
-                NewPluginCommand.CreateNewPluginCommand(),
-            };
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithCommand(
+                builder =>
+                {
+                    builder.AddCommand<NewPluginCommand>();
 
-            var command = new Command("new", "Create a new Unreal Engine plugin or project. (experimental)");
-            command.IsHidden = true;
-            foreach (var subcommand in subcommands)
-            {
-                globalCommands.Add(subcommand);
-                command.AddCommand(subcommand);
-            }
-            globalCommands.Add(command);
-            return command;
-        }
+                    return new Command("new", "Create a new Unreal Engine plugin or project. (experimental)")
+                    {
+                        IsHidden = true
+                    };
+                })
+            .Build();
     }
 }

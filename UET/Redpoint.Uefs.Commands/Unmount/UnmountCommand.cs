@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Uefs.Commands.Unmount
 {
+    using Redpoint.CommandLine;
     using Redpoint.GrpcPipes;
     using Redpoint.Uefs.Protocol;
     using System;
@@ -9,22 +10,23 @@
     using System.Threading.Tasks;
     using static Redpoint.Uefs.Protocol.Uefs;
 
-    public static class UnmountCommand
+    public class UnmountCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<UnmountCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("unmount", "Unmounts a UEFS package from the local system.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> MountPath = new Option<string>("--dir", description: "The path that is mounted. You must specify this, the ID or --all.");
             public Option<string> Id = new Option<string>("--id", description: "The ID of the mount.");
             public Option<bool> All = new Option<bool>("--all", description: "The Git commit to pull.");
-        }
-
-        public static Command CreateUnmountCommand()
-        {
-            var options = new Options();
-            var command = new Command("unmount", "Unmounts a UEFS package from the local system.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UnmountCommandInstance>(options);
-            return command;
         }
 
         private sealed class UnmountCommandInstance : ICommandInstance
@@ -43,7 +45,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var mountPath = context.ParseResult.GetValueForOption(_options.MountPath);
                 var id = context.ParseResult.GetValueForOption(_options.Id);

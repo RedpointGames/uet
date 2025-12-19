@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.RunDriveMappedProcess
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
     using Redpoint.ProcessExecution.Enumerable;
     using System;
@@ -9,8 +10,18 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal sealed class StressTestProcessCommand
+    internal sealed class StressTestProcessCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<StressTestProcessCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("stress-test-process");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> ProcessPath;
@@ -29,15 +40,6 @@
             }
         }
 
-        public static Command CreateStressTestProcessCommand()
-        {
-            var options = new Options();
-            var command = new Command("stress-test-process");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<StressTestProcessCommandInstance>(options);
-            return command;
-        }
-
         private sealed class StressTestProcessCommandInstance : ICommandInstance
         {
             private readonly ILogger<StressTestProcessCommandInstance> _logger;
@@ -54,7 +56,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var processPath = context.ParseResult.GetValueForOption(_options.ProcessPath) ?? @"C:\Windows\system32\cmd.exe";
                 var workingDirectory = context.ParseResult.GetValueForOption(_options.WorkingDirectory);

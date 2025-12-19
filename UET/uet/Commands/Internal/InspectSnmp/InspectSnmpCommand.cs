@@ -3,14 +3,25 @@
     using Lextm.SharpSnmpLib;
     using Lextm.SharpSnmpLib.Messaging;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Pdu.Serveredge;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Net;
     using System.Threading.Tasks;
 
-    internal class InspectSnmpCommand
+    internal class InspectSnmpCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<InspectSnmpCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("inspect-snmp");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Address;
@@ -21,15 +32,6 @@
                 Address = new("--address") { IsRequired = true };
                 Community = new("--community", () => "public");
             }
-        }
-
-        public static Command CreateInspectSnmpCommand()
-        {
-            var options = new Options();
-            var command = new Command("inspect-snmp");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<InspectSnmpCommandInstance>(options);
-            return command;
         }
 
         private sealed class InspectSnmpCommandInstance : ICommandInstance
@@ -45,7 +47,7 @@
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var address = context.ParseResult.GetValueForOption(_options.Address);
                 var community = context.ParseResult.GetValueForOption(_options.Community);

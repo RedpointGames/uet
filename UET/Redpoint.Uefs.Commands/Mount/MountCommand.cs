@@ -1,19 +1,30 @@
 ﻿namespace Redpoint.Uefs.Commands.Mount
 {
-    using System.CommandLine;
-    using System.CommandLine.Invocation;
-    using System.Threading.Tasks;
     using Grpc.Core;
+    using Redpoint.CommandLine;
+    using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes;
+    using Redpoint.ProcessTree;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Protocol;
-    using Redpoint.ProcessTree;
-    using static Redpoint.Uefs.Protocol.Uefs;
+    using System.CommandLine;
+    using System.CommandLine.Invocation;
     using System.Diagnostics;
-    using Redpoint.CredentialDiscovery;
+    using System.Threading.Tasks;
+    using static Redpoint.Uefs.Protocol.Uefs;
 
-    public static class MountCommand
+    public class MountCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<MountCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("mount", "Mounts a UEFS package on the local system.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> PackagePath = new Option<FileInfo>("--pkg", description: "The path to the package to mount.");
@@ -26,15 +37,6 @@
             public Option<string> Persist = new Option<string>("--persist", description: "Either 'none' (the default), 'ro' or 'rw'. If set to 'ro', this will be mounted at startup with all previous writes discarded. If set to 'rw', this will be mounted at startup with writes carried across reboots.");
             public Option<string> ScratchPath = new Option<string>("--scratch-path", description: "The path to store copy-on-write data. This will always be a folder, with the write data underneath.");
             public Option<DirectoryInfo> FolderSnapshot = new Option<DirectoryInfo>("--folder-snapshot", description: "The path to serve a snapshot of. All writes to the mounted folder will be redirected to the scratch path.");
-        }
-
-        public static Command CreateMountCommand()
-        {
-            var options = new Options();
-            var command = new Command("mount", "Mounts a UEFS package on the local system.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<MountCommandInstance>(options);
-            return command;
         }
 
         private sealed class MountCommandInstance : ICommandInstance
@@ -86,7 +88,7 @@
                 return await operation.RunAndWaitForMountIdAsync().ConfigureAwait(false);
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var packagePath = context.ParseResult.GetValueForOption(_options.PackagePath);
                 var packageTag = context.ParseResult.GetValueForOption(_options.PackageTag);

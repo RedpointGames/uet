@@ -3,6 +3,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.IO;
     using Redpoint.KubernetesManager.Manifests;
@@ -23,21 +24,20 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class ClusterRunKubeletCommand
+    internal class ClusterRunKubeletCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        internal sealed class Options
-        {
-            public Option<string> ManifestPath = new Option<string>("--manifest-path", "The path to the cached manifest file to use across restarts. This file will be read on startup, and written to whenever we receive a new manifest from the RKM service.");
-        }
-
-        public static Command CreateRunKubeletCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-kubelet");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterRunKubeletCommandInstance>(
-                options,
-                services =>
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ClusterRunKubeletCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("run-kubelet");
+                    command.IsHidden = true;
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
                 {
                     if (OperatingSystem.IsWindows())
                     {
@@ -48,9 +48,12 @@
                     }
                     services.AddRkmServiceHelpers(false, "rkm-kubelet");
                     services.AddHostedService<KubeletHostedService>();
-                });
-            command.IsHidden = true;
-            return command;
+                })
+            .Build();
+
+        internal sealed class Options
+        {
+            public Option<string> ManifestPath = new Option<string>("--manifest-path", "The path to the cached manifest file to use across restarts. This file will be read on startup, and written to whenever we receive a new manifest from the RKM service.");
         }
 
         private sealed class ClusterRunKubeletCommandInstance : ICommandInstance
@@ -63,7 +66,7 @@
                 _hostedServiceFromExecutable = hostedServiceFromExecutable;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 // Store the invocation context so that we can get the command line arguments inside the hosted service.
                 KubeletHostedService.InvocationContext = context;
@@ -86,7 +89,7 @@
 
             private Task? _backgroundTask;
 
-            public static InvocationContext? InvocationContext;
+            public static ICommandInvocationContext? InvocationContext;
 
             public KubeletHostedService(
                 IHostApplicationLifetime hostApplicationLifetime,

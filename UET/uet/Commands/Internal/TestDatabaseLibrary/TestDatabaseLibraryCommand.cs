@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.TestDatabaseLibrary
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Database;
     using Redpoint.Uet.Database.Models;
     using System.CommandLine;
@@ -10,19 +11,20 @@
     using TestPipes;
     using static TestPipes.TestService;
 
-    internal sealed class TestDatabaseLibraryCommand
+    internal sealed class TestDatabaseLibraryCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestDatabaseLibraryCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("test-database-library");
+                })
+            .Build();
+
         internal sealed class Options
         {
-        }
-
-        public static Command CreateTestDatabaseLibraryCommand()
-        {
-            var options = new Options();
-            var command = new Command("test-database-library");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TestDatabaseLibraryCommandInstance>(options);
-            return command;
         }
 
         private sealed class TestDatabaseLibraryCommandInstance : ICommandInstance
@@ -38,7 +40,7 @@
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 await using var databaseConnection =
                     await _databaseConnectionFactory.ConnectToDefaultDatabaseAsync(context.GetCancellationToken());

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.CommandLine;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ServiceControl;
 using System.CommandLine;
@@ -8,34 +9,33 @@ using UET.Services;
 
 namespace UET.Commands.Cluster
 {
-    internal sealed class ClusterStopCommand
+    internal sealed class ClusterStopCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        internal sealed class Options
-        {
-        }
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithInstance<ClusterStopCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command(
+                        "stop",
+                        "Stops Kubernetes services running on this machine.");
+                    command.FullDescription =
+                        """
+                        Stops Kubernetes services running on this machine.
 
-        public static Command CreateClusterStopCommand()
-        {
-            var options = new ClusterOptions();
-            var command = new Command(
-                "stop",
-                "Stops Kubernetes services running on this machine.");
-            command.FullDescription =
-                """
-                Stops Kubernetes services running on this machine.
+                        If this machine is the Kubernetes controller, the cluster will stop being operational. Otherwise, this Kubernetes node will no longer be ready in the cluster and can not have work scheduled on it. All existing workloads will terminate.
 
-                If this machine is the Kubernetes controller, the cluster will stop being operational. Otherwise, this Kubernetes node will no longer be ready in the cluster and can not have work scheduled on it. All existing workloads will terminate.
-
-                This command will also disable the underlying RKM service so that it does not run when the machine starts up. If you want to enable the service again, use 'uet cluster start'.
-                """;
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterStopCommandInstance>(options, services =>
-            {
-                services.AddSingleton<IRkmClusterControl, DefaultRkmClusterControl>();
-                services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
-            });
-            return command;
-        }
+                        This command will also disable the underlying RKM service so that it does not run when the machine starts up. If you want to enable the service again, use 'uet cluster start'.
+                        """;
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IRkmClusterControl, DefaultRkmClusterControl>();
+                    services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
+                })
+            .Build();
 
         private sealed class ClusterStopCommandInstance : ICommandInstance
         {
@@ -50,7 +50,7 @@ namespace UET.Commands.Cluster
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 foreach (var service in new[] { "rkm", "rkm-containerd", "rkm-kubelet" })
                 {

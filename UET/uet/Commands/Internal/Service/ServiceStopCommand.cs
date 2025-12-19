@@ -1,13 +1,24 @@
 ﻿namespace UET.Commands.Internal.Service
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ServiceControl;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal class ServiceStopCommand
+    internal class ServiceStopCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ServiceStopCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("stop");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Argument<string> Name;
@@ -16,15 +27,6 @@
             {
                 Name = new Argument<string>("service-name");
             }
-        }
-
-        public static Command CreateServiceStopCommand()
-        {
-            var options = new Options();
-            var command = new Command("stop");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ServiceStopCommandInstance>(options);
-            return command;
         }
 
         private sealed class ServiceStopCommandInstance : ICommandInstance
@@ -43,7 +45,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var name = context.ParseResult.GetValueForArgument(_options.Name)!;
 

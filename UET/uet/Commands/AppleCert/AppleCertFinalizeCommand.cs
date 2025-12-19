@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.AppleCert
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Reflection;
@@ -9,7 +10,7 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal sealed class AppleCertFinalizeCommand
+    internal sealed class AppleCertFinalizeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
         internal sealed class Options
         {
@@ -33,14 +34,17 @@
             }
         }
 
-        public static Command CreateAppleCertFinalizeCommand()
-        {
-            var options = new Options();
-            var command = new Command("finalize", "(step 2) Combine the downloaded certificate into a .p12 file you can import into the Unreal Engine Project Settings.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CreateAppleCertFinalizeCommandInstance>(options);
-            return command;
-        }
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CreateAppleCertFinalizeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("finalize", "(step 2) Combine the downloaded certificate into a .p12 file you can import into the Unreal Engine Project Settings.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
 
         private sealed class CreateAppleCertFinalizeCommandInstance : ICommandInstance
         {
@@ -57,7 +61,7 @@
 
             private static readonly Regex _nameRegex = new Regex("^[a-zA-Z]+[a-zA-Z0-9]*$");
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var name = context.ParseResult.GetValueForOption(_options.Name);
                 var storagePath = context.ParseResult.GetValueForOption(_options.StoragePath);

@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Storage.Purge
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.IO;
     using Redpoint.Uet.Workspace.Reservation;
     using Redpoint.Uet.Workspace.Storage;
@@ -18,8 +19,18 @@
     using UET.Commands.Build;
     using UET.Services;
 
-    internal sealed class StoragePurgeCommand
+    internal sealed class StoragePurgeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<StoragePurgeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("purge", "Purge storage consumed by UET.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<bool> Force = new Option<bool>("-f", "Actually purge directories instead of doing a dry run.");
@@ -29,13 +40,6 @@
             {
                 Days.AddAlias("-d");
             }
-        }
-
-        public static Command CreatePurgeCommand()
-        {
-            var command = new Command("purge", "Purge storage consumed by UET.");
-            command.AddServicedOptionsHandler<StoragePurgeCommandInstance, Options>();
-            return command;
         }
 
         private sealed class StoragePurgeCommandInstance : ICommandInstance
@@ -51,7 +55,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var force = context.ParseResult.GetValueForOption(_options.Force);
                 var days = context.ParseResult.GetValueForOption(_options.Days);

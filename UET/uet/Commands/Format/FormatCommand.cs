@@ -3,6 +3,7 @@
     using B2Net.Models;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
@@ -22,9 +23,30 @@
     using System.Text;
     using System.Threading.Tasks;
     using System.Xml;
+    using UET.Commands.Config;
 
-    internal sealed class FormatCommand
+    internal sealed class FormatCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<FormatCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("format", "Format C++ source code in an Unreal Engine plugin or project.")
+                    {
+                        FullDescription =
+                            """
+                            This command formats source code in an Unreal Engine plugin or project using clang-format. If you have a BuildConfig.json file, it'll format source code for all projects across all distributions.
+
+                            If you don't have a .clang-format file in the file hierarchy, it'll add one that matches the Unreal Engine code conventions.
+                            """
+                    };
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .Build();
+
         private static readonly string[] _types = ["cpp", "csharp", "json"];
 
         internal sealed class Options
@@ -64,22 +86,6 @@
             }
         }
 
-        public static Command CreateFormatCommand()
-        {
-            var options = new Options();
-            var command = new Command("format", "Format C++ source code in an Unreal Engine plugin or project.")
-            {
-                FullDescription = """
-                This command formats source code in an Unreal Engine plugin or project using clang-format. If you have a BuildConfig.json file, it'll format source code for all projects across all distributions.
-
-                If you don't have a .clang-format file in the file hierarchy, it'll add one that matches the Unreal Engine code conventions.
-                """
-            };
-            command.AddAllOptions(options);
-            command.AddCommonHandler<FormatCommandInstance>(options);
-            return command;
-        }
-
         private sealed class FormatCommandInstance : ICommandInstance
         {
             private readonly ILogger<FormatCommandInstance> _logger;
@@ -108,7 +114,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsWindows())
                 {

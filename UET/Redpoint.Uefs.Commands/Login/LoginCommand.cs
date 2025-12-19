@@ -1,14 +1,25 @@
 ﻿namespace Redpoint.Uefs.Commands.Login
 {
+    using Redpoint.CommandLine;
+    using Redpoint.Uefs.ContainerRegistry;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
-    using Redpoint.Uefs.ContainerRegistry;
 
-    public static class LoginCommand
+    public class LoginCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<LoginCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("login", "Authenticate to a container registry.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Host;
@@ -34,15 +45,6 @@
             }
         }
 
-        public static Command CreateLoginCommand()
-        {
-            var options = new Options();
-            var command = new Command("login", "Authenticate to a container registry.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<LoginCommandInstance>(options);
-            return command;
-        }
-
         private sealed class LoginCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -52,7 +54,7 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var host = context.ParseResult.GetValueForOption(_options.Host)!;
                 var username = context.ParseResult.GetValueForOption(_options.Username)!;

@@ -1,25 +1,27 @@
 ﻿namespace UET.Commands.Internal.ReparentAdditionalPropertiesInTargets
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Text.Json;
     using System.Threading.Tasks;
 
-    internal sealed class ReparentAdditionalPropertiesInTargetsCommand
+    internal sealed class ReparentAdditionalPropertiesInTargetsCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ReparentAdditionalPropertiesInTargetsCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("reparent-additional-properties-in-targets");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<DirectoryInfo> ProjectDirectoryPath = new Option<DirectoryInfo>("--project-directory-path") { IsRequired = true };
-        }
-
-        public static Command CreateReparentAdditionalPropertiesInTargetsCommand()
-        {
-            var options = new Options();
-            var command = new Command("reparent-additional-properties-in-targets");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ReparentAdditionalPropertiesInTargetsCommandInstance>(options);
-            return command;
         }
 
         private sealed class ReparentAdditionalPropertiesInTargetsCommandInstance : ICommandInstance
@@ -35,13 +37,13 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var projectDirectoryPath = context.ParseResult.GetValueForOption(_options.ProjectDirectoryPath)!;
 
                 foreach (var targetFile in Directory.GetFiles(
                     Path.Combine(projectDirectoryPath.FullName, "Binaries"),
-                    "*.target", 
+                    "*.target",
                     new EnumerationOptions { RecurseSubdirectories = true }))
                 {
                     _logger.LogInformation($"Discovered .target file: {targetFile}");

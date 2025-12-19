@@ -16,5 +16,4 @@ namespace UET.Commands.Cluster
 
         public Option<bool> WaitForSysprep = new Option<bool>("--wait-for-sysprep", "If set, the service will not initialize the node until sysprep has finished. This is detected by checking if 'C:\\Windows\\Panther\\UnattendGC\\setupact.log' contains the line 'OOBE completion WNF notification is already published'. This is necessary if sysprep will change the computer name.");
     }
-
 }

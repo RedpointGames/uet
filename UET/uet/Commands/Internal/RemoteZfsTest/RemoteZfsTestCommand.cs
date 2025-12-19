@@ -7,9 +7,20 @@
     using System.Net;
     using System.Threading.Tasks;
     using Redpoint.Uet.Workspace.RemoteZfs;
+    using Redpoint.CommandLine;
 
-    internal sealed class RemoteZfsTestCommand
+    internal sealed class RemoteZfsTestCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RemoteZfsTestCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("remote-zfs-test");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<string> Host;
@@ -32,15 +43,6 @@
             }
         }
 
-        public static Command CreateRemoteZfsTestCommand()
-        {
-            var options = new Options();
-            var command = new Command("remote-zfs-test");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RemoteZfsTestCommandInstance>(options);
-            return command;
-        }
-
         private sealed class RemoteZfsTestCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -57,7 +59,7 @@
                 _grpcPipeFactory = grpcPipeFactory;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var host = context.ParseResult.GetValueForOption(_options.Host);
                 var port = context.ParseResult.GetValueForOption(_options.Port);

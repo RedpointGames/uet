@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.InstallPlatformSdk
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.IO;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
@@ -13,8 +14,18 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal sealed class InstallXcodeCommand
+    internal sealed class InstallXcodeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<InstallXcodeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("install-xcode");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<string> Version;
@@ -28,15 +39,6 @@
                     IsRequired = true,
                 };
             }
-        }
-
-        public static Command CreateInstallXcodeCommand()
-        {
-            var options = new Options();
-            var command = new Command("install-xcode");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<InstallXcodeCommandInstance>(options);
-            return command;
         }
 
         private sealed class InstallXcodeCommandInstance : ICommandInstance
@@ -61,7 +63,7 @@
                 _pathResolver = pathResolver;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (!OperatingSystem.IsMacOS())
                 {

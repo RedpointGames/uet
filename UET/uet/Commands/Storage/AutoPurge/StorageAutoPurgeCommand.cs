@@ -1,22 +1,21 @@
 ﻿namespace UET.Commands.Storage.Purge
 {
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Workspace.Storage;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class StorageAutoPurgeCommand
+    internal sealed class StorageAutoPurgeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        internal sealed class Options
-        {
-        }
-
-        public static Command CreateAutoPurgeCommand()
-        {
-            var command = new Command("autopurge", "Automatically purge storage consumed by UET if low on disk space.");
-            command.AddServicedOptionsHandler<StorageAutoPurgeCommandInstance, Options>();
-            return command;
-        }
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithInstance<StorageAutoPurgeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("autopurge", "Automatically purge storage consumed by UET if low on disk space.");
+                })
+            .Build();
 
         private sealed class StorageAutoPurgeCommandInstance : ICommandInstance
         {
@@ -27,7 +26,7 @@
                 _storageManagement = storageManagement;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 await _storageManagement.AutoPurgeStorageAsync(
                     context.GetCancellationToken()).ConfigureAwait(false);

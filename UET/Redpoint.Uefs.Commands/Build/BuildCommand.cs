@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uefs.Commands.Build
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.CommandLine;
     using Redpoint.Uefs.Commands.Hash;
     using Redpoint.Uefs.Package;
     using System;
@@ -10,8 +11,23 @@
     using System.Globalization;
     using System.Threading.Tasks;
 
-    public static class BuildCommand
+    public class BuildCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<BuildCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("build", "Build a UEFS package.");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IFileHasher, DefaultFileHasher>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> PackagePath;
@@ -29,15 +45,6 @@
                     description: "The path to build the package from.");
                 DirectoryPath.Arity = ArgumentArity.ExactlyOne;
             }
-        }
-
-        public static Command CreateBuildCommand()
-        {
-            var options = new Options();
-            var command = new Command("build", "Build a UEFS package.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<BuildCommandInstance>(options);
-            return command;
         }
 
         private sealed class BuildCommandInstance : ICommandInstance
@@ -62,7 +69,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var packagePath = context.ParseResult.GetValueForOption(_options.PackagePath);
                 var directoryPath = context.ParseResult.GetValueForOption(_options.DirectoryPath);

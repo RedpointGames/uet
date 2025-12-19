@@ -4,6 +4,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.IO;
     using Redpoint.KubernetesManager.Manifests;
@@ -23,21 +24,20 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class ClusterRunContainerdCommand
+    internal class ClusterRunContainerdCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        internal sealed class Options
-        {
-            public Option<string> ManifestPath = new Option<string>("--manifest-path", "The path to the cached manifest file to use across restarts. This file will be read on startup, and written to whenever we receive a new manifest from the RKM service.");
-        }
-
-        public static Command CreateRunContainerdCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-containerd");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterRunContainerdCommandInstance>(
-                options,
-                services =>
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ClusterRunContainerdCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("run-containerd");
+                    command.IsHidden = true;
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
                 {
                     if (OperatingSystem.IsWindows())
                     {
@@ -48,9 +48,12 @@
                     }
                     services.AddRkmServiceHelpers(false, "rkm-containerd");
                     services.AddHostedService<ContainerdHostedService>();
-                });
-            command.IsHidden = true;
-            return command;
+                })
+            .Build();
+
+        internal sealed class Options
+        {
+            public Option<string> ManifestPath = new Option<string>("--manifest-path", "The path to the cached manifest file to use across restarts. This file will be read on startup, and written to whenever we receive a new manifest from the RKM service.");
         }
 
         private sealed class ClusterRunContainerdCommandInstance : ICommandInstance
@@ -63,7 +66,7 @@
                 _hostedServiceFromExecutable = hostedServiceFromExecutable;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 // Store the invocation context so that we can get the command line arguments inside the hosted service.
                 ContainerdHostedService.InvocationContext = context;
@@ -88,7 +91,7 @@
 
             private Task? _backgroundTask;
 
-            public static InvocationContext? InvocationContext;
+            public static ICommandInvocationContext? InvocationContext;
 
             public ContainerdHostedService(
                 IHostApplicationLifetime hostApplicationLifetime,

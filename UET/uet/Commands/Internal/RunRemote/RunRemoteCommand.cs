@@ -4,6 +4,7 @@
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
     using Redpoint.AutoDiscovery;
+    using Redpoint.CommandLine;
     using Redpoint.GrpcPipes;
     using RemoteHostApi;
     using System;
@@ -17,8 +18,18 @@
     using System.Threading.Tasks;
     using static RemoteHostApi.RemoteHostService;
 
-    internal class RunRemoteCommand
+    internal class RunRemoteCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunRemoteCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("run-remote");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<string> HostAddress;
@@ -46,15 +57,6 @@
             }
         }
 
-        public static Command CreateRunRemoteCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-remote");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunRemoteCommandInstance>(options);
-            return command;
-        }
-
         private sealed class RunRemoteCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunRemoteCommandInstance> _logger;
@@ -74,7 +76,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var hostAddress = context.ParseResult.GetValueForOption(_options.HostAddress);
                 var path = context.ParseResult.GetValueForOption(_options.Path);

@@ -2,6 +2,8 @@
 {
     using Docker.Registry.DotNet.Models;
     using Docker.Registry.DotNet.Registry;
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.CommandLine;
     using Redpoint.Hashing;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uefs.Commands.Hash;
@@ -19,22 +21,28 @@
     using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
 
-    public static class PushCommand
+    public class PushCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<PushCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("push", "Push a UEFS package to a container registry.");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IFileHasher, DefaultFileHasher>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> PackagePath = new Option<FileInfo>("--pkg", description: "The path of the package to push.") { IsRequired = true };
             public Option<string> PackageTag = new Option<string>("--tag", description: "The registry tag to push it to.") { IsRequired = true };
             public Option<string> PackageRef = new Option<string>("--ref", description: "If set, the passed value is used as the location to retrieve the data from, instead of storing the package in the registry itself. This can be used if your registry is not as fast as some other storage type (such as a network share), and you want to use the registry as the versioning system, but store the data elsewhere. The value for this parameter will typically be something like '\\\\COMPUTER\\Share\\mypackage.vhd' or '/Users/Shared/mypackage.sparseimage'.");
-        }
-
-        public static Command CreatePushCommand()
-        {
-            var options = new Options();
-            var command = new Command("push", "Push a UEFS package to a container registry.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<PushCommandInstance>(options);
-            return command;
         }
 
         private sealed class PushCommandInstance : ICommandInstance
@@ -56,7 +64,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var packagePath = context.ParseResult.GetValueForOption(_options.PackagePath);
                 var packageTag = context.ParseResult.GetValueForOption(_options.PackageTag);

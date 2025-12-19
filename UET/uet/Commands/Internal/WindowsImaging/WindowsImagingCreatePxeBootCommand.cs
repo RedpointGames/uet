@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.WindowsImaging
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.IO;
     using Redpoint.PackageManagement;
@@ -16,8 +17,18 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal class WindowsImagingCreatePxeBootCommand
+    internal class WindowsImagingCreatePxeBootCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<WindowsImagingCreatePxeBootCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("create-pxe-boot");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<DirectoryInfo> Path;
@@ -36,15 +47,6 @@
                 Edition = new Option<string>("--edition", () => "Windows 11 Pro");
                 Edition.AddAlias("-e");
             }
-        }
-
-        public static Command CreateWindowsImagingCreatePxeBootCommand()
-        {
-            var options = new Options();
-            var command = new Command("create-pxe-boot");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<WindowsImagingCreatePxeBootCommandInstance>(options);
-            return command;
         }
 
         private sealed class WindowsImagingCreatePxeBootCommandInstance : ICommandInstance
@@ -80,7 +82,7 @@
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
                 var noAutoUpgrade = context.ParseResult.GetValueForOption(_options.NoAutoUpgrade)!;

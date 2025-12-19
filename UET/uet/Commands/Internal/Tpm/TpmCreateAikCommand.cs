@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.Tpm
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Security.Cryptography;
@@ -9,19 +10,20 @@
     using System.Threading.Tasks;
     using Tpm2Lib;
 
-    internal sealed class TpmCreateAikCommand
+    internal sealed class TpmCreateAikCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TpmCreateAikCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("create-aik");
+                })
+            .Build();
+
         internal sealed class Options
         {
-        }
-
-        public static Command CreateTpmCreateAikCommand()
-        {
-            var options = new Options();
-            var command = new Command("create-aik");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TpmCreateAikCommandInstance>(options);
-            return command;
         }
 
         private sealed class TpmCreateAikCommandInstance : ICommandInstance
@@ -51,7 +53,7 @@
                 }
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 using var tpmDevice = new TbsDevice();
                 tpmDevice.Connect();

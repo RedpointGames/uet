@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.TestPdu
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Pdu.Abstractions;
     using Redpoint.Pdu.CyberPower;
     using Redpoint.Pdu.Serveredge;
@@ -13,8 +14,18 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    internal class TestPduCommand
+    internal class TestPduCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TestPduCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("test-pdu");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Address;
@@ -27,15 +38,6 @@
                 Community = new("--community", () => "public");
                 Reset = new("--reset", description: "If set, reset the meters on the PDU.");
             }
-        }
-
-        public static Command CreateTestPduCommand()
-        {
-            var options = new Options();
-            var command = new Command("test-pdu");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<TestPduCommandInstance>(options);
-            return command;
         }
 
         private sealed class TestPduCommandInstance : ICommandInstance
@@ -51,7 +53,7 @@
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var address = context.ParseResult.GetValueForOption(_options.Address);
                 var community = context.ParseResult.GetValueForOption(_options.Community);

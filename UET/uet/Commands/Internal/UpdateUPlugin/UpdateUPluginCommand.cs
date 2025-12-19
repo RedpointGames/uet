@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.Internal.UpdateUPlugin
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Configuration.Plugin;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -9,8 +10,18 @@
     using System.Text.Json.Nodes;
     using System.Threading.Tasks;
 
-    internal sealed class UpdateUPluginCommand
+    internal sealed class UpdateUPluginCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<UpdateUPluginCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("update-uplugin");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> InputPath;
@@ -31,15 +42,6 @@
             }
         }
 
-        public static Command CreateUpdateUPluginCommand()
-        {
-            var options = new Options();
-            var command = new Command("update-uplugin");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UpdateUPluginCommandInstance>(options);
-            return command;
-        }
-
         private sealed class UpdateUPluginCommandInstance : ICommandInstance
         {
             private readonly ILogger<UpdateUPluginCommandInstance> _logger;
@@ -53,7 +55,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var inputPath = context.ParseResult.GetValueForOption(_options.InputPath)!;
                 var outputPath = context.ParseResult.GetValueForOption(_options.OutputPath)!;

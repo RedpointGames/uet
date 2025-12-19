@@ -2,6 +2,8 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.Services;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Commands.ParameterSpec;
@@ -12,13 +14,75 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using UET.Commands.Cluster;
     using UET.Services;
 
-    internal sealed class CMakeCommand
+    internal sealed class CMakeCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CMakeCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("cmake", "Run a CMake-based build leveraging the Unreal Build Accelerator (UBA) to distribute compilation.")
+                    {
+                        FullDescription =
+                            """
+                            This command runs a CMake-based build, leveraging the Unreal Build Accelerator (UBA) to distribute the build over Kubernetes.
+                
+                            -------------
+
+                            Before you can distribute builds, you must configure your BuildConfiguration.xml file located at "%appdata%\Unreal Engine\UnrealBuildTool\BuildConfiguration.xml" with the settings to connect to the Kubernetes cluster. The Kubernetes cluster must have Windows nodes in it. You can use RKM (https://src.redpoint.games/redpointgames/rkm) to spin up a Kubernetes cluster with Windows nodes with a single command.
+
+                            <?xml version="1.0" encoding="utf-8"?>
+                            <Configuration xmlns="https://www.unrealengine.com/BuildConfiguration">
+                              <Kubernetes>
+                                <Namespace>default</Namespace>
+                                <Context>defafult</Context>
+                                <SmbServer>10.0.0.100</SmbServer>
+                                <SmbShare>ShareName</SmbShare>
+                                <SmbUsername>Domain\Username</SmbUsername>
+                                <SmbPassword>Password</SmbPassword>
+                              </Kubernetes>
+                            </Configuration>
+
+                            The 'Smb' settings specify a network share that all Windows nodes can access as the specified user. The Unreal Build Accelerator will be copied to this share and the containers will copy from this network share.
+
+                            Your `kubectl` configuration must be connected to the cluster already, as per the 'Context' setting. You can get the context name by running `kubectl config get-contexts`. The 'Namespace' setting specifies what Kubernetes namespace to launch UBA agents into.
+
+                            -------------
+
+                            To distribute builds, you must first generate your CMake project using:
+                
+                            uet cmake -- ...
+                
+                            You should omit `-G`; this command will automatically select the Ninja project generator which is required to distribute builds.
+
+                            Once you've generated your project, you can distribute the build using:
+
+                            uet cmake -e 5.5 -- --build ...
+
+                            The presence of `--build` in the CMake arguments is what this tool uses to determine whether CMake is generating project files or running the build. You only need to specify `-e` as an argument to this command when running the build; it is not necessary during generation.
+
+                            All arguments past the `--` are forwarded to CMake intact.
+                            """
+                    };
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IRkmClusterControl, DefaultRkmClusterControl>();
+                    services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
+
+            public Argument<string[]> CommandArgs;
 
             public Options()
             {
@@ -29,63 +93,10 @@
                     isDefault: true);
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ZeroOrOne;
+
+                CommandArgs = new Argument<string[]>("command-and-arguments", "The command to run, followed by any arguments to pass to it.");
+                CommandArgs.Arity = ArgumentArity.ZeroOrMore;
             }
-        }
-
-        public static Command CreateCMakeCommand()
-        {
-            var options = new Options();
-            var commandArguments = new Argument<string[]>("command-and-arguments", "The command to run, followed by any arguments to pass to it.");
-            commandArguments.Arity = ArgumentArity.ZeroOrMore;
-            var command = new Command("cmake", "Run a CMake-based build leveraging the Unreal Build Accelerator (UBA) to distribute compilation.")
-            {
-                FullDescription = """
-                This command runs a CMake-based build, leveraging the Unreal Build Accelerator (UBA) to distribute the build over Kubernetes.
-                
-                -------------
-
-                Before you can distribute builds, you must configure your BuildConfiguration.xml file located at "%appdata%\Unreal Engine\UnrealBuildTool\BuildConfiguration.xml" with the settings to connect to the Kubernetes cluster. The Kubernetes cluster must have Windows nodes in it. You can use RKM (https://src.redpoint.games/redpointgames/rkm) to spin up a Kubernetes cluster with Windows nodes with a single command.
-
-                <?xml version="1.0" encoding="utf-8"?>
-                <Configuration xmlns="https://www.unrealengine.com/BuildConfiguration">
-                  <Kubernetes>
-                    <Namespace>default</Namespace>
-                    <Context>defafult</Context>
-                    <SmbServer>10.0.0.100</SmbServer>
-                    <SmbShare>ShareName</SmbShare>
-                    <SmbUsername>Domain\Username</SmbUsername>
-                    <SmbPassword>Password</SmbPassword>
-                  </Kubernetes>
-                </Configuration>
-
-                The 'Smb' settings specify a network share that all Windows nodes can access as the specified user. The Unreal Build Accelerator will be copied to this share and the containers will copy from this network share.
-
-                Your `kubectl` configuration must be connected to the cluster already, as per the 'Context' setting. You can get the context name by running `kubectl config get-contexts`. The 'Namespace' setting specifies what Kubernetes namespace to launch UBA agents into.
-
-                -------------
-
-                To distribute builds, you must first generate your CMake project using:
-                
-                uet cmake -- ...
-                
-                You should omit `-G`; this command will automatically select the Ninja project generator which is required to distribute builds.
-
-                Once you've generated your project, you can distribute the build using:
-
-                uet cmake -e 5.5 -- --build ...
-
-                The presence of `--build` in the CMake arguments is what this tool uses to determine whether CMake is generating project files or running the build. You only need to specify `-e` as an argument to this command when running the build; it is not necessary during generation.
-
-                All arguments past the `--` are forwarded to CMake intact.
-                """
-            };
-            command.AddAllOptions(options);
-            command.AddArgument(commandArguments);
-            command.AddCommonHandler<CMakeCommandInstance>(options, services =>
-            {
-                services.AddSingleton(commandArguments);
-            });
-            return command;
         }
 
         private sealed class CMakeCommandInstance : ICommandInstance
@@ -95,27 +106,24 @@
             private readonly ISelfLocation _selfLocation;
             private readonly IPathResolver _pathResolver;
             private readonly Options _options;
-            private readonly Argument<string[]> _commandArguments;
 
             public CMakeCommandInstance(
                 ILogger<CMakeCommandInstance> logger,
                 IProcessExecutor processExecutor,
                 ISelfLocation selfLocation,
                 IPathResolver pathResolver,
-                Options options,
-                Argument<string[]> commandArguments)
+                Options options)
             {
                 _logger = logger;
                 _processExecutor = processExecutor;
                 _selfLocation = selfLocation;
                 _pathResolver = pathResolver;
                 _options = options;
-                _commandArguments = commandArguments;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
-                var extraArguments = context.ParseResult.GetValueForArgument(_commandArguments);
+                var extraArguments = context.ParseResult.GetValueForArgument(_options.CommandArgs);
 
                 string? cmake = null;
                 try

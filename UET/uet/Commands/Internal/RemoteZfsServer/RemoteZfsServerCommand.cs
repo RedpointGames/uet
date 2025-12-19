@@ -5,6 +5,7 @@
     using k8s.KubeConfigModels;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Concurrency;
     using Redpoint.GrpcPipes;
     using Redpoint.ProcessExecution;
@@ -18,19 +19,20 @@
     using System.Threading.Tasks;
     using System.Web;
 
-    internal sealed class RemoteZfsServerCommand
+    internal sealed class RemoteZfsServerCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RemoteZfsServerCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("remote-zfs-server");
+                })
+            .Build();
+
         public sealed class Options
         {
-        }
-
-        public static Command CreateRemoteZfsServerCommand()
-        {
-            var options = new Options();
-            var command = new Command("remote-zfs-server");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RemoteZfsServerCommandInstance>(options);
-            return command;
         }
 
         private sealed class RemoteZfsServerCommandInstance : RemoteZfs.RemoteZfsBase, ICommandInstance
@@ -49,7 +51,7 @@
                 _usedDatasets = new();
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var configJson = Environment.GetEnvironmentVariable("REMOTE_ZFS_SERVER_CONFIG");
                 var configJsonPath = Environment.GetEnvironmentVariable("REMOTE_ZFS_SERVER_CONFIG_PATH");

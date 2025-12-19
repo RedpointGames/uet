@@ -1,6 +1,7 @@
 ﻿namespace UET.Commands.New.Plugin
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -10,8 +11,18 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal sealed class NewPluginCommand
+    internal sealed class NewPluginCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<NewPluginCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("plugin", "Create a new Unreal Engine plugin.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Argument<string> Name;
@@ -38,15 +49,6 @@
             }
         }
 
-        public static Command CreateNewPluginCommand()
-        {
-            var options = new Options();
-            var command = new Command("plugin", "Create a new Unreal Engine plugin.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<NewPluginCommandInstance>(options);
-            return command;
-        }
-
         private sealed class NewPluginCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -60,7 +62,7 @@
                 _logger = logger;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var name = context.ParseResult.GetValueForArgument(_options.Name) ?? "UntitledPlugin";
                 var path = context.ParseResult.GetValueForOption(_options.Path) ?? new DirectoryInfo(Environment.CurrentDirectory);

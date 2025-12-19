@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
@@ -14,8 +15,18 @@
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
-    internal sealed class RunDynamicReentrantTaskCommand
+    internal sealed class RunDynamicReentrantTaskCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunDynamicReentrantTaskCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("run-dynamic-reentrant-task");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> DistributionType;
@@ -35,15 +46,6 @@
             }
         }
 
-        public static Command CreateRunDynamicReentrantTaskCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-dynamic-reentrant-task");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunDynamicReentrantTaskCommandInstance>(options);
-            return command;
-        }
-
         private sealed class RunDynamicReentrantTaskCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunDynamicReentrantTaskCommandInstance> _logger;
@@ -60,7 +62,7 @@
                 _options = options;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var distributionType = context.ParseResult.GetValueForOption(_options.DistributionType)!;
                 var reentrantExecutorCategory = context.ParseResult.GetValueForOption(_options.ReentrantExecutorCategory)!;

@@ -52,6 +52,7 @@
 		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.System.CommandLine\Redpoint.ThirdParty.System.CommandLine.csproj" />
 		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.WinFsp\Redpoint.ThirdParty.WinFsp.csproj" />
 		<ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
+		<ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
 		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj" />
 		<ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />

@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using System;
     using System.CommandLine;
@@ -13,8 +14,25 @@
     using System.Web;
     using UET.Commands.Internal.GenerateJsonSchema;
 
-    internal sealed class CreateGitHubReleaseCommand
+    internal sealed class CreateGitHubReleaseCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CreateGitHubReleaseCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("create-github-release");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IReleaseUploader, DefaultReleaseUploader>();
+                    services.AddSingleton<ISchemaUploader, DefaultSchemaUploader>();
+                    services.AddSingleton<IJsonSchemaGenerator, DefaultJsonSchemaGenerator>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Version;
@@ -38,20 +56,6 @@
             }
         }
 
-        public static Command CreateCreateGitHubReleaseCommand()
-        {
-            var options = new Options();
-            var command = new Command("create-github-release");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CreateGitHubReleaseCommandInstance>(options, services =>
-            {
-                services.AddSingleton<IReleaseUploader, DefaultReleaseUploader>();
-                services.AddSingleton<ISchemaUploader, DefaultSchemaUploader>();
-                services.AddSingleton<IJsonSchemaGenerator, DefaultJsonSchemaGenerator>();
-            });
-            return command;
-        }
-
         private sealed class CreateGitHubReleaseCommandInstance : ICommandInstance
         {
             private readonly ILogger<CreateGitHubReleaseCommandInstance> _logger;
@@ -71,7 +75,7 @@
                 _schemaUploader = schemaUploader;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var version = context.ParseResult.GetValueForOption(_options.Version)!;
                 var files = (context.ParseResult.GetValueForOption(_options.Files) ?? Array.Empty<string>()).Select(x =>

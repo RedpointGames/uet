@@ -4,6 +4,7 @@
     using Grpc.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.GrpcPipes;
     using Redpoint.ProcessExecution;
     using System;
@@ -13,28 +14,28 @@
     using UET.Services;
     using static CMakeUba.CMakeUbaService;
 
-    internal class CMakeUbaRunCommand
+    internal class CMakeUbaRunCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CMakeUbaRunCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("cmake-uba-run");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<bool> PreferRemote = new Option<bool>(
                 "--prefer-remote",
                 "If true, the CMake UBA server will prefer to run this command remotely.");
-        }
 
-        public static Command CreateCMakeUbaRunCommand()
-        {
-            var options = new Options();
-            var commandArguments = new Argument<string[]>("command-and-arguments", "The command to run, followed by any arguments to pass to it.");
-            commandArguments.Arity = ArgumentArity.OneOrMore;
-            var command = new Command("cmake-uba-run");
-            command.AddAllOptions(options);
-            command.AddArgument(commandArguments);
-            command.AddCommonHandler<CMakeUbaRunCommandInstance>(options, services =>
+            public Argument<string[]> CommandArguments = new Argument<string[]>("command-and-arguments", "The command to run, followed by any arguments to pass to it.")
             {
-                services.AddSingleton(commandArguments);
-            });
-            return command;
+                Arity = ArgumentArity.OneOrMore,
+            };
         }
 
         private sealed class CMakeUbaRunCommandInstance : ICommandInstance
@@ -44,22 +45,19 @@
             private readonly ISelfLocation _selfLocation;
             private readonly IProcessExecutor _processExecutor;
             private readonly Options _options;
-            private readonly Argument<string[]> _commandArguments;
 
             public CMakeUbaRunCommandInstance(
                 IGrpcPipeFactory grpcPipeFactory,
                 ILogger<CMakeUbaRunCommandInstance> logger,
                 ISelfLocation selfLocation,
                 IProcessExecutor processExecutor,
-                Options options,
-                Argument<string[]> commandArguments)
+                Options options)
             {
                 _grpcPipeFactory = grpcPipeFactory;
                 _logger = logger;
                 _selfLocation = selfLocation;
                 _processExecutor = processExecutor;
                 _options = options;
-                _commandArguments = commandArguments;
             }
 
             private async Task<bool> IsServerRunningAsync(string pipeName)
@@ -83,7 +81,7 @@
                 return false;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var sessionId = Environment.GetEnvironmentVariable("CMAKE_UBA_SESSION_ID");
                 if (string.IsNullOrWhiteSpace(sessionId))
@@ -110,7 +108,7 @@
                         channel => new CMakeUbaServiceClient(channel));
 
                     // Run the process.
-                    var arguments = context.ParseResult.GetValueForArgument(_commandArguments)!;
+                    var arguments = context.ParseResult.GetValueForArgument(_options.CommandArguments)!;
                     var request = new CMakeUba.ProcessRequest
                     {
                         Path = arguments[0],

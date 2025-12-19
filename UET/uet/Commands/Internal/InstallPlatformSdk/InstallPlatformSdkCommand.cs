@@ -1,13 +1,24 @@
 ﻿namespace UET.Commands.Internal.InstallPlatformSdk
 {
+    using Redpoint.CommandLine;
     using Redpoint.Uet.SdkManagement;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class InstallPlatformSdkCommand
+    internal sealed class InstallPlatformSdkCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<InstallPlatformSdkCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("install-platform-sdk");
+                })
+            .Build();
+
         public sealed class Options
         {
             public Option<DirectoryInfo> EnginePath;
@@ -34,15 +45,6 @@
             }
         }
 
-        public static Command CreateInstallPlatformSdkCommand()
-        {
-            var options = new Options();
-            var command = new Command("install-platform-sdk");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<InstallPlatformSdkCommandInstance>(options);
-            return command;
-        }
-
         private sealed class InstallPlatformSdkCommandInstance : ICommandInstance
         {
             private readonly Options _options;
@@ -56,7 +58,7 @@
                 _localSdkManager = localSdkManager;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var enginePath = context.ParseResult.GetValueForOption(_options.EnginePath);
                 var packagePath = context.ParseResult.GetValueForOption(_options.PackagePath);

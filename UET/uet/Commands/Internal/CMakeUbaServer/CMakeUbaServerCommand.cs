@@ -23,9 +23,25 @@
     using UET.Commands.Config;
     using static CMakeUba.CMakeUbaService;
     using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.CommandLine;
 
-    internal class CMakeUbaServerCommand
+    internal class CMakeUbaServerCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<CMakeUbaServerCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("cmake-uba-server");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
@@ -40,18 +56,6 @@
                 Engine.AddAlias("-e");
                 Engine.Arity = ArgumentArity.ExactlyOne;
             }
-        }
-
-        public static Command CreateCMakeUbaServerCommand()
-        {
-            var options = new Options();
-            var command = new Command("cmake-uba-server");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<CMakeUbaServerCommandInstance>(options, services =>
-            {
-                services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
-            });
-            return command;
         }
 
         private sealed class CMakeUbaServerCommandInstance : CMakeUbaServiceBase, ICommandInstance
@@ -81,7 +85,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
 

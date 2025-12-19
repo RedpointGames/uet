@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Redpoint.CommandLine;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ProcessExecution;
 using Redpoint.ServiceControl;
@@ -18,8 +19,28 @@ using System.Threading;
 namespace UET.Commands.Cluster
 {
     [SupportedOSPlatform("windows")]
-    internal sealed class ClusterAllocateSourceVipCommand
+    internal sealed class ClusterAllocateSourceVipCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<ClusterAllocateSourceVipCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command(
+                        "allocate-source-vip",
+                        "Allocate a source VIP for kube-proxy.");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton(_ =>
+                    {
+                        return IHnsApi.GetInstance();
+                    });
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> NetworkName = new Option<string>("--network-name", () => "flannel.4096", "The HNS network name.");
@@ -37,24 +58,6 @@ namespace UET.Commands.Cluster
                 IsRequired = true,
             };
             public Option<int?> LivenessProbePort = new Option<int?>("--liveness-probe-port", "An optional port that the 'allocate-source-vip' command should listen on for localhost while it is performing work. This can be set as the liveness probe for the init container to detect if the allocate source VIP command is not running properly.");
-        }
-
-        public static Command CreateClusterAllocateSourceVipCommand()
-        {
-            var options = new Options();
-            var command = new Command(
-                "allocate-source-vip",
-                "Allocate a source VIP for kube-proxy.");
-            command.IsHidden = true;
-            command.AddAllOptions(options);
-            command.AddCommonHandler<ClusterAllocateSourceVipCommandInstance>(options, services =>
-            {
-                services.AddSingleton(_ =>
-                {
-                    return IHnsApi.GetInstance();
-                });
-            });
-            return command;
         }
 
         private sealed class ClusterAllocateSourceVipCommandInstance : ICommandInstance
@@ -76,7 +79,7 @@ namespace UET.Commands.Cluster
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var networkName = context.ParseResult.GetValueForOption(_options.NetworkName)!;
                 var containerId = context.ParseResult.GetValueForOption(_options.ContainerId)!;

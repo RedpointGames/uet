@@ -1,10 +1,11 @@
 ﻿namespace UET.Commands.Cluster
 {
+    using Redpoint.CommandLine;
     using System.CommandLine.Invocation;
 
     internal interface IRkmClusterControl
     {
-        Task<int> CreateOrJoin(InvocationContext context, ClusterOptions options);
+        Task<int> CreateOrJoin(ICommandInvocationContext context, ClusterOptions options);
 
         Task StreamLogs(CancellationToken cancellationToken);
     }

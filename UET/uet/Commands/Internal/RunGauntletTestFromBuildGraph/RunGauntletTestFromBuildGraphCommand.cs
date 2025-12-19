@@ -1,12 +1,23 @@
 ﻿namespace UET.Commands.Internal.RunGauntletTestFromBuildGraph
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    internal sealed class RunGauntletTestFromBuildGraphCommand
+    internal sealed class RunGauntletTestFromBuildGraphCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunGauntletCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("run-gauntlet-test-from-buildgraph");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> EnginePath;
@@ -21,15 +32,6 @@
             }
         }
 
-        public static Command CreateRunGauntletCommand()
-        {
-            var options = new Options();
-            var command = new Command("run-gauntlet-test-from-buildgraph");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunGauntletCommandInstance>(options);
-            return command;
-        }
-
         private sealed class RunGauntletCommandInstance : ICommandInstance
         {
             private readonly ILogger<RunGauntletCommandInstance> _logger;
@@ -40,7 +42,7 @@
                 _logger = logger;
             }
 
-            public Task<int> ExecuteAsync(InvocationContext context)
+            public Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 _logger.LogError("Not yet implemented.");
                 return Task.FromResult(1);

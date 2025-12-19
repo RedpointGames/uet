@@ -1,30 +1,31 @@
 ﻿namespace UET.Commands.Build
 {
-    using System;
-    using System.CommandLine;
-    using System.Threading.Tasks;
-    using System.CommandLine.Invocation;
-    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.DependencyInjection;
-    using Redpoint.Uet.BuildPipeline.Executors;
-    using Redpoint.Uet.Configuration.Project;
-    using Redpoint.Uet.Configuration.Plugin;
-    using Redpoint.Uet.Configuration.Engine;
-    using Redpoint.Uet.BuildPipeline.Executors.Local;
+    using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProcessExecution;
+    using Redpoint.Uet.BuildPipeline.Executors;
     using Redpoint.Uet.BuildPipeline.Executors.GitLab;
-    using Redpoint.Uet.Core;
-    using static Crayon.Output;
-    using Redpoint.Uet.Configuration.Dynamic;
-    using System.Text.RegularExpressions;
-    using Redpoint.Uet.Workspace;
-    using Redpoint.Uet.CommonPaths;
-    using System.CommandLine.Parsing;
     using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
+    using Redpoint.Uet.BuildPipeline.Executors.Local;
     using Redpoint.Uet.Commands.Build;
     using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.Uet.CommonPaths;
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.Core;
+    using Redpoint.Uet.Workspace;
+    using System;
+    using System.CommandLine;
+    using System.CommandLine.Invocation;
+    using System.CommandLine.Parsing;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+    using static Crayon.Output;
 
-    internal sealed class BuildCommand
+    internal sealed class BuildCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
         internal sealed class Options
         {
@@ -261,16 +262,22 @@
             }
         }
 
-        public static Command CreateBuildCommand()
-        {
-            var command = new Command("build", "Build an Unreal Engine project or plugin.");
-            command.AddServicedOptionsHandler<BuildCommandInstance, Options>(
-                services =>
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<BuildCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    var command = new Command("build", "Build an Unreal Engine project or plugin.");
+                    builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
+                    return command;
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
                 {
                     services.AddSingleton<IBuildSpecificationGenerator, DefaultBuildSpecificationGenerator>();
-                });
-            return command;
-        }
+                })
+            .Build();
 
         private sealed class BuildCommandInstance : ICommandInstance
         {
@@ -303,7 +310,7 @@
                 _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;

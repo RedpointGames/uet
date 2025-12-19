@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.Extensions.Logging.EventLog;
+using Redpoint.CommandLine;
 using Redpoint.KubernetesManager;
 using Redpoint.KubernetesManager.Services;
 using Redpoint.ProgressMonitor;
@@ -25,20 +26,18 @@ using UET.Commands.Upgrade;
 
 namespace UET.Commands.Internal.Rkm
 {
-    internal sealed class RkmServiceCommand
+    internal sealed class RkmServiceCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
-        internal sealed class Options
-        {
-        }
-
-        public static Command CreateRkmServiceCommand()
-        {
-            var options = new Options();
-            var command = new Command("rkm-service");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<RunRkmServiceCommandInstance>(
-                options,
-                services =>
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<RunRkmServiceCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("rkm-service");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
                 {
                     if (OperatingSystem.IsWindows())
                     {
@@ -49,8 +48,11 @@ namespace UET.Commands.Internal.Rkm
                     }
                     services.AddRkmServiceHelpers(true, "rkm");
                     services.AddHostedService<RKMWorker>();
-                });
-            return command;
+                })
+            .Build();
+
+        internal sealed class Options
+        {
         }
 
         private sealed class RunRkmServiceCommandInstance : ICommandInstance
@@ -75,7 +77,7 @@ namespace UET.Commands.Internal.Rkm
                 _hostedServiceFromExecutable = hostedServiceFromExecutable;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 if (File.Exists(Path.Combine(_rkmGlobalRootProvider.RkmGlobalRoot, "service-auto-upgrade")))
                 {

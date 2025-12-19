@@ -3,6 +3,7 @@
     using B2Net;
     using B2Net.Models;
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using Redpoint.ProgressMonitor;
     using System;
     using System.CommandLine;
@@ -11,8 +12,18 @@
     using System.Net.Sockets;
     using System.Threading.Tasks;
 
-    internal sealed class TransferCommand
+    internal sealed class TransferCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<TransferCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("transfer", "Transfer a file to or from cloud storage.");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Argument<string> From;
@@ -46,13 +57,6 @@
             }
         }
 
-        public static Command CreateTransferCommand()
-        {
-            var command = new Command("transfer", "Transfer a file to or from cloud storage.");
-            command.AddServicedOptionsHandler<TransferCommandInstance, Options>();
-            return command;
-        }
-
         private sealed class TransferCommandInstance : ICommandInstance
         {
             private readonly ILogger<TransferCommandInstance> _logger;
@@ -83,7 +87,7 @@
             {
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var from = context.ParseResult.GetValueForArgument(_options.From);
                 var to = context.ParseResult.GetValueForArgument(_options.To);

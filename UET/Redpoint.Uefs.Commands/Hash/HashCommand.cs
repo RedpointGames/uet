@@ -1,11 +1,28 @@
 ﻿namespace Redpoint.Uefs.Commands.Hash
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.CommandLine;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Threading.Tasks;
 
-    public static class HashCommand
+    public class HashCommand : ICommandDescriptorProvider
     {
+        public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<HashCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("hash", "Generate a hash digest for an existing package.");
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    services.AddSingleton<IFileHasher, DefaultFileHasher>();
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<FileInfo> PackagePath;
@@ -17,15 +34,6 @@
                     description: "The path to the package to hash.");
                 PackagePath.Arity = ArgumentArity.ExactlyOne;
             }
-        }
-
-        public static Command CreateHashCommand()
-        {
-            var options = new Options();
-            var command = new Command("hash", "Generate a hash digest for an existing package.");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<HashCommandInstance>(options);
-            return command;
         }
 
         private sealed class HashCommandInstance : ICommandInstance
@@ -41,7 +49,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var packagePath = context.ParseResult.GetValueForOption(_options.PackagePath);
                 if (packagePath == null || !packagePath.Exists)

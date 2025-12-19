@@ -1,14 +1,25 @@
 ﻿namespace UET.Commands.Internal.UpdateCopyrightHeadersForSubmission
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal sealed class UpdateCopyrightHeadersForSubmissionCommand
+    internal sealed class UpdateCopyrightHeadersForSubmissionCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
+            .WithOptions<Options>()
+            .WithInstance<UpdateCopyrightHeadersForSubmissionCommandInstance>()
+            .WithCommand(
+                builder =>
+                {
+                    return new Command("update-copyright-headers-for-submission");
+                })
+            .Build();
+
         internal sealed class Options
         {
             public Option<string> Path;
@@ -21,15 +32,6 @@
                 CopyrightHeader = new Option<string>("--copyright-header");
                 CopyrightExcludes = new Option<string>("--copyright-excludes");
             }
-        }
-
-        public static Command CreateUpdateCopyrightHeadersForSubmissionCommand()
-        {
-            var options = new Options();
-            var command = new Command("update-copyright-headers-for-submission");
-            command.AddAllOptions(options);
-            command.AddCommonHandler<UpdateCopyrightHeadersForSubmissionCommandInstance>(options);
-            return command;
         }
 
         private sealed class UpdateCopyrightHeadersForSubmissionCommandInstance : ICommandInstance
@@ -45,7 +47,7 @@
                 _options = options;
             }
 
-            public async Task<int> ExecuteAsync(InvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var path = context.ParseResult.GetValueForOption(_options.Path)!;
                 var copyrightHeader = context.ParseResult.GetValueForOption(_options.CopyrightHeader)!;
