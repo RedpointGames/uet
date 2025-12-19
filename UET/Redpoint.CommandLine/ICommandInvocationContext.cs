@@ -3,7 +3,7 @@
     using System.CommandLine.Parsing;
 
     /// <summary>
-    /// Provides context for the execution of a command instance. This does not provide access to the original context object used during command line building; if you need to access the context object at runtime, it should be registered as a singleton with <see cref="IRootCommandBuilderApi{TGlobalContext, TSelfType}.AddGlobalRuntimeServices(CommandServiceRegistration{TGlobalContext})"/>.
+    /// Provides context for the execution of a command instance. This does not provide access to the original context object used during command line building; if you need to access the context object at runtime, it should be registered as a singleton with <see cref="IRootCommandBuilderApi{TGlobalContext, TSelfType}.AddGlobalRuntimeServices(CommandRuntimeServiceRegistration{TGlobalContext})"/>.
     /// </summary>
     public interface ICommandInvocationContext
     {
