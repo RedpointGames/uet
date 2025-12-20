@@ -9,6 +9,8 @@
     using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.GrpcPipes.Transport.Tcp;
+    using Redpoint.KubernetesManager;
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.MSBuildResolution;
     using Redpoint.PackageManagement;
     using Redpoint.PathResolution;
@@ -44,6 +46,7 @@
     using System.Text.Json.Nodes;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using UET.Commands.Cluster;
     using UET.Commands.Upgrade;
     using UET.Services;
 
@@ -110,6 +113,9 @@
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IGitCredentialHelperProvider, DefaultGitCredentialHelperProvider>();
             services.AddUba();
+
+            services.AddSingleton<IRkmVersionProvider, UetRkmVersionProvider>();
+            services.AddSingleton<IRkmSelfUpgradeService, UetRkmSelfUpgradeService>();
         }
 
         private sealed class CommandUetGlobalArgsProvider : IGlobalArgsProvider
