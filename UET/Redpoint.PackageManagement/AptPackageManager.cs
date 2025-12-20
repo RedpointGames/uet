@@ -38,7 +38,7 @@ namespace Redpoint.PackageManagement
 
         public async Task InstallOrUpgradePackageToLatestAsync(string packageId, CancellationToken cancellationToken)
         {
-            if (getuid() == 0)
+            if (getuid() != 0)
             {
                 _logger.LogWarning($"Unable to ensure {packageId} is installed or up-to-date as you are not running as root.");
                 return;
