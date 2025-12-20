@@ -1,0 +1,56 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rkmnodegroups.rkm.redpoint.games
+spec:
+  group: rkm.redpoint.games
+  scope: Cluster
+  names:
+    plural: rkmnodegroups
+    singular: rkmnodegroup
+    kind: RkmNodeGroup
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              platform:
+                type: string
+                nullable: true
+                description: Specifies the platform that this machine should be provisioned as. If not set, nodes in this group will provision as the first platform they are capable of running.
+                enum: [Windows, Linux, Mac]
+              activeDirectory:
+                type: object
+                nullable: true
+                properties:
+                  domain:
+                    type: string
+                    description: The Active Directory domain that this machine will be joined to.
+                  join:
+                    type: boolean
+                    description: If true, this machine will be joined to Active Directory.
+                  computerGroups:
+                    description: The list of groups that the machine's Active Directory account will be a member of.
+                    type: array
+                    items:
+                      type: string
+    selectableFields: []
+    additionalPrinterColumns:
+    - jsonPath: .spec.platform
+      name: "Platform"
+      type: string
+    - jsonPath: .spec.activeDirectory.domain
+      name: "AD Domain"
+      type: string
+    - jsonPath: .spec.activeDirectory.join
+      name: "AD Join"
+      type: string
+    - jsonPath: .spec.activeDirectory.computerGroups[*]
+      name: "AD Computer Groups"
+      type: string

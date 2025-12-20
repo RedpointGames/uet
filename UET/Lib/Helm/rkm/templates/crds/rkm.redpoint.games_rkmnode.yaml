@@ -1,0 +1,93 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rkmnodes.rkm.redpoint.games
+spec:
+  group: rkm.redpoint.games
+  scope: Cluster
+  names:
+    plural: rkmnodes
+    singular: rkmnode
+    kind: RkmNode
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              nodeName:
+                description: The node name that this machine will use when joining the cluster. Must be set prior if authorized is true.
+                type: string
+              nodeGroup:
+                description: The optional node group that this node should belong to.
+                type: string
+              authorized:
+                description: If true, the node is authorized to join the cluster and will provision based on the node group settings.
+                type: boolean
+              forceReprovision:
+                description: If true, the node will forcibly reprovision the operating system even if it's already provisioned.
+                nullable: true
+                type: boolean
+          status:
+            type: object
+            properties:
+              roles:
+                type: array
+                description: The roles that this machine has.
+                items:
+                  type: string
+                  enum: [Controller, Worker]
+              immutable:
+                type: boolean
+                description: If true, this machine can't be reprovisioned. This is true if this machine was not provisioned via PXE boot, or if it has the Controller role.
+              attestationIdentityKeyFingerprint:
+                description: The SHA256 hash of the attestation identity key.
+                type: string
+              attestationIdentityKeyPem:
+                description: The attestation identity key in PEM format, produced by the node's TPM and used to prove this node's identity.
+                type: string
+              firstSeen:
+                type: string
+                description: The timestamp that this node first requested to join the cluster.
+                format: date-time
+              mostRecentJoinRequest:
+                type: string
+                description: The timestamp that this node last attempted to join the cluster.
+                format: date-time
+              capablePlatforms:
+                type: array
+                description: Specifies the platforms that this machine can run.
+                items:
+                  type: string
+                  enum: [Windows, Linux, Mac]
+              architecture:
+                type: string
+                description: Specifies the CPU architecture of this machine.
+    selectableFields:
+    - jsonPath: .spec.nodeName
+    - jsonPath: .spec.nodeGroup
+    - jsonPath: .spec.authorized
+    additionalPrinterColumns:
+    - jsonPath: .status.attestationIdentityKeyFingerprint
+      name: "Fingerprint"
+      description: The fingerprint of the attestation identity key.
+      type: string
+    - jsonPath: .spec.nodeName
+      name: "Node Name"
+      description: The name given to this node if it is authorized. You can't authorize a node without giving it a name.
+      type: string
+    - jsonPath: .spec.nodeGroup
+      name: "Group"
+      description: The optional node group for this node to be placed in, which determines 
+      type: string
+    - jsonPath: .spec.authorized
+      name: Authorized
+      type: boolean
+    - jsonPath: .status.mostRecentJoinRequest
+      name: "Most Recent Join Request"
+      type: date
