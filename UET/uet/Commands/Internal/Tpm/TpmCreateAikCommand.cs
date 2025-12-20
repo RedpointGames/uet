@@ -55,7 +55,7 @@
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
-                using var tpmDevice = new TbsDevice();
+                using Tpm2Device tpmDevice = OperatingSystem.IsWindows() ? new TbsDevice() : new LinuxTpmDevice();
                 tpmDevice.Connect();
 
                 using var tpm = new Tpm2(tpmDevice);
