@@ -1,9 +1,27 @@
 ﻿namespace Redpoint.KubernetesManager.Manifest
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class KubeletManifest : IVersionedManifest
     {
+        /**
+         * The constructor magic below ensures the JSON deserializer does not require 'required' properties to be set on deserialization, while still requiring us to set them when constructing manifests. This ensures backwards compatibility when attempting to deserialize newer manifests.
+         */
+
+#pragma warning disable CS8618
+        [JsonConstructor]
+        [SetsRequiredMembers]
+        internal KubeletManifest(int manifestVersion)
+        {
+            ManifestVersion = manifestVersion;
+        }
+#pragma warning restore CS8618
+
+        public KubeletManifest()
+        {
+        }
+
         [JsonIgnore]
         public static int ManifestCurrentVersion => 2;
 

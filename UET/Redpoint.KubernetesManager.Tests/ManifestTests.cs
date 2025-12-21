@@ -71,7 +71,12 @@
                 {
                     var webSocket = await context.AcceptWebSocketAsync(null);
                     await webSocket.WebSocket.SendAsync(
-                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new TestManifest { Value = 1 }, TestManifestJsonSerializerContext.Default.TestManifest)),
+                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+                            new TestManifest
+                            {
+                                ManifestVersion = 1,
+                                Value = 1
+                            }, TestManifestJsonSerializerContext.Default.TestManifest)),
                         WebSocketMessageType.Text,
                         true,
                         cts.Token);
@@ -80,7 +85,12 @@
                     Assert.Equal(1, updatesReceived[0].Value);
                     Assert.Empty(cancellationsReceived);
                     await webSocket.WebSocket.SendAsync(
-                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new TestManifest { Value = 2 }, TestManifestJsonSerializerContext.Default.TestManifest)),
+                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+                            new TestManifest
+                            {
+                                ManifestVersion = 1,
+                                Value = 2
+                            }, TestManifestJsonSerializerContext.Default.TestManifest)),
                         WebSocketMessageType.Text,
                         true,
                         cts.Token);
@@ -88,6 +98,22 @@
                     Assert.Equal(2, updatesReceived.Count);
                     Assert.Equal(2, updatesReceived[1].Value);
                     Assert.Single(cancellationsReceived);
+                    await webSocket.WebSocket.SendAsync(
+                        Encoding.UTF8.GetBytes(
+                            """
+                            {
+                                "manifestVersion": 2,
+                                "unknownField": "test"
+                            }
+                            """),
+                        WebSocketMessageType.Text,
+                        true,
+                        cts.Token);
+                    await Task.Delay(500, TestContext.Current.CancellationToken);
+                    Assert.Equal(3, updatesReceived.Count);
+                    Assert.Equal(2, updatesReceived[2].ManifestVersion);
+                    Assert.Null(updatesReceived[2].Value);
+                    Assert.Equal(2, cancellationsReceived.Count);
                 }
                 else
                 {
@@ -110,9 +136,14 @@
             {
             }
 
-            Assert.Equal(2, updatesReceived.Count);
+            Assert.Equal(3, updatesReceived.Count);
+            Assert.Equal(1, updatesReceived[0].ManifestVersion);
+            Assert.Equal(1, updatesReceived[0].Value);
+            Assert.Equal(1, updatesReceived[1].ManifestVersion);
             Assert.Equal(2, updatesReceived[1].Value);
-            Assert.Equal(2, cancellationsReceived.Count);
+            Assert.Equal(2, updatesReceived[2].ManifestVersion);
+            Assert.Null(updatesReceived[2].Value);
+            Assert.Equal(3, cancellationsReceived.Count);
         }
     }
 }
