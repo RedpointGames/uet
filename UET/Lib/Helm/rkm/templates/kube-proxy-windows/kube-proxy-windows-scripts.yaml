@@ -10,6 +10,17 @@ metadata:
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     rkm.redpoint.games/component: kube-proxy-windows
 data:
+  remove_source_vip_file.ps1: |
+    $global:ErrorActionPreference = 'Stop';
+    $global:ProgressPreference = 'SilentlyContinue';
+
+    $ActiveInstall = (Get-Content -Raw -Path C:\RKM\active).Trim()
+
+    if (Test-Path "C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip") {
+      Remove-Item -Force -Path "C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip"
+    }
+
+    exit 0
   allocate_source_vip.ps1: |
     $global:ErrorActionPreference = 'Stop';
     $global:ProgressPreference = 'SilentlyContinue';
@@ -78,6 +89,11 @@ data:
       Write-Host "Moving '$($Download.Folder).tmp' to '$($Download.Folder)' ..."
       Move-Item "$($Download.Folder).tmp" "$($Download.Folder)"
       Set-Content -Path "$($Download.Folder)\done" -Value "done"
+    }
+
+    while (!(Test-Path "C:\RKM\$ActiveInstall\containerd-state\kube-proxy.source-vip")) {
+      Write-Host "Waiting for source VIP to appear..."
+      Start-Sleep -Seconds 1
     }
 
     Write-Host "Reading source VIP..."

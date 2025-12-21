@@ -50,6 +50,38 @@ spec:
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       initContainers:
+        - name: remove-source-vip-file
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
+          command:
+            - .\pwsh\pwsh.exe
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\remove_source_vip_file.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+      containers:
+        - name: kube-proxy
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
+          command:
+            - .\pwsh\pwsh.exe
+            - -ExecutionPolicy
+            - Bypass
+            - .\scripts\kube_proxy.ps1
+          volumeMounts:
+            - mountPath: /scripts
+              name: scripts
+              readOnly: true
+          env:
+            - name: UET_KUBERNETES_VERSION
+              value: {{ $kubernetesVersion | quote }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 10256
+            initialDelaySeconds: 90
+            periodSeconds: 5
         - name: allocate-source-vip
           image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
           command:
@@ -81,27 +113,13 @@ spec:
             timeoutSeconds: 5
             tcpSocket:
               port: startup-port
-          restartPolicy: Always
-      containers:
-        - name: kube-proxy
-          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
-          command:
-            - .\pwsh\pwsh.exe
-            - -ExecutionPolicy
-            - Bypass
-            - .\scripts\kube_proxy.ps1
-          volumeMounts:
-            - mountPath: /scripts
-              name: scripts
-              readOnly: true
-          env:
-            - name: UET_KUBERNETES_VERSION
-              value: {{ $kubernetesVersion | quote }}
       volumes:
         - name: scripts
           configMap:
             name: kube-proxy-windows-scripts
             items:
+              - key: "remove_source_vip_file.ps1"
+                path: "remove_source_vip_file.ps1"
               - key: "allocate_source_vip.ps1"
                 path: "allocate_source_vip.ps1"
               - key: "kube_proxy.ps1"
