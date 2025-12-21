@@ -19,7 +19,10 @@ data:
     # Make sure all of our network adapters are on the Private network profile.
     # This fixes issues when machines are provisioned by PXE Boot and default
     # to the Public profile.
-    Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+    try {
+      Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+    } catch {
+    }
 
     .\uet.exe `
       cluster `
@@ -31,7 +34,9 @@ data:
       --host-local-data-dir `
       C:\RKM\$ActiveInstall\containerd-state\host-local `
       --liveness-probe-port `
-      10966
+      10966 `
+      --startup-probe-port `
+      10967
     exit $LastExitCode
   kube_proxy.ps1: |
     $global:ErrorActionPreference = 'Stop';
