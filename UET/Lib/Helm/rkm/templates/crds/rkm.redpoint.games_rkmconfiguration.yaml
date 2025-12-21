@@ -1,0 +1,57 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rkmconfigurations.rkm.redpoint.games
+spec:
+  group: rkm.redpoint.games
+  scope: Cluster
+  names:
+    plural: rkmconfigurations
+    singular: rkmconfiguration
+    kind: RkmConfiguration
+    shortNames:
+    - rkmconfigs
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              componentVersions:
+                type: object
+                properties:
+                  rkm:
+                    description: The version of RKM that will run this cluster. This can be set to "BleedingEdge" in which case the latest release is always used, and automatic upgrades will occur.
+                    type: string
+                  containerd:
+                    description: The version of containerd to run on all nodes.
+                    type: string
+                  runc:
+                    description: The version of runc to use on Linux nodes.
+                    type: string
+                  kubernetes:
+                    description: The version of Kubernetes to run (including components like the Kubelet).
+                    type: string
+                  etcd:
+                    description: The version of etcd to run on the controller.
+                    type: string
+                  cniPlugins:
+                    description: The version of the CNI plugins to run.
+                    type: string
+                  flannel:
+                    description: The version of flannel to run.
+                    type: string
+                  flannelCniSuffix:
+                    description: The flannel version suffix to use when downloading the CNI plugin for Flannel.
+                    type: string
+    selectableFields: []
+    additionalPrinterColumns:
+    - jsonPath: .spec.componentVersions.kubernetes
+      name: "Kubernetes Version"
+      description: The version of Kubernetes that this cluster should run.
+      type: string
