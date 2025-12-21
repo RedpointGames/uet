@@ -10,16 +10,13 @@
     internal class DefaultHelmDeployment : IHelmDeployment
     {
         private readonly IPathProvider _pathProvider;
-        private readonly IKubeConfigManager _kubeConfigManager;
         private readonly IProcessExecutor _processExecutor;
 
         public DefaultHelmDeployment(
             IPathProvider pathProvider,
-            IKubeConfigManager kubeConfigManager,
             IProcessExecutor processExecutor)
         {
             _pathProvider = pathProvider;
-            _kubeConfigManager = kubeConfigManager;
             _processExecutor = processExecutor;
         }
 
@@ -31,11 +28,12 @@
             bool waitForResourceStabilisation,
             CancellationToken cancellationToken)
         {
-            await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
+            await context.WaitForFlagAsync(WellKnownFlags.KubeconfigsReady);
 
             // Wait for the Kubernetes API server to be available.
             var kubernetesContext = await context.WaitForFlagAsync<KubernetesClientContextData>(WellKnownFlags.KubeApiServerReady);
             var kubernetes = kubernetesContext.Kubernetes;
+            var kubeconfigData = kubernetesContext.KubeconfigData;
 
             // The path to Helm that we extracted earlier.
             var helmPath = Path.Combine(_pathProvider.RKMRoot, "helm-bin", "helm");
@@ -50,31 +48,43 @@
                 cancellationToken);
 
             // Install/upgrade via OCI charts.
-            var arguments = new List<LogicalProcessArgument>()
+            var kubeconfigTemporaryPath = Path.GetTempFileName();
+            try
             {
-                $"--kubeconfig={_kubeConfigManager.GetKubeconfigPath("users", "user-admin")}",
-                "--namespace=kube-system",
-                "upgrade",
-                "--install",
-                "--values",
-                valuesPath,
-                chartName,
-                ociUrl,
-            };
-            if (waitForResourceStabilisation)
-            {
-                arguments.Add("--wait");
-            }
-            var exitCode = await _processExecutor.ExecuteAsync(
-                new ProcessExecution.ProcessSpecification
+                await File.WriteAllTextAsync(
+                    kubeconfigTemporaryPath,
+                    kubeconfigData,
+                    cancellationToken);
+                var arguments = new List<LogicalProcessArgument>()
                 {
-                    FilePath = helmPath,
-                    Arguments = arguments,
-                    WorkingDirectory = Path.GetDirectoryName(helmPath)!,
-                },
-                CaptureSpecification.Passthrough,
-                cancellationToken);
-            return exitCode;
+                    $"--kubeconfig={kubeconfigTemporaryPath}",
+                    "--namespace=kube-system",
+                    "upgrade",
+                    "--install",
+                    "--values",
+                    valuesPath,
+                    chartName,
+                    ociUrl,
+                };
+                if (waitForResourceStabilisation)
+                {
+                    arguments.Add("--wait");
+                }
+                var exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = helmPath,
+                        Arguments = arguments,
+                        WorkingDirectory = Path.GetDirectoryName(helmPath)!,
+                    },
+                    CaptureSpecification.Passthrough,
+                    cancellationToken);
+                return exitCode;
+            }
+            finally
+            {
+                File.Delete(kubeconfigTemporaryPath);
+            }
         }
     }
 }

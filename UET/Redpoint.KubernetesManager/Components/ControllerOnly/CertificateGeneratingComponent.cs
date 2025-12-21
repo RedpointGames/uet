@@ -26,26 +26,20 @@
         private readonly ILogger<CertificateGeneratingComponent> _logger;
         private readonly IPathProvider _pathProvider;
         private readonly ICertificateGenerator _certificateGenerator;
-        private readonly ILocalEthernetInfo _localEthernetInfo;
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
-        private readonly IWslDistro _wslDistro;
         private readonly IWslTranslation _wslTranslation;
 
         public CertificateGeneratingComponent(
             ILogger<CertificateGeneratingComponent> logger,
             IPathProvider pathProvider,
             ICertificateGenerator certificateGenerator,
-            ILocalEthernetInfo localEthernetInfo,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
-            IWslDistro wslDistro,
             IWslTranslation wslTranslation)
         {
             _logger = logger;
             _pathProvider = pathProvider;
             _certificateGenerator = certificateGenerator;
-            _localEthernetInfo = localEthernetInfo;
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
-            _wslDistro = wslDistro;
             _wslTranslation = wslTranslation;
         }
 
@@ -99,48 +93,6 @@
             {
                 new CertificateRequirement
                 {
-                    Category = "users",
-                    FilenameWithoutExtension = "user-admin",
-                    CommonName = "admin",
-                    Role = "system:masters",
-                },
-                new CertificateRequirement
-                {
-                    Category = "nodes",
-                    FilenameWithoutExtension = $"node-{nodeName}",
-                    CommonName = $"system:node:{nodeName}",
-                    Role = "system:nodes",
-                    AdditionalSubjectNames = new[]
-                    {
-                        nodeName,
-                        // This node is the Windows kubelet, so we actually want the Windows IP address
-                        // in this case.
-                        _localEthernetInfo.IPAddress.ToString()
-                    }
-                },
-                new CertificateRequirement
-                {
-                    Category = "components",
-                    FilenameWithoutExtension = "component-kube-controller-manager",
-                    CommonName = "system:kube-controller-manager",
-                    Role = "system:kube-controller-manager"
-                },
-                new CertificateRequirement
-                {
-                    Category = "components",
-                    FilenameWithoutExtension = "component-kube-proxy",
-                    CommonName = "system:kube-proxy",
-                    Role = "system:kube-proxier"
-                },
-                new CertificateRequirement
-                {
-                    Category = "components",
-                    FilenameWithoutExtension = "component-kube-scheduler",
-                    CommonName = "system:kube-scheduler",
-                    Role = "system:kube-scheduler"
-                },
-                new CertificateRequirement
-                {
                     Category = "cluster",
                     FilenameWithoutExtension = "cluster-kubernetes",
                     CommonName = "kubernetes",
@@ -167,25 +119,6 @@
                     Role = "Kubernetes",
                 }
             };
-            if (OperatingSystem.IsWindows())
-            {
-                // On Windows, we also run the kubelet inside WSL, so create a certificate
-                // for that separate node as well.
-                requirements.Add(
-                    new CertificateRequirement
-                    {
-                        Category = "nodes",
-                        FilenameWithoutExtension = $"node-{nodeName}-wsl",
-                        CommonName = $"system:node:{nodeName}-wsl",
-                        Role = "system:nodes",
-                        AdditionalSubjectNames = new[]
-                        {
-                            $"{nodeName}-wsl",
-                            (await _wslDistro.GetWslDistroIPAddress(cancellationToken))!.ToString(),
-                        }
-                    }
-                );
-            }
 
             foreach (var requirement in requirements)
             {

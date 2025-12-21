@@ -24,8 +24,5 @@
 
         [JsonPropertyName("nodeCertificateKey")]
         public string NodeCertificateKey { get; set; } = string.Empty;
-
-        [JsonPropertyName("nodeKubeletConfig")]
-        public string NodeKubeletConfig { get; set; } = string.Empty;
     }
 }

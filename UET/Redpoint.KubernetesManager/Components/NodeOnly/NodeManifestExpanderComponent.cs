@@ -34,28 +34,8 @@
             var nodeManifest = nodeContext.NodeManifest;
             var controllerAddress = nodeContext.ControllerAddress;
 
-            // Write out the files from the node manifest into the locations that processes will expect them. When the controller
-            // ships configuration files to clients, it sets the addresses as __CONTROLLER_ADDRESS__, which allows the node to replace
-            // the controller address with the address it sees (rather than the controller having to figure out what address it is projecting).
-            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "certs", "ca"));
-            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "certs", "nodes"));
-            await File.WriteAllTextAsync(
-                Path.Combine(_pathProvider.RKMRoot, "certs", "ca", $"ca.pem"),
-                nodeManifest.CertificateAuthority,
-                cancellationToken);
-            await File.WriteAllTextAsync(
-                Path.Combine(_pathProvider.RKMRoot, "certs", "nodes", $"node-{nodeManifest.NodeName}.pem"),
-                nodeManifest.NodeCertificate,
-                cancellationToken);
-            await File.WriteAllTextAsync(
-                Path.Combine(_pathProvider.RKMRoot, "certs", "nodes", $"node-{nodeManifest.NodeName}.key"),
-                nodeManifest.NodeCertificateKey,
-                cancellationToken);
-            Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "nodes"));
-            await File.WriteAllTextAsync(
-                Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "nodes", $"node-{nodeManifest.NodeName}.kubeconfig"),
-                nodeManifest.NodeKubeletConfig.Replace("__CONTROLLER_ADDRESS__", controllerAddress.ToString(), StringComparison.Ordinal),
-                cancellationToken);
+            // @note: We no longer write out files here. ManifestServerComponent pulls the contents directly from the node manifest
+            // in the NodeContextData, and places them in the KubeletManifest for the Kubelet service to write to disk as needed.
 
             // On Linux nodes, we have to symlink the server's installation root to our own installation root, because
             // calico requires paths to be the same on every machine.
@@ -72,7 +52,7 @@
 
             // Certificates and kubeconfigs are now ready on disk.
             context.SetFlag(WellKnownFlags.CertificatesReady);
-            context.SetFlag(WellKnownFlags.KubeConfigsReady);
+            context.SetFlag(WellKnownFlags.KubeconfigsReady);
 
             // The worker node components are now ready to start.
             context.SetFlag(WellKnownFlags.NodeComponentsReadyToStart, new NodeNameContextData(nodeManifest.NodeName));

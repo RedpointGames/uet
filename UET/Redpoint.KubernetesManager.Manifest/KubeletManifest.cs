@@ -5,7 +5,7 @@
     public class KubeletManifest : IVersionedManifest
     {
         [JsonIgnore]
-        public static int ManifestCurrentVersion => 1;
+        public static int ManifestCurrentVersion => 2;
 
         [JsonPropertyName("manifestVersion")]
         public required int ManifestVersion { get; set; }
@@ -65,10 +65,10 @@
         public required string NodeKeyData { get; set; }
 
         /// <summary>
-        /// The contents of the kubeconfig file used to connect to the API server.
+        /// The address of the API server.
         /// </summary>
-        [JsonPropertyName("kubeConfigData")]
-        public required string KubeConfigData { get; set; }
+        [JsonPropertyName("apiServerAddress")]
+        public required string ApiServerAddress { get; set; }
 
         /// <summary>
         /// The etcd version to install.

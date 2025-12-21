@@ -31,7 +31,7 @@
         {
             // Wait for everything to be available to serve requests.
             await context.WaitForFlagAsync(WellKnownFlags.CertificatesReady);
-            await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
+            await context.WaitForFlagAsync(WellKnownFlags.KubeconfigsReady);
 
             // Start the API service (and don't wait for it to run).
             _controllerApiService.StartApiForNodes();

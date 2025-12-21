@@ -9,6 +9,7 @@
     using Redpoint.KubernetesManager.Manifests;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
+    using Redpoint.KubernetesManager.Services.Wsl;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
     using Redpoint.KubernetesManager.Versions;
@@ -31,8 +32,8 @@
         private readonly IPathProvider _pathProvider;
         private readonly IClusterNetworkingConfiguration _clusterNetworkingConfiguration;
         private readonly ICertificateManager _certificateManager;
-        private readonly IKubeConfigManager _kubeConfigManager;
         private readonly ILocalEthernetInfo _localEthernetInfo;
+        private readonly IWslTranslation _wslTranslation;
         private readonly List<Func<Task>> _manifestNotifications;
         private ContainerdManifest? _currentContainerdManifest;
         private KubeletManifest? _currentKubeletManifest;
@@ -43,16 +44,16 @@
             IPathProvider pathProvider,
             IClusterNetworkingConfiguration clusterNetworkingConfiguration,
             ICertificateManager certificateManager,
-            IKubeConfigManager kubeConfigManager,
-            ILocalEthernetInfo localEthernetInfo)
+            ILocalEthernetInfo localEthernetInfo,
+            IWslTranslation wslTranslation)
         {
             _logger = logger;
             _hostApplicationLifetime = hostApplicationLifetime;
             _pathProvider = pathProvider;
             _clusterNetworkingConfiguration = clusterNetworkingConfiguration;
             _certificateManager = certificateManager;
-            _kubeConfigManager = kubeConfigManager;
             _localEthernetInfo = localEthernetInfo;
+            _wslTranslation = wslTranslation;
             _manifestNotifications = new List<Func<Task>>();
         }
 
@@ -388,7 +389,7 @@
         private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
             await context.WaitForFlagAsync(WellKnownFlags.CertificatesReady);
-            await context.WaitForFlagAsync(WellKnownFlags.KubeConfigsReady);
+            await context.WaitForFlagAsync(WellKnownFlags.KubeconfigsReady);
             if (context.Role == RoleType.Controller)
             {
                 await context.WaitForFlagAsync(WellKnownFlags.OSNetworkingReady);
@@ -398,6 +399,27 @@
 
             var nodeNameContext = await context.WaitForFlagAsync<NodeNameContextData>(WellKnownFlags.NodeComponentsReadyToStart);
             var nodeName = nodeNameContext.NodeName;
+
+            string apiServerAddress, caCertData, nodeCertData, nodeKeyData;
+            if (context.Role == RoleType.Controller)
+            {
+                var selfCertificate = await _certificateManager.GenerateCertificateForAuthorizedNodeAsync(
+                    nodeName,
+                    _localEthernetInfo.IPAddress);
+
+                apiServerAddress = (await _wslTranslation.GetTranslatedIPAddress(cancellationToken)).ToString();
+                caCertData = File.ReadAllText(Path.Combine(_pathProvider.RKMRoot, "certs", "ca", "ca.pem"));
+                nodeCertData = selfCertificate.CertificatePem;
+                nodeKeyData = selfCertificate.PrivateKeyPem;
+            }
+            else
+            {
+                var nodeContext = await context.WaitForFlagAsync<NodeContextData>(WellKnownFlags.NodeContextAvailable);
+                apiServerAddress = nodeContext.ControllerAddress.ToString();
+                caCertData = nodeContext.NodeManifest.CertificateAuthority;
+                nodeCertData = nodeContext.NodeManifest.NodeCertificate;
+                nodeKeyData = nodeContext.NodeManifest.NodeCertificateKey;
+            }
 
             _currentContainerdManifest = new ContainerdManifest
             {
@@ -427,10 +449,10 @@
                 ContainerdEndpoint = OperatingSystem.IsWindows()
                     ? "npipe://./pipe/containerd-containerd"
                     : $"unix://{Path.Combine(_pathProvider.RKMRoot, "containerd-state", "containerd.sock")}",
-                CaCertData = File.ReadAllText(_certificateManager.GetCertificatePemPath("ca", "ca")),
-                NodeCertData = File.ReadAllText(_certificateManager.GetCertificatePemPath("nodes", $"node-{nodeName}")),
-                NodeKeyData = File.ReadAllText(_certificateManager.GetCertificateKeyPath("nodes", $"node-{nodeName}")),
-                KubeConfigData = File.ReadAllText(_kubeConfigManager.GetKubeconfigPath("nodes", $"node-{nodeName}")),
+                CaCertData = caCertData,
+                NodeCertData = nodeCertData,
+                NodeKeyData = nodeKeyData,
+                ApiServerAddress = apiServerAddress,
                 EtcdVersion = ComponentVersions.Etcd,
             };
 
