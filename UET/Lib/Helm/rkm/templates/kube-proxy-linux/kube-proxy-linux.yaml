@@ -1,8 +1,7 @@
 {{- $config := lookup "v1" "RkmConfiguration" "" "default" -}}
-{{- if $config -}}
-{{- $kubernetesVersion := $config.spec.componentVersions.kubernetes -}}
-{{- else -}}
 {{- $kubernetesVersion := .Values.defaultVersions.kubernetes -}}
+{{- if $config -}}
+{{- $kubernetesVersion = $config.spec.componentVersions.kubernetes -}}
 {{- end -}}
 kind: DaemonSet
 apiVersion: apps/v1
