@@ -130,7 +130,7 @@
             // Write out kubeconfig file.
             await File.WriteAllTextAsync(
                 Path.Combine(manifest.KubeletStatePath, "kubeconfig.yaml"),
-                @$"""
+                $"""
                 apiVersion: v1
                 kind: Config
                 clusters:
