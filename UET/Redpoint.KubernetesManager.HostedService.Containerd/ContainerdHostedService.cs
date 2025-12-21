@@ -407,40 +407,40 @@
                         version = 2
 
                         [cgroup]
-                            path = ""
+                          path = ""
 
                         [debug]
-                            address = ""
-                            format = ""
-                            gid = 0
-                            level = ""
-                            uid = 0
+                          address = ""
+                          format = ""
+                          gid = 0
+                          level = ""
+                          uid = 0
 
                         [grpc]
-                            address = "{{endpointAddress}}"
-                            gid = 0
-                            max_recv_message_size = 16777216
-                            max_send_message_size = 16777216
-                            tcp_address = ""
-                            tcp_tls_ca = ""
-                            tcp_tls_cert = ""
-                            tcp_tls_key = ""
-                            uid = 0
+                          address = "{{endpointAddress}}"
+                          gid = 0
+                          max_recv_message_size = 16777216
+                          max_send_message_size = 16777216
+                          tcp_address = ""
+                          tcp_tls_ca = ""
+                          tcp_tls_cert = ""
+                          tcp_tls_key = ""
+                          uid = 0
 
                         [metrics]
-                            address = ""
-                            grpc_histogram = false
+                          address = ""
+                          grpc_histogram = false
 
                         [plugins]
 
-                            [plugins."io.containerd.gc.v1.scheduler"]
+                          [plugins."io.containerd.gc.v1.scheduler"]
                             deletion_threshold = 0
                             mutation_threshold = 100
                             pause_threshold = 0.02
                             schedule_delay = "0s"
                             startup_delay = "100ms"
 
-                            [plugins."io.containerd.grpc.v1.cri"]
+                          [plugins."io.containerd.grpc.v1.cri"]
                             device_ownership_from_security_context = false
                             disable_apparmor = false
                             disable_cgroup = false
@@ -467,21 +467,21 @@
                             unset_seccomp_profile = ""
 
                             [plugins."io.containerd.grpc.v1.cri".cni]
-                                bin_dir = "{{cniBinDir}}"
-                                conf_dir = "{{cniConfDir}}"
-                                conf_template = ""
-                                ip_pref = ""
-                                max_conf_num = 1
+                              bin_dir = "{{cniBinDir}}"
+                              conf_dir = "{{cniConfDir}}"
+                              conf_template = ""
+                              ip_pref = ""
+                              max_conf_num = 1
 
                             [plugins."io.containerd.grpc.v1.cri".containerd]
-                                default_runtime_name = "runc"
-                                disable_snapshot_annotations = true
-                                discard_unpacked_layers = false
-                                ignore_rdt_not_enabled_errors = false
-                                no_pivot = false
-                                snapshotter = "overlayfs"
+                              default_runtime_name = "runc"
+                              disable_snapshot_annotations = true
+                              discard_unpacked_layers = false
+                              ignore_rdt_not_enabled_errors = false
+                              no_pivot = false
+                              snapshotter = "overlayfs"
 
-                                [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
+                              [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
                                 base_runtime_spec = ""
                                 cni_conf_dir = ""
                                 cni_max_conf_num = 0
@@ -495,21 +495,21 @@
 
                                 [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime.options]
 
-                                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+                              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
 
                                 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-                                    base_runtime_spec = ""
-                                    cni_conf_dir = ""
-                                    cni_max_conf_num = 0
-                                    container_annotations = []
-                                    pod_annotations = []
-                                    privileged_without_host_devices = false
-                                    runtime_engine = ""
-                                    runtime_path = ""
-                                    runtime_root = ""
-                                    runtime_type = "io.containerd.runc.v2"
+                                  base_runtime_spec = ""
+                                  cni_conf_dir = ""
+                                  cni_max_conf_num = 0
+                                  container_annotations = []
+                                  pod_annotations = []
+                                  privileged_without_host_devices = false
+                                  runtime_engine = ""
+                                  runtime_path = ""
+                                  runtime_root = ""
+                                  runtime_type = "io.containerd.runc.v2"
 
-                                    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+                                  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
                                     BinaryName = "{{containerdInstallPath}}/bin/runc"
                                     CriuImagePath = ""
                                     CriuPath = ""
@@ -522,7 +522,7 @@
                                     ShimCgroup = ""
                                     SystemdCgroup = true
 
-                                [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
+                              [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
                                 base_runtime_spec = ""
                                 cni_conf_dir = ""
                                 cni_max_conf_num = 0
@@ -537,63 +537,63 @@
                                 [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime.options]
 
                             [plugins."io.containerd.grpc.v1.cri".image_decryption]
-                                key_model = "node"
+                              key_model = "node"
 
                             [plugins."io.containerd.grpc.v1.cri".registry]
-                                config_path = ""
+                              config_path = ""
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.auths]
+                              [plugins."io.containerd.grpc.v1.cri".registry.auths]
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.configs]
+                              [plugins."io.containerd.grpc.v1.cri".registry.configs]
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.headers]
+                              [plugins."io.containerd.grpc.v1.cri".registry.headers]
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+                              [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
 
                             [plugins."io.containerd.grpc.v1.cri".x509_key_pair_streaming]
-                                tls_cert_file = ""
-                                tls_key_file = ""
+                              tls_cert_file = ""
+                              tls_key_file = ""
 
-                            [plugins."io.containerd.internal.v1.opt"]
+                          [plugins."io.containerd.internal.v1.opt"]
                             path = "{{optDir}}"
 
-                            [plugins."io.containerd.internal.v1.restart"]
+                          [plugins."io.containerd.internal.v1.restart"]
                             interval = "10s"
 
-                            [plugins."io.containerd.internal.v1.tracing"]
+                          [plugins."io.containerd.internal.v1.tracing"]
                             sampling_ratio = 1.0
                             service_name = "containerd"
 
-                            [plugins."io.containerd.metadata.v1.bolt"]
+                          [plugins."io.containerd.metadata.v1.bolt"]
                             content_sharing_policy = "shared"
 
-                            [plugins."io.containerd.monitor.v1.cgroups"]
+                          [plugins."io.containerd.monitor.v1.cgroups"]
                             no_prometheus = false
 
-                            [plugins."io.containerd.runtime.v1.linux"]
+                          [plugins."io.containerd.runtime.v1.linux"]
                             no_shim = false
                             runtime = "runc"
                             runtime_root = ""
                             shim = "containerd-shim"
                             shim_debug = false
 
-                            [plugins."io.containerd.runtime.v2.task"]
+                          [plugins."io.containerd.runtime.v2.task"]
                             platforms = ["linux/amd64"]
                             sched_core = false
 
-                            [plugins."io.containerd.service.v1.diff-service"]
+                          [plugins."io.containerd.service.v1.diff-service"]
                             default = ["walking"]
 
-                            [plugins."io.containerd.service.v1.tasks-service"]
+                          [plugins."io.containerd.service.v1.tasks-service"]
                             rdt_config_file = ""
 
-                            [plugins."io.containerd.snapshotter.v1.aufs"]
+                          [plugins."io.containerd.snapshotter.v1.aufs"]
                             root_path = ""
 
-                            [plugins."io.containerd.snapshotter.v1.btrfs"]
+                          [plugins."io.containerd.snapshotter.v1.btrfs"]
                             root_path = ""
 
-                            [plugins."io.containerd.snapshotter.v1.devmapper"]
+                          [plugins."io.containerd.snapshotter.v1.devmapper"]
                             async_remove = false
                             base_image_size = ""
                             discard_blocks = false
@@ -602,17 +602,17 @@
                             pool_name = ""
                             root_path = ""
 
-                            [plugins."io.containerd.snapshotter.v1.native"]
+                          [plugins."io.containerd.snapshotter.v1.native"]
                             root_path = ""
 
-                            [plugins."io.containerd.snapshotter.v1.overlayfs"]
+                          [plugins."io.containerd.snapshotter.v1.overlayfs"]
                             root_path = ""
                             upperdir_label = false
 
-                            [plugins."io.containerd.snapshotter.v1.zfs"]
+                          [plugins."io.containerd.snapshotter.v1.zfs"]
                             root_path = ""
 
-                            [plugins."io.containerd.tracing.processor.v1.otlp"]
+                          [plugins."io.containerd.tracing.processor.v1.otlp"]
                             endpoint = ""
                             insecure = false
                             protocol = ""
@@ -621,14 +621,14 @@
 
                         [stream_processors]
 
-                            [stream_processors."io.containerd.ocicrypt.decoder.v1.tar"]
+                          [stream_processors."io.containerd.ocicrypt.decoder.v1.tar"]
                             accepts = ["application/vnd.oci.image.layer.v1.tar+encrypted"]
                             args = ["--decryption-keys-path", "{{ocicryptKeysDir}}"]
                             env = ["OCICRYPT_KEYPROVIDER_CONFIG={{ocicryptKeyProvider}}"]
                             path = "ctd-decoder"
                             returns = "application/vnd.oci.image.layer.v1.tar"
 
-                            [stream_processors."io.containerd.ocicrypt.decoder.v1.tar.gzip"]
+                          [stream_processors."io.containerd.ocicrypt.decoder.v1.tar.gzip"]
                             accepts = ["application/vnd.oci.image.layer.v1.tar+gzip+encrypted"]
                             args = ["--decryption-keys-path", "{{ocicryptKeysDir}}"]
                             env = ["OCICRYPT_KEYPROVIDER_CONFIG={{ocicryptKeyProvider}}"]
@@ -636,16 +636,16 @@
                             returns = "application/vnd.oci.image.layer.v1.tar+gzip"
 
                         [timeouts]
-                            "io.containerd.timeout.bolt.open" = "0s"
-                            "io.containerd.timeout.shim.cleanup" = "5s"
-                            "io.containerd.timeout.shim.load" = "5s"
-                            "io.containerd.timeout.shim.shutdown" = "3s"
-                            "io.containerd.timeout.task.state" = "2s"
+                          "io.containerd.timeout.bolt.open" = "0s"
+                          "io.containerd.timeout.shim.cleanup" = "5s"
+                          "io.containerd.timeout.shim.load" = "5s"
+                          "io.containerd.timeout.shim.shutdown" = "3s"
+                          "io.containerd.timeout.task.state" = "2s"
 
                         [ttrpc]
-                            address = ""
-                            gid = 0
-                            uid = 0
+                          address = ""
+                          gid = 0
+                          uid = 0
                         """,
                         cancellationToken);
                 }
@@ -665,40 +665,40 @@
                         version = 2
 
                         [cgroup]
-                            path = ""
+                          path = ""
 
                         [debug]
-                            address = ""
-                            format = ""
-                            gid = 0
-                            level = ""
-                            uid = 0
+                          address = ""
+                          format = ""
+                          gid = 0
+                          level = ""
+                          uid = 0
 
                         [grpc]
-                            address = "{{endpointAddress}}"
-                            gid = 0
-                            max_recv_message_size = 16777216
-                            max_send_message_size = 16777216
-                            tcp_address = ""
-                            tcp_tls_ca = ""
-                            tcp_tls_cert = ""
-                            tcp_tls_key = ""
-                            uid = 0
+                          address = "{{endpointAddress}}"
+                          gid = 0
+                          max_recv_message_size = 16777216
+                          max_send_message_size = 16777216
+                          tcp_address = ""
+                          tcp_tls_ca = ""
+                          tcp_tls_cert = ""
+                          tcp_tls_key = ""
+                          uid = 0
 
                         [metrics]
-                            address = ""
-                            grpc_histogram = false
+                          address = ""
+                          grpc_histogram = false
 
                         [plugins]
 
-                            [plugins."io.containerd.gc.v1.scheduler"]
+                          [plugins."io.containerd.gc.v1.scheduler"]
                             deletion_threshold = 0
                             mutation_threshold = 100
                             pause_threshold = 0.02
                             schedule_delay = "0s"
                             startup_delay = "100ms"
 
-                            [plugins."io.containerd.grpc.v1.cri"]
+                          [plugins."io.containerd.grpc.v1.cri"]
                             device_ownership_from_security_context = false
                             disable_apparmor = false
                             disable_cgroup = false
@@ -725,21 +725,21 @@
                             unset_seccomp_profile = ""
 
                             [plugins."io.containerd.grpc.v1.cri".cni]
-                                bin_dir = "{{cniBinDir}}"
-                                conf_dir = "{{cniConfDir}}"
-                                conf_template = ""
-                                ip_pref = ""
-                                max_conf_num = 1
+                              bin_dir = "{{cniBinDir}}"
+                              conf_dir = "{{cniConfDir}}"
+                              conf_template = ""
+                              ip_pref = ""
+                              max_conf_num = 1
 
                             [plugins."io.containerd.grpc.v1.cri".containerd]
-                                default_runtime_name = "runhcs-wcow-process"
-                                disable_snapshot_annotations = false
-                                discard_unpacked_layers = false
-                                ignore_rdt_not_enabled_errors = false
-                                no_pivot = false
-                                snapshotter = "windows"
+                              default_runtime_name = "runhcs-wcow-process"
+                              disable_snapshot_annotations = false
+                              discard_unpacked_layers = false
+                              ignore_rdt_not_enabled_errors = false
+                              no_pivot = false
+                              snapshotter = "windows"
 
-                                [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
+                              [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
                                 base_runtime_spec = ""
                                 cni_conf_dir = ""
                                 cni_max_conf_num = 0
@@ -753,23 +753,23 @@
 
                                 [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime.options]
 
-                                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+                              [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
 
                                 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runhcs-wcow-process]
-                                    base_runtime_spec = ""
-                                    cni_conf_dir = ""
-                                    cni_max_conf_num = 0
-                                    container_annotations = []
-                                    pod_annotations = []
-                                    privileged_without_host_devices = false
-                                    runtime_engine = ""
-                                    runtime_path = ""
-                                    runtime_root = ""
-                                    runtime_type = "io.containerd.runhcs.v1"
+                                  base_runtime_spec = ""
+                                  cni_conf_dir = ""
+                                  cni_max_conf_num = 0
+                                  container_annotations = []
+                                  pod_annotations = []
+                                  privileged_without_host_devices = false
+                                  runtime_engine = ""
+                                  runtime_path = ""
+                                  runtime_root = ""
+                                  runtime_type = "io.containerd.runhcs.v1"
 
-                                    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runhcs-wcow-process.options]
+                                  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runhcs-wcow-process.options]
 
-                                [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
+                              [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime]
                                 base_runtime_spec = ""
                                 cni_conf_dir = ""
                                 cni_max_conf_num = 0
@@ -784,47 +784,47 @@
                                 [plugins."io.containerd.grpc.v1.cri".containerd.untrusted_workload_runtime.options]
 
                             [plugins."io.containerd.grpc.v1.cri".image_decryption]
-                                key_model = "node"
+                              key_model = "node"
 
                             [plugins."io.containerd.grpc.v1.cri".registry]
-                                config_path = ""
+                              config_path = ""
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.auths]
+                              [plugins."io.containerd.grpc.v1.cri".registry.auths]
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.configs]
+                              [plugins."io.containerd.grpc.v1.cri".registry.configs]
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.headers]
+                              [plugins."io.containerd.grpc.v1.cri".registry.headers]
 
-                                [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+                              [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
 
                             [plugins."io.containerd.grpc.v1.cri".x509_key_pair_streaming]
-                                tls_cert_file = ""
-                                tls_key_file = ""
+                              tls_cert_file = ""
+                              tls_key_file = ""
 
-                            [plugins."io.containerd.internal.v1.opt"]
+                          [plugins."io.containerd.internal.v1.opt"]
                             path = "{{optDir}}"
 
-                            [plugins."io.containerd.internal.v1.restart"]
+                          [plugins."io.containerd.internal.v1.restart"]
                             interval = "10s"
 
-                            [plugins."io.containerd.internal.v1.tracing"]
+                          [plugins."io.containerd.internal.v1.tracing"]
                             sampling_ratio = 1.0
                             service_name = "containerd"
 
-                            [plugins."io.containerd.metadata.v1.bolt"]
+                          [plugins."io.containerd.metadata.v1.bolt"]
                             content_sharing_policy = "shared"
 
-                            [plugins."io.containerd.runtime.v2.task"]
+                          [plugins."io.containerd.runtime.v2.task"]
                             platforms = ["windows/amd64", "linux/amd64"]
                             sched_core = false
 
-                            [plugins."io.containerd.service.v1.diff-service"]
+                          [plugins."io.containerd.service.v1.diff-service"]
                             default = ["windows", "windows-lcow"]
 
-                            [plugins."io.containerd.service.v1.tasks-service"]
+                          [plugins."io.containerd.service.v1.tasks-service"]
                             rdt_config_file = ""
 
-                            [plugins."io.containerd.tracing.processor.v1.otlp"]
+                          [plugins."io.containerd.tracing.processor.v1.otlp"]
                             endpoint = ""
                             insecure = false
                             protocol = ""
@@ -833,14 +833,14 @@
 
                         [stream_processors]
 
-                            [stream_processors."io.containerd.ocicrypt.decoder.v1.tar"]
+                          [stream_processors."io.containerd.ocicrypt.decoder.v1.tar"]
                             accepts = ["application/vnd.oci.image.layer.v1.tar+encrypted"]
                             args = ["--decryption-keys-path", "{{ocicryptKeysDir}}"]
                             env = ["OCICRYPT_KEYPROVIDER_CONFIG={{ocicryptKeyProvider}}"]
                             path = "ctd-decoder"
                             returns = "application/vnd.oci.image.layer.v1.tar"
 
-                            [stream_processors."io.containerd.ocicrypt.decoder.v1.tar.gzip"]
+                          [stream_processors."io.containerd.ocicrypt.decoder.v1.tar.gzip"]
                             accepts = ["application/vnd.oci.image.layer.v1.tar+gzip+encrypted"]
                             args = ["--decryption-keys-path", "{{ocicryptKeysDir}}"]
                             env = ["OCICRYPT_KEYPROVIDER_CONFIG={{ocicryptKeyProvider}}"]
@@ -848,16 +848,16 @@
                             returns = "application/vnd.oci.image.layer.v1.tar+gzip"
 
                         [timeouts]
-                            "io.containerd.timeout.bolt.open" = "0s"
-                            "io.containerd.timeout.shim.cleanup" = "5s"
-                            "io.containerd.timeout.shim.load" = "5s"
-                            "io.containerd.timeout.shim.shutdown" = "3s"
-                            "io.containerd.timeout.task.state" = "2s"
+                          "io.containerd.timeout.bolt.open" = "0s"
+                          "io.containerd.timeout.shim.cleanup" = "5s"
+                          "io.containerd.timeout.shim.load" = "5s"
+                          "io.containerd.timeout.shim.shutdown" = "3s"
+                          "io.containerd.timeout.task.state" = "2s"
 
                         [ttrpc]
-                            address = ""
-                            gid = 0
-                            uid = 0
+                          address = ""
+                          gid = 0
+                          uid = 0
                         """,
                         cancellationToken);
                 }

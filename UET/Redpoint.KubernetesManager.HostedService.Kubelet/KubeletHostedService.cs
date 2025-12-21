@@ -148,8 +148,8 @@
                 supplementalConfig =
                     $$"""
                     evictionHard: 
-                        nodefs.available: "0%"
-                        imagefs.available: "0%"
+                      nodefs.available: "0%"
+                      imagefs.available: "0%"
                     # These are Windows specific options that must be turned off
                     # because Windows doesn't support them.
                     resolvConf: ""
@@ -167,18 +167,18 @@
                 kind: KubeletConfiguration
                 apiVersion: kubelet.config.k8s.io/v1beta1
                 authentication:
-                    anonymous:
+                  anonymous:
                     enabled: false
-                    webhook:
+                  webhook:
                     enabled: true
-                    x509:
+                  x509:
                     clientCAFile: "{{Path.Combine(manifest.KubeletStatePath, "ca.crt").Replace("\\", "\\\\", StringComparison.Ordinal)}}"
                 authorization:
-                    mode: Webhook
+                  mode: Webhook
                 staticPodURL: "http://127.0.0.1:8375/kubelet-static-pods"
                 clusterDomain: "{{manifest.ClusterDomain}}"
                 clusterDNS:
-                    - "{{manifest.ClusterDns}}"
+                  - "{{manifest.ClusterDns}}"
                 runtimeRequestTimeout: "15m"
                 tlsCertFile: "{{Path.Combine(manifest.KubeletStatePath, "node.crt").Replace("\\", "\\\\", StringComparison.Ordinal)}}"
                 tlsPrivateKeyFile: "{{Path.Combine(manifest.KubeletStatePath, "node.key").Replace("\\", "\\\\", StringComparison.Ordinal)}}"
@@ -194,11 +194,11 @@
                     arguments:
                     [
                         $"--config={Path.Combine(manifest.KubeletStatePath, "config.yaml")}",
-                            $"--container-runtime-endpoint={manifest.ContainerdEndpoint}",
-                            $"--kubeconfig={Path.Combine(manifest.KubeletStatePath, "kubeconfig.yaml")}",
-                            $"--root-dir={Path.Combine(manifest.KubeletStatePath, "state")}",
-                            $"--cert-dir={Path.Combine(manifest.KubeletStatePath, "state", "pki")}",
-                            $"--v=2",
+                        $"--container-runtime-endpoint={manifest.ContainerdEndpoint}",
+                        $"--kubeconfig={Path.Combine(manifest.KubeletStatePath, "kubeconfig.yaml")}",
+                        $"--root-dir={Path.Combine(manifest.KubeletStatePath, "state")}",
+                        $"--cert-dir={Path.Combine(manifest.KubeletStatePath, "state", "pki")}",
+                        $"--v=2",
                     ],
                     afterStart: _ =>
                     {
