@@ -16,6 +16,7 @@
     using System.Formats.Tar;
     using System.IO;
     using System.IO.Compression;
+    using System.Net;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
@@ -282,16 +283,38 @@
                 // Download and extract the flannel CNI plugin.
                 {
                     var platformName = OperatingSystem.IsWindows() ? "windows" : "linux";
-                    var flannelPluginUri = new Uri($"https://github.com/flannel-io/cni-plugin/releases/download/v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}/cni-plugin-flannel-{platformName}-amd64-v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}.tgz");
-                    _logger.LogInformation($"Downloading and extracting flannel CNI plugin archive from '{flannelPluginUri}'...");
+
+                    var flannelPluginUri = new Uri($"https://github.com/flannel-io/cni-plugin/releases/download/v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}/cni-plugin-flannel-{platformName}-amd64-v{manifest.CniPluginsVersion}.tgz");
+                    var flannelPluginFallbackUri = new Uri($"https://github.com/flannel-io/cni-plugin/releases/download/v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}/cni-plugin-flannel-{platformName}-amd64-v{manifest.CniPluginsVersion}{manifest.FlannelCniVersionSuffix}.tgz");
+
+                    var flannelPluginSelectedUri = flannelPluginUri;
+
+                    _logger.LogInformation($"Downloading and extracting flannel CNI plugin archive from '{flannelPluginSelectedUri}'...");
                     using (var archiveMemory = new MemoryStream())
                     {
                         // Download the archive.
-                        using (var httpClient = new HttpClient())
+                        try
                         {
-                            using (var stream = await httpClient.GetStreamAsync(flannelPluginUri, cancellationToken))
+                            using (var httpClient = new HttpClient())
                             {
-                                await stream.CopyToAsync(archiveMemory, cancellationToken);
+                                using (var stream = await httpClient.GetStreamAsync(flannelPluginSelectedUri, cancellationToken))
+                                {
+                                    await stream.CopyToAsync(archiveMemory, cancellationToken);
+                                }
+                            }
+                        }
+                        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            flannelPluginSelectedUri = flannelPluginFallbackUri;
+
+                            _logger.LogInformation("Unable to download flannel CNI plugin from default URL; attempting fallback URL...");
+                            _logger.LogInformation($"Downloading and extracting flannel CNI plugin archive from '{flannelPluginSelectedUri}'...");
+                            using (var httpClient = new HttpClient())
+                            {
+                                using (var stream = await httpClient.GetStreamAsync(flannelPluginSelectedUri, cancellationToken))
+                                {
+                                    await stream.CopyToAsync(archiveMemory, cancellationToken);
+                                }
                             }
                         }
 
@@ -314,7 +337,7 @@
                     {
                         File.Move(archFile, nonArchFile, true);
                     }
-                    _logger.LogInformation($"Downloaded and extracted flannel CNI plugin archive from '{flannelPluginUri}' to '{cniPluginsDirectory}'.");
+                    _logger.LogInformation($"Downloaded and extracted flannel CNI plugin archive from '{flannelPluginSelectedUri}' to '{cniPluginsDirectory}'.");
                 }
 
                 // Download and extract the flannel daemon. We just put it in the CNI plugins directory
