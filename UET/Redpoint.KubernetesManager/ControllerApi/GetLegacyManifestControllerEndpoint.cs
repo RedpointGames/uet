@@ -14,16 +14,13 @@
     internal class GetLegacyManifestControllerEndpoint : IControllerEndpoint
     {
         private readonly ICertificateManager _certificateManager;
-        private readonly IKubeConfigManager _kubeConfigManager;
         private readonly IPathProvider _pathProvider;
 
         public GetLegacyManifestControllerEndpoint(
             ICertificateManager certificateManager,
-            IKubeConfigManager kubeConfigManager,
             IPathProvider pathProvider)
         {
             _certificateManager = certificateManager;
-            _kubeConfigManager = kubeConfigManager;
             _pathProvider = pathProvider;
         }
 
@@ -34,10 +31,9 @@
             var remoteAddress = context.Request.RemoteEndPoint.Address;
             var nodeName = context.Request.QueryString.Get("nodeName");
 
-            var certificateAuthority = await File.ReadAllTextAsync(_certificateManager.GetCertificatePemPath("ca", "ca"));
+            var certificateAuthority = await File.ReadAllTextAsync(System.IO.Path.Combine(_pathProvider.RKMRoot, "certs", "ca", "ca.pem"));
 
-            var nodeCertificate = await _certificateManager.EnsureGeneratedForNodeAsync(nodeName!, remoteAddress);
-            var nodeKubeletConfig = await _kubeConfigManager.EnsureGeneratedForNodeAsync(certificateAuthority, nodeName!);
+            var nodeCertificate = await _certificateManager.GenerateCertificateForAuthorizedNodeAsync(nodeName!, remoteAddress);
 
             var nodeManifest = new NodeManifest
             {
@@ -46,7 +42,6 @@
                 CertificateAuthority = certificateAuthority,
                 NodeCertificate = nodeCertificate.CertificatePem,
                 NodeCertificateKey = nodeCertificate.PrivateKeyPem,
-                NodeKubeletConfig = nodeKubeletConfig,
             };
 
             context.Response.StatusCode = (int)HttpStatusCode.OK;

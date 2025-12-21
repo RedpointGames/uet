@@ -1,4 +1,5 @@
 ﻿using Redpoint.KubernetesManager.Models;
+using System.Net;
 
 namespace Redpoint.KubernetesManager.Services
 {

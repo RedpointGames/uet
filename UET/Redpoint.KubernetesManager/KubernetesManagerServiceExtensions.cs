@@ -39,10 +39,8 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<ICertificateGenerator, DefaultCertificateGenerator>();
             services.AddSingleton<ICertificateManager, DefaultCertificateManager>();
             services.AddSingleton<ILocalEthernetInfo, DefaultLocalEthernetInfo>();
-            services.AddSingleton<IKubeConfigGenerator, DefaultKubeConfigGenerator>();
-            services.AddSingleton<IKubeConfigManager, DefaultKubeConfigManager>();
+            services.AddSingleton<IKubeconfigGenerator, DefaultKubeconfigGenerator>();
             services.AddSingleton<IEncryptionConfigManager, DefaultEncryptionConfigManager>();
-            services.AddSingleton<IKubernetesClientFactory, DefaultKubernetesClientFactory>();
             services.AddSingleton<IControllerAutodiscoveryService, DefaultControllerAutodiscoveryService>();
             services.AddSingleton<IControllerApiService, DefaultControllerApiService>();
             services.AddSingleton<INodeManifestClient, DefaultNodeManifestClient>();
@@ -62,8 +60,8 @@ namespace Redpoint.KubernetesManager
                 services.AddSingleton<IComponent, CertificateGeneratingComponent>();
                 services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
                 services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
-                services.AddSingleton<IComponent, KubeConfigGeneratingComponent>();
-                services.AddSingleton<IComponent, KubernetesClientComponent>();
+                services.AddSingleton<IComponent, KubeconfigGeneratingComponent>();
+                services.AddSingleton<IComponent, WaitForApiServerReadyOnControllerComponent>();
                 services.AddSingleton<IComponent, NodeComponentGuardComponent>();
                 services.AddSingleton<IComponent, RKMApiServiceStartingComponent>();
 

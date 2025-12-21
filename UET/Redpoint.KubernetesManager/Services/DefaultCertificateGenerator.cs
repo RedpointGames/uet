@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Services
 {
+    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services.Wsl;
     using System;
@@ -98,11 +99,13 @@
                 request.CertificateExtensions.Add(sanBuilder.Build());
                 request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 1, true));
 
+                var expiry = DateTime.UtcNow.AddDays(-1).AddYears(1);
+
                 var issuerCert = certificateAuthority.ToCertificate();
                 var issuedCertWithoutPrivateKey = request.Create(
                     issuerCert,
-                    issuerCert.NotBefore,
-                    issuerCert.NotAfter,
+                    DateTime.UtcNow,
+                    issuerCert.NotAfter < expiry ? issuerCert.NotAfter : expiry,
                     BitConverter.GetBytes(DateTime.UtcNow.Ticks));
                 var issuedCert = issuedCertWithoutPrivateKey.CopyWithPrivateKey(rsa);
 

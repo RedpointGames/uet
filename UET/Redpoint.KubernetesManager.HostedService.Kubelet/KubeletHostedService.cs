@@ -12,6 +12,7 @@
     using Redpoint.ProcessExecution;
     using System;
     using System.Diagnostics;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -129,7 +130,27 @@
             // Write out kubeconfig file.
             await File.WriteAllTextAsync(
                 Path.Combine(manifest.KubeletStatePath, "kubeconfig.yaml"),
-                manifest.KubeConfigData,
+                @$"""
+                apiVersion: v1
+                kind: Config
+                clusters:
+                  - name: kubernetes
+                    cluster:
+                      server: https://{manifest.ApiServerAddress}:6443
+                      certificate-authority-data: {Convert.ToBase64String(Encoding.UTF8.GetBytes(manifest.CaCertData))}
+                users:
+                  - name: kubelet
+                    user:
+                      client-certificate-data: {Convert.ToBase64String(Encoding.UTF8.GetBytes(manifest.NodeCertData))}
+                      client-key-data: {Convert.ToBase64String(Encoding.UTF8.GetBytes(manifest.NodeKeyData))}
+                contexts:
+                  - name: default
+                    context:
+                      cluster: kubernetes
+                      name: default
+                      user: kubelet
+                current-context: default
+                """,
                 cancellationToken);
 
             // Write out the kubelet configuration file.

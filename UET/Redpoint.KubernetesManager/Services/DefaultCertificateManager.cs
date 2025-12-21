@@ -5,96 +5,85 @@
     using Redpoint.KubernetesManager.Models;
     using System.Net;
 
-    internal class DefaultCertificateManager : ICertificateManager, IDisposable
+    internal class DefaultCertificateManager : ICertificateManager
     {
-        private readonly ILogger<DefaultCertificateManager> _logger;
         private readonly IPathProvider _pathProvider;
         private readonly ICertificateGenerator _certificateGenerator;
-        private readonly SemaphoreSlim _generatingSemaphore;
+        private readonly ILogger<DefaultCertificateManager> _logger;
 
         public DefaultCertificateManager(
-            ILogger<DefaultCertificateManager> logger,
             IPathProvider pathProvider,
-            ICertificateGenerator certificateGenerator)
+            ICertificateGenerator certificateGenerator,
+            ILogger<DefaultCertificateManager> logger)
         {
-            _logger = logger;
             _pathProvider = pathProvider;
             _certificateGenerator = certificateGenerator;
-            _generatingSemaphore = new SemaphoreSlim(1);
+            _logger = logger;
         }
 
-        public async Task<ExportedCertificate> EnsureGeneratedForNodeAsync(string nodeName, IPAddress ipAddress)
+        public string GetCaPublicPemPath()
         {
-            await _generatingSemaphore.WaitAsync();
-            try
+            var certsPath = Path.Combine(_pathProvider.RKMRoot, "certs");
+
+            var caPath = Path.Combine(certsPath, "ca");
+            var caPemPath = Path.Combine(caPath, "ca.pem");
+
+            return caPemPath;
+        }
+
+        public async Task<ExportedCertificate> GenerateCertificateForAuthorizedNodeAsync(string nodeName, IPAddress ipAddress)
+        {
+            var certsPath = Path.Combine(_pathProvider.RKMRoot, "certs");
+
+            var caPath = Path.Combine(certsPath, "ca");
+            var caPemPath = Path.Combine(caPath, "ca.pem");
+            var caKeyPath = Path.Combine(caPath, "ca.key");
+
+            var certificateAuthority = new ExportedCertificate(
+                (await File.ReadAllTextAsync(caPemPath)).Trim(),
+                (await File.ReadAllTextAsync(caKeyPath)).Trim());
+
+            var requirement = new CertificateRequirement
             {
-                var certsPath = Path.Combine(_pathProvider.RKMRoot, "certs");
-
-                var caPath = Path.Combine(certsPath, "ca");
-                var caPemPath = Path.Combine(caPath, "ca.pem");
-                var caKeyPath = Path.Combine(caPath, "ca.key");
-
-                var certificateAuthority = new ExportedCertificate(
-                    (await File.ReadAllTextAsync(caPemPath)).Trim(),
-                    (await File.ReadAllTextAsync(caKeyPath)).Trim());
-
-                var requirement = new CertificateRequirement
+                Category = "nodes",
+                FilenameWithoutExtension = $"node-{nodeName}",
+                CommonName = $"system:node:{nodeName}",
+                Role = "system:nodes",
+                AdditionalSubjectNames = new[]
                 {
-                    Category = "nodes",
-                    FilenameWithoutExtension = $"node-{nodeName}",
-                    CommonName = $"system:node:{nodeName}",
-                    Role = "system:nodes",
-                    AdditionalSubjectNames = new[]
-                    {
-                        nodeName,
-                        ipAddress.ToString()
-                    }
-                };
-
-                var path = Path.Combine(certsPath, requirement.Category!);
-                var pemPath = Path.Combine(path, $"{requirement.FilenameWithoutExtension}.pem");
-                var keyPath = Path.Combine(path, $"{requirement.FilenameWithoutExtension}.key");
-
-                if (!File.Exists(pemPath) || !File.Exists(keyPath))
-                {
-                    _logger.LogInformation($"Generating certificate: {requirement.Category}/{requirement.FilenameWithoutExtension}");
-                    var certificate = _certificateGenerator.GenerateCertificate(
-                        certificateAuthority,
-                        requirement.CommonName!,
-                        requirement.Role!,
-                        requirement.AdditionalSubjectNames);
-                    Directory.CreateDirectory(path);
-                    await File.WriteAllTextAsync(pemPath, certificate.CertificatePem);
-                    await File.WriteAllTextAsync(keyPath, certificate.PrivateKeyPem);
-                    return certificate;
+                    nodeName,
+                    ipAddress.ToString()
                 }
-                else
-                {
-                    _logger.LogInformation($"Certificate already exists: {requirement.Category}/{requirement.FilenameWithoutExtension}");
-                    return new ExportedCertificate(
-                        await File.ReadAllTextAsync(pemPath),
-                        await File.ReadAllTextAsync(keyPath));
-                }
-            }
-            finally
-            {
-                _generatingSemaphore.Release();
-            }
+            };
+
+            _logger.LogInformation($"Generating certificate for authorized node '{nodeName}' from IP address '{ipAddress}'...");
+
+            return _certificateGenerator.GenerateCertificate(
+                certificateAuthority,
+                requirement.CommonName!,
+                requirement.Role!,
+                requirement.AdditionalSubjectNames);
         }
 
-        public string GetCertificatePemPath(string category, string name)
+        public async Task<ExportedCertificate> GenerateCertificateForRequirementAsync(CertificateRequirement requirement)
         {
-            return Path.Combine(_pathProvider.RKMRoot, "certs", category, $"{name}.pem");
-        }
+            var certsPath = Path.Combine(_pathProvider.RKMRoot, "certs");
 
-        public string GetCertificateKeyPath(string category, string name)
-        {
-            return Path.Combine(_pathProvider.RKMRoot, "certs", category, $"{name}.key");
-        }
+            var caPath = Path.Combine(certsPath, "ca");
+            var caPemPath = Path.Combine(caPath, "ca.pem");
+            var caKeyPath = Path.Combine(caPath, "ca.key");
 
-        public void Dispose()
-        {
-            ((IDisposable)_generatingSemaphore).Dispose();
+            var certificateAuthority = new ExportedCertificate(
+                (await File.ReadAllTextAsync(caPemPath)).Trim(),
+                (await File.ReadAllTextAsync(caKeyPath)).Trim());
+
+            _logger.LogInformation($"Generating certificate for requirement common name '{requirement.CommonName}' and role '{requirement.Role}'...");
+
+            return _certificateGenerator.GenerateCertificate(
+                certificateAuthority,
+                requirement.CommonName!,
+                requirement.Role!,
+                requirement.AdditionalSubjectNames);
         }
     }
 }

@@ -5,10 +5,10 @@
 
     internal interface ICertificateManager
     {
-        string GetCertificatePemPath(string category, string name);
+        string GetCaPublicPemPath();
 
-        string GetCertificateKeyPath(string category, string name);
+        Task<ExportedCertificate> GenerateCertificateForAuthorizedNodeAsync(string nodeName, IPAddress ipAddress);
 
-        Task<ExportedCertificate> EnsureGeneratedForNodeAsync(string nodeName, IPAddress ipAddress);
+        Task<ExportedCertificate> GenerateCertificateForRequirementAsync(CertificateRequirement requirement);
     }
 }

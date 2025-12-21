@@ -28,7 +28,7 @@
         /// This flag is set once the kubeconfigs required for all the
         /// relevant Kubernetes components are ready on disk.
         /// </summary>
-        public const string KubeConfigsReady = "kubeconfigs-ready";
+        public const string KubeconfigsReady = "kubeconfigs-ready";
 
         /// <summary>
         /// This flag is set once the "encryption-config.yaml" file required
@@ -44,7 +44,7 @@
 
         /// <summary>
         /// This flag is set once the kube-apiserver process is ready to serve requests.
-        /// The <see cref="Components.ControllerOnly.KubernetesClientComponent"/> sets this 
+        /// The <see cref="Components.ControllerOnly.WaitForApiServerReadyOnControllerComponent"/> sets this 
         /// flag once it's been able to connect to the API server. Only available
         /// on the controller. The <see cref="k8s.IKubernetes"/> object is available via
         /// the <see cref="Data.KubernetesClientContextData"/> on the flag.
