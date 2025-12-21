@@ -323,9 +323,18 @@ namespace UET.Commands.Cluster
                         _logger.LogInformation("Waiting forever after startup probe has started...");
                         while (!context.GetCancellationToken().IsCancellationRequested)
                         {
-                            await Task.Delay(-1, context.GetCancellationToken());
+                            await Task.Delay(60000, context.GetCancellationToken());
                         }
+                        _logger.LogInformation("Startup probe loop has stopped.");
                     }
+                }
+                catch (OperationCanceledException) when (context.GetCancellationToken().IsCancellationRequested)
+                {
+                    _logger.LogInformation("Termination requested normally via Ctrl-C.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Encountered exception during source VIP allocation: {ex.Message}");
                 }
                 finally
                 {

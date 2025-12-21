@@ -74,10 +74,13 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
           startupProbe:
+            failureThreshold: 30
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
             tcpSocket:
               port: startup-port
-            initialDelaySeconds: 5
-            periodSeconds: 5
           restartPolicy: Always
       containers:
         - name: kube-proxy
