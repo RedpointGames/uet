@@ -10,6 +10,7 @@ spec:
     singular: rkmconfiguration
     kind: RkmConfiguration
     shortNames:
+    - rkmconfig
     - rkmconfigs
   versions:
   - name: v1
