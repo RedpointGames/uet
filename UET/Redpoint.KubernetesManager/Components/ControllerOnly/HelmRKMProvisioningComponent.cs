@@ -59,8 +59,21 @@
 
         private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
-            // Deploy RKM components, including Calico, via Helm.
+            // Deploy RKM CRD via Helm.
             var exitCode = await _helmDeployment.DeployChart(
+                context,
+                "rkm-crds",
+                $"oci://ghcr.io/redpointgames/uet/rkm-crds:{_rkmVersionProvider.Version}",
+                "",
+                waitForResourceStabilisation: true, // We must wait until CRDs are installed.
+                cancellationToken);
+            if (exitCode != 0)
+            {
+                _logger.LogWarning("RKM could not install or upgrade the Helm charts into the cluster, which could cause the cluster to be inoperable. RKM will continue to ensure that the API server runs to ensure manual recovery is possible.");
+            }
+
+            // Deploy RKM components via Helm.
+            exitCode = await _helmDeployment.DeployChart(
                 context,
                 "rkm-components",
                 $"oci://ghcr.io/redpointgames/uet/rkm-components:{_rkmVersionProvider.Version}",

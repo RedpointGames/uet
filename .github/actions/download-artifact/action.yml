@@ -118,5 +118,5 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: helm-chart
-        path: UET/Lib/Helm/rkm/
+        path: UET/Lib/Helm/
         merge-multiple: true
