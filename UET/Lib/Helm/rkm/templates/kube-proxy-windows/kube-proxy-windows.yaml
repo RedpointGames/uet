@@ -50,17 +50,40 @@ spec:
       terminationGracePeriodSeconds: 0
       priorityClassName: system-node-critical
       initContainers:
-        - name: remove-source-vip-file
+        - name: allocate-source-vip
           image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
           command:
             - .\pwsh\pwsh.exe
             - -ExecutionPolicy
             - Bypass
-            - .\scripts\remove_source_vip_file.ps1
+            - .\scripts\allocate_source_vip.ps1
           volumeMounts:
             - mountPath: /scripts
               name: scripts
               readOnly: true
+            - mountPath: /RKM
+              name: rkm
+          ports:
+            - name: liveness-port
+              containerPort: 10966
+            - name: startup-port
+              containerPort: 10967
+          livenessProbe:
+            tcpSocket:
+              host: 127.0.0.1
+              port: liveness-port
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          startupProbe:
+            failureThreshold: 30
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              host: 127.0.0.1
+              port: startup-port
+          restartPolicy: Always
       containers:
         - name: kube-proxy
           image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
@@ -82,44 +105,11 @@ spec:
               port: 10256
             initialDelaySeconds: 90
             periodSeconds: 5
-        - name: allocate-source-vip
-          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
-          command:
-            - .\pwsh\pwsh.exe
-            - -ExecutionPolicy
-            - Bypass
-            - .\scripts\allocate_source_vip.ps1
-          volumeMounts:
-            - mountPath: /scripts
-              name: scripts
-              readOnly: true
-            - mountPath: /RKM
-              name: rkm
-          ports:
-            - name: liveness-port
-              containerPort: 10966
-            - name: startup-port
-              containerPort: 10967
-          livenessProbe:
-            tcpSocket:
-              port: liveness-port
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          startupProbe:
-            failureThreshold: 30
-            initialDelaySeconds: 30
-            periodSeconds: 5
-            successThreshold: 1
-            timeoutSeconds: 5
-            tcpSocket:
-              port: startup-port
       volumes:
         - name: scripts
           configMap:
             name: kube-proxy-windows-scripts
             items:
-              - key: "remove_source_vip_file.ps1"
-                path: "remove_source_vip_file.ps1"
               - key: "allocate_source_vip.ps1"
                 path: "allocate_source_vip.ps1"
               - key: "kube_proxy.ps1"
