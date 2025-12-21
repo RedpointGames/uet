@@ -66,11 +66,19 @@ spec:
           ports:
             - name: liveness-port
               containerPort: 10966
+            - name: startup-port
+              containerPort: 10967
           livenessProbe:
             tcpSocket:
               port: liveness-port
             initialDelaySeconds: 5
             periodSeconds: 5
+          startupProbe:
+            tcpSocket:
+              port: startup-port
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          restartPolicy: Always
       containers:
         - name: kube-proxy
           image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
