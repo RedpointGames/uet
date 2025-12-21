@@ -1,3 +1,9 @@
+{{- $config := lookup "v1" "RkmConfiguration" "" "default" -}}
+{{- if $config -}}
+{{- $kubernetesVersion := $config.spec.componentVersions.kubernetes -}}
+{{- else -}}
+{{- $kubernetesVersion := .Values.defaultVersions.kubernetes -}}
+{{- end -}}
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
@@ -80,7 +86,7 @@ spec:
               readOnly: true
           env:
             - name: UET_KUBERNETES_VERSION
-              value: {{ .Values.versions.kubernetes | quote }}
+              value: {{ $kubernetesVersion | quote }}
       volumes:
         - name: scripts
           configMap:

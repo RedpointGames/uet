@@ -67,7 +67,15 @@
                 $"""
                 versions:
                   rkm: "{_rkmVersionProvider.Version}"
+
+                defaultVersions:
+                  containerd: "{ComponentVersions.Containerd}"
+                  runc: "{ComponentVersions.Runc}"
                   kubernetes: "{ComponentVersions.Kubernetes}"
+                  etcd: "{ComponentVersions.Etcd}"
+                  cniPlugins: "{ComponentVersions.CniPlugins}"
+                  flannel: "{ComponentVersions.Flannel}"
+                  flannelCniSuffix: "{ComponentVersions.FlannelCniSuffix}"
 
                 cluster:
                   cidr: "{_clusterNetworkingConfiguration.ClusterCIDR}"

@@ -1,0 +1,19 @@
+apiVersion: rkm.redpoint.games/v1
+kind: RkmConfiguration
+metadata:
+  name: default
+{{ $config := lookup "v1" "RkmConfiguration" "" "default" -}}
+{{- if $config -}}
+spec: {{- $config.spec | toJson -}}
+{{- else -}}
+spec:
+  componentVersions:
+    rkm: {{ .Values.versions.rkm | quote }}
+    containerd: {{ .Values.defaultVersions.containerd | quote }}
+    runc: {{ .Values.defaultVersions.runc | quote }}
+    kubernetes: {{ .Values.defaultVersions.kubernetes | quote }}
+    etcd: {{ .Values.defaultVersions.etcd | quote }}
+    cniPlugins: {{ .Values.defaultVersions.cniPlugins | quote }}
+    flannel: {{ .Values.defaultVersions.flannel | quote }}
+    flannelCniSuffix: {{ .Values.defaultVersions.flannelCniSuffix | quote }}
+{{ end -}}
