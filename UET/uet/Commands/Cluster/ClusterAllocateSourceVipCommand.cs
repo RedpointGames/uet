@@ -335,6 +335,7 @@ namespace UET.Commands.Cluster
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Encountered exception during source VIP allocation: {ex.Message}");
+                    return 1;
                 }
                 finally
                 {
