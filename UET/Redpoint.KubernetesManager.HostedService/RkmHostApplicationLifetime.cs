@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Redpoint.Concurrency;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Redpoint.KubernetesManager.Tests")]
 
 namespace Redpoint.KubernetesManager.HostedService
 {

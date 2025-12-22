@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.ControllerApi
 {
+    using Microsoft.AspNetCore.Http;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -11,7 +12,7 @@
     {
         public string Path => "/pxe-boot-provisioning-info";
 
-        public Task HandleAsync(HttpListenerContext context)
+        public Task HandleAsync(HttpContext context, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

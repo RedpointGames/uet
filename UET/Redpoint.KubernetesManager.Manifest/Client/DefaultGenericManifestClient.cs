@@ -6,6 +6,7 @@
     using Redpoint.KubernetesManager.Manifest;
     using System;
     using System.Net.WebSockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization.Metadata;
@@ -29,6 +30,7 @@
             string? manifestCachePath,
             JsonTypeInfo<T> jsonTypeInfo,
             Func<T, long, CancellationToken, Task> manifestReceived,
+            GenericManifestSecureConnection? secureConnection,
             CancellationToken cancellationToken) where T : class, IVersionedManifest
         {
             var buffer = new byte[16 * 1024];
@@ -71,6 +73,32 @@
             try
             {
                 webSocketClient = new ClientWebSocket();
+                if (secureConnection != null)
+                {
+                    webSocketClient.Options.RemoteCertificateValidationCallback = (sender, certificate, originalChain, sslPolicyErrors) =>
+                    {
+                        if (certificate == null)
+                        {
+                            return false;
+                        }
+
+                        if (originalChain == null ||
+                            originalChain.ChainStatus.Any(status => status.Status != X509ChainStatusFlags.UntrustedRoot))
+                        {
+                            return false;
+                        }
+
+                        // @todo: Validate common name; it should always be "rkm-api".
+                        _logger.LogInformation($"Certificate subject: {certificate.Subject}");
+
+                        var newChain = new X509Chain();
+                        newChain.ChainPolicy.ExtraStore.Add(secureConnection.CertificateAuthority);
+                        newChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                        return newChain.Build((X509Certificate2)certificate);
+                    };
+                    webSocketClient.Options.ClientCertificates = [secureConnection.ClientCertificate];
+                }
+
                 await webSocketClient.ConnectAsync(uri, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -218,6 +246,7 @@
 
         public async Task RegisterAndRunWithManifestAsync<T>(
             Uri uri,
+            GenericManifestSecureConnection? secureConnection,
             string? manifestCachePath,
             JsonTypeInfo<T> jsonTypeInfo,
             Func<T, CancellationToken, Task> runWithManifest,
@@ -295,6 +324,7 @@
                     manifestCachePath,
                     jsonTypeInfo,
                     manifestArrived,
+                    secureConnection,
                     cancellationToken),
                 cancellationToken);
 

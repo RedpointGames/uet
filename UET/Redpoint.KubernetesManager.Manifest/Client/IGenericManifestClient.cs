@@ -9,6 +9,7 @@
     {
         Task RegisterAndRunWithManifestAsync<T>(
             Uri uri,
+            GenericManifestSecureConnection? secureConnection,
             string? manifestCachePath,
             JsonTypeInfo<T> jsonTypeInfo,
             Func<T, CancellationToken, Task> runWithManifest,

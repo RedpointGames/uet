@@ -20,6 +20,8 @@ using Redpoint.KubernetesManager.PerpetualProcess;
 using Redpoint.KubernetesManager.Abstractions;
 using Redpoint.KubernetesManager.Services.Wsl;
 using Redpoint.KubernetesManager.Services.Linux;
+using Redpoint.KubernetesManager.Components.DownstreamService;
+using Redpoint.KubernetesManager.Services.Kestrel;
 
 namespace Redpoint.KubernetesManager
 {
@@ -42,28 +44,31 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IKubeconfigGenerator, DefaultKubeconfigGenerator>();
             services.AddSingleton<IEncryptionConfigManager, DefaultEncryptionConfigManager>();
             services.AddSingleton<IControllerAutodiscoveryService, DefaultControllerAutodiscoveryService>();
-            services.AddSingleton<IControllerApiService, DefaultControllerApiService>();
             services.AddSingleton<INodeManifestClient, DefaultNodeManifestClient>();
             services.AddSingleton<IClusterNetworkingConfiguration, DefaultClusterNetworkingConfiguration>();
             services.AddSingleton<IWslTranslation, DefaultWslTranslation>();
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
             services.AddSingleton<IHelmDeployment, DefaultHelmDeployment>();
+            services.AddSingleton<ITpmService, DefaultTpmService>();
+            services.AddSingleton<IKestrelFactory, DefaultKestrelFactory>();
 
             services.AddRkmManifest();
             services.AddRkmPerpetualProcess();
 
             services.AddSingleton<IControllerEndpoint, GetLegacyManifestControllerEndpoint>();
+            services.AddSingleton<IControllerEndpoint, GetNodeManifestControllerEndpoint>();
+            services.AddSingleton<IControllerEndpoint, PutNodeAuthorizeControllerEndpoint>();
 
             // Register controller-only components.
             if (withPathProvider)
             {
                 services.AddSingleton<IComponent, CertificateGeneratingComponent>();
-                services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
+                services.AddSingleton<IComponent, ControllerManifestServerComponent>();
                 services.AddSingleton<IComponent, EncryptionConfigGeneratingComponent>();
+                services.AddSingleton<IComponent, HelmRKMProvisioningComponent>();
                 services.AddSingleton<IComponent, KubeconfigGeneratingComponent>();
-                services.AddSingleton<IComponent, WaitForApiServerReadyOnControllerComponent>();
                 services.AddSingleton<IComponent, NodeComponentGuardComponent>();
-                services.AddSingleton<IComponent, RKMApiServiceStartingComponent>();
+                services.AddSingleton<IComponent, WaitForApiServerReadyOnControllerComponent>();
 
                 // Register node-only components.
                 services.AddSingleton<IComponent, NodeManifestExpanderComponent>();
@@ -71,7 +76,7 @@ namespace Redpoint.KubernetesManager
                 // Register shared components.
                 services.AddSingleton<IComponent, AssetPreparationComponent>();
                 services.AddSingleton<IComponent, ContainerdComponent>();
-                services.AddSingleton<IComponent, ManifestServerComponent>();
+                services.AddSingleton<IComponent, NodeManifestServerComponent>();
                 services.AddSingleton<IComponent, KubeletComponent>();
                 services.AddSingleton<IComponent, NetworkingConfigurationComponent>();
             }

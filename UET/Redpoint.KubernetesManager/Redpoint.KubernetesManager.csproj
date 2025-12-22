@@ -16,6 +16,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="KubernetesClient.Aot" />
+		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" />
+		<PackageReference Include="Microsoft.AspNetCore.WebSockets" />
 		<PackageReference Include="Microsoft.Dism" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
@@ -23,6 +25,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.TSS\Redpoint.ThirdParty.Microsoft.TSS.csproj" />
 		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Abstractions\Redpoint.KubernetesManager.Abstractions.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Manifest\Redpoint.KubernetesManager.Manifest.csproj" />

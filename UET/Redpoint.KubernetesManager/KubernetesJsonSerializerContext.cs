@@ -9,7 +9,7 @@ namespace Redpoint.KubernetesManager
     using Redpoint.KubernetesManager.Models;
     using System.Text.Json.Serialization;
 
-    [JsonSerializable(typeof(NodeManifest))]
+    [JsonSerializable(typeof(LegacyNodeManifest))]
     internal partial class KubernetesJsonSerializerContext : JsonSerializerContext
     {
     }

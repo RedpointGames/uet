@@ -293,6 +293,7 @@
             // Start the manifest poll from the main RKM service.
             await _genericManifestClient.RegisterAndRunWithManifestAsync(
                 new Uri("ws://127.0.0.1:8375/kubelet"),
+                null,
                 InvocationContext?.ParseResult.GetValueForOption(_options.ManifestPath),
                 ManifestJsonSerializerContext.Default.KubeletManifest,
                 async (manifest, cancellationToken) =>
