@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
@@ -23,6 +24,7 @@
         private readonly ILogger _logger;
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
         private readonly IKestrelFactory _kestrelFactory;
+        private readonly IServiceProvider _serviceProvider;
         private readonly ICertificateManager? _certificateManager;
 
         private CancellationTokenSource? _cts;
@@ -30,14 +32,13 @@
 
         public AbstractHttpListenerComponent(
             ILogger logger,
-            IHostApplicationLifetime hostApplicationLifetime,
-            IKestrelFactory kestrelFactory,
-            ICertificateManager? certificateManager = null)
+            IServiceProvider serviceProvider)
         {
             _logger = logger;
-            _hostApplicationLifetime = hostApplicationLifetime;
-            _kestrelFactory = kestrelFactory;
-            _certificateManager = certificateManager;
+            _serviceProvider = serviceProvider;
+            _hostApplicationLifetime = _serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+            _kestrelFactory = _serviceProvider.GetRequiredService<IKestrelFactory>();
+            _certificateManager = _serviceProvider.GetService<ICertificateManager>();
         }
 
         protected abstract string ServerDescription { get; }
@@ -78,6 +79,8 @@
                 }
 
                 var kestrelServerOptions = new KestrelServerOptions();
+                kestrelServerOptions.ApplicationServices = _serviceProvider;
+
                 if (ListeningAddress == IPAddress.Loopback)
                 {
                     kestrelServerOptions.ListenLocalhost(ListeningPort);

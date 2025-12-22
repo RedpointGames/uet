@@ -26,15 +26,11 @@
 
         public ControllerManifestServerComponent(
             ILogger<ControllerManifestServerComponent> logger,
-            IHostApplicationLifetime hostApplicationLifetime,
+            IServiceProvider serviceProvider,
             ILocalEthernetInfo localEthernetInfo,
-            IEnumerable<IControllerEndpoint> endpoints,
-            IKestrelFactory kestrelFactory,
-            ICertificateManager? certificateManager = null) : base(
+            IEnumerable<IControllerEndpoint> endpoints) : base(
                 logger,
-                hostApplicationLifetime,
-                kestrelFactory,
-                certificateManager)
+                serviceProvider)
         {
             _localEthernetInfo = localEthernetInfo;
             _endpoints = endpoints;

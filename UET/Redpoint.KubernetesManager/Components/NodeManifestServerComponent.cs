@@ -47,17 +47,13 @@
 
         public NodeManifestServerComponent(
             ILogger<NodeManifestServerComponent> logger,
-            IHostApplicationLifetime hostApplicationLifetime,
+            IServiceProvider serviceProvider,
             IPathProvider pathProvider,
             ILocalEthernetInfo localEthernetInfo,
             IWslTranslation wslTranslation,
-            IGenericManifestClient genericManifestClient,
-            IKestrelFactory kestrelFactory,
-            ICertificateManager? certificateManager = null) : base(
+            IGenericManifestClient genericManifestClient) : base(
                 logger,
-                hostApplicationLifetime,
-                kestrelFactory,
-                certificateManager)
+                serviceProvider)
         {
             _logger = logger;
             _pathProvider = pathProvider;
