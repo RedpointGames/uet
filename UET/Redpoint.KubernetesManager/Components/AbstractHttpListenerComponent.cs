@@ -140,6 +140,11 @@
 
         protected abstract Task OnStartingAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken);
 
+        protected virtual Task OnCleanupAsync()
+        {
+            return Task.CompletedTask;
+        }
+
         private async Task OnStartedAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
             await OnStartingAsync(context, data, cancellationToken).ConfigureAwait(false);
@@ -155,6 +160,8 @@
 
         private async Task OnStoppingAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
+            await OnCleanupAsync();
+
             if (_apiTask != null && _cts != null)
             {
                 _logger.LogInformation($"Stopping rkm {ServerDescription}...");
@@ -173,6 +180,8 @@
 
         public async ValueTask DisposeAsync()
         {
+            await OnCleanupAsync();
+
             if (_apiTask != null && _cts != null)
             {
                 _logger.LogInformation($"Stopping rkm {ServerDescription}...");

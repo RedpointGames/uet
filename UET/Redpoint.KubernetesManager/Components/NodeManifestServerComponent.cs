@@ -44,6 +44,8 @@
         private ContainerdManifest? _currentContainerdManifest;
         private KubeletManifest? _currentKubeletManifest;
         private string? _currentStaticPodYaml;
+        private CancellationTokenSource? _runCts;
+        private Task? _runTask;
 
         public NodeManifestServerComponent(
             ILogger<NodeManifestServerComponent> logger,
@@ -123,13 +125,16 @@
 
             // Start the generic manifest client.
             Directory.CreateDirectory(Path.Combine(_pathProvider.RKMRoot, "cache"));
-            await _genericManifestClient.RegisterAndRunWithManifestAsync(
+            _runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _runTask = Task.Run(async () => await _genericManifestClient.RegisterAndRunWithManifestAsync(
                 new Uri($"ws://{apiServerAddress}:8374/node-manifest?nodeName={HttpUtility.UrlEncode(nodeName)}&role={HttpUtility.UrlEncode(role)}"),
                 null,
                 Path.Combine(_pathProvider.RKMRoot, "cache", "rkm-node-manifest.json"),
                 ManifestJsonSerializerContext.Default.NodeManifest,
                 async (manifest, cancellationToken) =>
                 {
+                    _logger.LogInformation("Updating downstream manifests and static pod YAML from new manifest...");
+
                     // Recompute our manifests and static pod YAML.
                     _currentContainerdManifest = new ContainerdManifest
                     {
@@ -169,6 +174,7 @@
                         .Replace("{LOCAL_IP_ADDRESS}", _localEthernetInfo.IPAddress.ToString(), StringComparison.Ordinal);
 
                     // Notify all listeners.
+                    _logger.LogInformation("Notifying connected sockets of new manifests...");
                     foreach (var notifyWebSocket in _manifestNotifications)
                     {
                         try
@@ -179,13 +185,40 @@
                     }
 
                     // If we are blocked on receiving the initial manifest, we can now proceed.
-                    _initialManifestReceived.Open();
+                    if (!_initialManifestReceived.Opened)
+                    {
+                        _logger.LogInformation("Permitting startup to proceed now that manifests are ready.");
+                        _initialManifestReceived.Open();
+                    }
                 },
-                cancellationToken);
+                _runCts.Token), _runCts.Token);
 
             // Wait until the initial manifest is received before we start serving traffic to the Kubelet
             // and containerd services.
-            await _initialManifestReceived.WaitAsync(cancellationToken);
+            _logger.LogInformation("Waiting for initial manifest to be received...");
+            await _initialManifestReceived.WaitAsync(_runCts.Token);
+
+            _logger.LogInformation("Now starting node manifest server component as initial node manifest has been processed.");
+        }
+
+        protected override async Task OnCleanupAsync()
+        {
+            if (_runTask != null && _runCts != null)
+            {
+                _logger.LogInformation($"Stopping node manifest server component polling...");
+
+                _runCts.Cancel();
+                try
+                {
+                    await _runTask;
+                }
+                catch { }
+                _runCts.Dispose();
+                _runTask = null;
+                _runCts = null;
+            }
+
+            await base.OnCleanupAsync();
         }
 
         private async Task HandleContainerdWebSocketAsync(HttpContext context, CancellationToken cancellationToken)
