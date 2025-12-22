@@ -72,15 +72,6 @@ exit $?
 ".Trim().Replace("\r\n", "\n", StringComparison.Ordinal), stoppingToken);
                     chmod(Path.Combine(_pathProvider.RKMRoot, "kubectl"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
 
-                    await File.WriteAllTextAsync(Path.Combine(_pathProvider.RKMRoot, "calicoctl"), @"
-#!/bin/bash
-
-RKM_ROOT=$(dirname ""$0"")
-KUBECONFIG=""$RKM_ROOT/kubeconfigs/users/user-admin.kubeconfig"" ""$RKM_ROOT/assets/calicoctl"" $*
-exit $?
-".Trim().Replace("\r\n", "\n", StringComparison.Ordinal), stoppingToken);
-                    chmod(Path.Combine(_pathProvider.RKMRoot, "calicoctl"), 0x100 | 0x80 | 0x40 | 0x20 | 0x8 | 0x4 | 0x1);
-
                     if (Directory.Exists(Path.Combine(_pathProvider.RKMRoot, "helm")))
                     {
                         // Clean up old "helm" directory that is now called "helm-bin".

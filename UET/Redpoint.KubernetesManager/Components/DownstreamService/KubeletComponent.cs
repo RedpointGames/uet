@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Components
+﻿namespace Redpoint.KubernetesManager.Components.DownstreamService
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Abstractions;

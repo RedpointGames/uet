@@ -2,7 +2,7 @@
 {
     using System.Text.Json.Serialization;
 
-    public class NodeManifest
+    public class LegacyNodeManifest
     {
         /// <summary>
         /// Flannel is annoying and requires that the path it emits the flannel CNI plugin to be the same

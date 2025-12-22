@@ -43,6 +43,7 @@
                 async () => await client.RegisterAndRunWithManifestAsync<TestManifest>(
                     new Uri("ws://127.0.0.1:52934"),
                     null,
+                    null,
                     TestManifestJsonSerializerContext.Default.TestManifest,
                     async (testManifest, cancellationToken) =>
                     {

@@ -5,13 +5,13 @@
 
     internal class NodeContextData : IAssociatedData
     {
-        public NodeContextData(NodeManifest nodeManifest, IPAddress controllerAddress)
+        public NodeContextData(LegacyNodeManifest nodeManifest, IPAddress controllerAddress)
         {
             NodeManifest = nodeManifest;
             ControllerAddress = controllerAddress;
         }
 
-        public NodeManifest NodeManifest { get; }
+        public LegacyNodeManifest NodeManifest { get; }
 
         public IPAddress ControllerAddress { get; }
     }

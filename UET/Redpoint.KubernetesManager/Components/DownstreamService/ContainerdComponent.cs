@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.Components
+﻿namespace Redpoint.KubernetesManager.Components.DownstreamService
 {
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services.Windows;
@@ -10,6 +10,8 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.ServiceControl;
     using Redpoint.KubernetesManager.Abstractions;
+    using Redpoint.KubernetesManager;
+    using Redpoint.KubernetesManager.Components;
 
     /// <summary>
     /// The containerd component sets up and runs the containerd process.

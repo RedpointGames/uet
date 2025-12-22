@@ -31,7 +31,7 @@
             ((IDisposable)_semaphore).Dispose();
         }
 
-        public async Task<NodeManifest> ObtainNodeManifestAsync(IPAddress controllerAddress, string nodeName, CancellationToken stoppingToken)
+        public async Task<LegacyNodeManifest> ObtainNodeManifestAsync(IPAddress controllerAddress, string nodeName, CancellationToken stoppingToken)
         {
             var manifestPath = Path.Combine(_pathProvider.RKMRoot, "node-manifest.json");
 
@@ -43,7 +43,7 @@
                 {
                     return JsonSerializer.Deserialize(
                         await File.ReadAllTextAsync(manifestPath, stoppingToken),
-                        KubernetesJsonSerializerContext.Default.NodeManifest)!;
+                        KubernetesJsonSerializerContext.Default.LegacyNodeManifest)!;
                 }
 
                 using (var client = new HttpClient())
@@ -52,7 +52,7 @@
                     var manifest = await client.GetStringAsync(new Uri($"http://{controllerAddress}:8374/manifest?nodeName=" + HttpUtility.UrlEncode(nodeName)), stoppingToken);
                     var manifestDeserialized = JsonSerializer.Deserialize(
                         manifest,
-                        KubernetesJsonSerializerContext.Default.NodeManifest)!;
+                        KubernetesJsonSerializerContext.Default.LegacyNodeManifest)!;
                     await File.WriteAllTextAsync(manifestPath, manifest, stoppingToken);
                     return manifestDeserialized;
                 }

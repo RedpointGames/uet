@@ -6,6 +6,6 @@
 
     public interface INodeManifestClient
     {
-        Task<NodeManifest> ObtainNodeManifestAsync(IPAddress controllerAddress, string nodeName, CancellationToken stoppingToken);
+        Task<LegacyNodeManifest> ObtainNodeManifestAsync(IPAddress controllerAddress, string nodeName, CancellationToken stoppingToken);
     }
 }

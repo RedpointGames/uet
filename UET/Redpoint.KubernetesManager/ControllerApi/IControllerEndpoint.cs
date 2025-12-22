@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.ControllerApi
 {
+    using Microsoft.AspNetCore.Http;
     using System.Net;
     using System.Threading.Tasks;
 
@@ -7,6 +8,6 @@
     {
         string Path { get; }
 
-        Task HandleAsync(HttpListenerContext context);
+        Task HandleAsync(HttpContext context, CancellationToken cancellationToken);
     }
 }
