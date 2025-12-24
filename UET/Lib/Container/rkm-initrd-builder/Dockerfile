@@ -13,7 +13,14 @@ WORKDIR /build/buildroot
 COPY buildroot.config .config
 RUN mkdir output
 
-# --mount=type=cache,target=/build/buildroot/output --mount=type=cache,target=/root/.buildroot-ccache 
+COPY files /build/files
+COPY setup.sh /build/setup.sh
+
 RUN make syncconfig
 RUN make
-#RUN bash -c "make syncconfig && make"
+
+# --mount=type=cache,target=/build/buildroot/output --mount=type=cache,target=/root/.buildroot-ccache 
+
+# qemu-system-x86_64 -kernel output/images/bzImage -initrd output/images/rootfs.cpio -append "console=ttyS0 quiet systemd.show_status=true" -serial mon:stdio -m 1G -nic user,model=virtio
+
+# qemu-system-x86_64 -kernel output/images/bzImage -initrd output/images/rootfs.cpio -append "console=ttyS0 quiet systemd.show_status=true" -serial mon:stdio -m 1G -net bridge,br=virbr0 -net nic,model=virtio
