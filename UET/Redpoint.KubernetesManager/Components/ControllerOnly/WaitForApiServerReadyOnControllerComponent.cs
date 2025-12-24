@@ -53,9 +53,9 @@
                     // _logger.LogInformation($"Connected to API server, Kubernetes is running version: {code.Major}.{code.Minor}");
                     return kubernetes;
                 }
-                catch (HttpRequestException ex)
+                catch (HttpRequestException)
                 {
-                    _logger.LogWarning($"Failed to connect to Kubernetes API server; it might still be starting up: {ex}");
+                    _logger.LogWarning($"Failed to connect to Kubernetes API server; it might still be starting up...");
                     if (i < maximumWaitSeconds - 1)
                     {
                         await Task.Delay(1000, cancellationToken);
@@ -84,7 +84,8 @@
             _logger.LogInformation("Waiting for Kubernetes API server to be up...");
             var kubernetes = await ConnectToClusterAsync(
                 Path.Combine(_pathProvider.RKMRoot, "kubeconfigs", "users", "user-admin.kubeconfig"),
-                30,
+                // @note: This can take a long time on initial startup, since kubelet and containerd services may need to download binaries.
+                600,
                 cancellationToken);
             if (kubernetes == null)
             {
