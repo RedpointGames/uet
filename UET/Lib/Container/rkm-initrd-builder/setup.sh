@@ -11,6 +11,8 @@ fi
 echo '#!/bin/bash' > $TARGET_DIR/usr/sbin/swapoff
 chmod a+x $TARGET_DIR/usr/sbin/swapoff
 
+touch $TARGET_DIR/opt/no_pivot_root
+
 cat >$TARGET_DIR/usr/lib/systemd/system/rkm-linux.target <<EOF
 [Unit]
 Description=RKM Minimal Linux Target
