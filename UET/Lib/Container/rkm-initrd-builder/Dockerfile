@@ -15,6 +15,7 @@ RUN mkdir output
 
 COPY files /build/files
 COPY setup.sh /build/setup.sh
+COPY kernel.config /build/kernel.config
 
 RUN make syncconfig
 RUN make
