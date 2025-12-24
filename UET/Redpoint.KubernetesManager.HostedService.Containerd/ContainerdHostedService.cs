@@ -416,6 +416,13 @@
                     .Replace("\\", "\\\\", StringComparison.Ordinal);
                 if (OperatingSystem.IsLinux())
                 {
+                    var noPivotRoot = "false";
+                    // Special file created inside initrd/initramfs scenarios that turns off pivot_root for containers.
+                    if (File.Exists("/opt/no_pivot_root"))
+                    {
+                        noPivotRoot = "true";
+                    }
+
                     await File.WriteAllTextAsync(
                         Path.Combine(manifest.ContainerdStatePath, "config.yaml"),
                         $$"""
@@ -540,7 +547,7 @@
                                     IoGid = 0
                                     IoUid = 0
                                     NoNewKeyring = false
-                                    NoPivotRoot = false
+                                    NoPivotRoot = {{noPivotRoot}}
                                     Root = ""
                                     ShimCgroup = ""
                                     SystemdCgroup = true
