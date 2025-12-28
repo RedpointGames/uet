@@ -8,6 +8,12 @@
     {
         private static string GetUserPipePath(string pipeName)
         {
+            var grpcUserPipePathOverride = Environment.GetEnvironmentVariable("GRPC_PIPE_PATH_USER");
+            if (!string.IsNullOrWhiteSpace(grpcUserPipePathOverride))
+            {
+                return grpcUserPipePathOverride;
+            }
+
             if (OperatingSystem.IsWindows())
             {
                 if (WindowsIdentity.GetCurrent().IsSystem)
