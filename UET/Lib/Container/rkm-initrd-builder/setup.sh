@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -e
+set -x
+
+if [ "$TARGET_DIR" == "" ]; then
+  echo "TARGET_DIR not set!"
+  exit 1
+fi
+
+echo '#!/bin/bash' > $TARGET_DIR/usr/sbin/swapoff
+chmod a+x $TARGET_DIR/usr/sbin/swapoff
+
+touch $TARGET_DIR/rkm-initrd
+
+cat >$TARGET_DIR/usr/lib/systemd/system/rkm-linux.target <<EOF
+[Unit]
+Description=RKM Minimal Linux Target
+Requires=basic.target network.target
+Wants=dbus.service rkm-bootstrap.service
+Conflicts=multi-user.target rescue.service rescue.target
+After=multi-user.target rescue.service rescue.target
+AllowIsolate=yes
+EOF
+
+cat >$TARGET_DIR/usr/lib/systemd/system/rkm-bootstrap.service <<EOF
+[Unit]
+Description=RKM Bootstrap
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/uet-bootstrap internal pxeboot initrd-bootstrap
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/ttyS0
+Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet-bundle"
+Environment="GRPC_PIPE_PATH_USER=/tmp/.grpc"
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=rkm-linux.target
+EOF
+
+cat >$TARGET_DIR/etc/systemd/network/ethernet.network <<EOF
+[Match]
+Kind=!*
+Type=ether
+
+[Network]
+DHCP=yes
+DNS=1.1.1.1
+DNS=1.0.0.1
+DNS=8.8.8.8
+DNS=8.8.4.4
+EOF

@@ -1,0 +1,46 @@
+﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test
+{
+    using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.KubernetesManager.PxeBoot.ProvisioningStep;
+    using Redpoint.RuntimeJson;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+
+    internal class TestProvisioningStep : IProvisioningStep<TestProvisioningStepConfig>
+    {
+        private readonly ILogger<TestProvisioningStep> _logger;
+
+        public TestProvisioningStep(
+            ILogger<TestProvisioningStep> logger)
+        {
+            _logger = logger;
+        }
+
+        public string Type => "Test";
+
+        public IRuntimeJson Settings => new ProvisioningStepConfigRuntimeJson(ProvisioningStepConfigJsonSerializerContext.WithStringEnum).TestProvisioningStepConfig;
+
+        public Task ExecuteOnServerBeforeAsync(TestProvisioningStepConfig config, CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"ServerBefore '{config.Test}'");
+            return Task.CompletedTask;
+        }
+
+        public Task ExecuteOnClientAsync(TestProvisioningStepConfig config, CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Client '{config.Test}'");
+            return Task.CompletedTask;
+        }
+
+        public Task ExecuteOnServerAfterAsync(TestProvisioningStepConfig config, CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"ServerAfter '{config.Test}'");
+            return Task.CompletedTask;
+        }
+    }
+}

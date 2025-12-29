@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.RuntimeJson\Redpoint.RuntimeJson.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="KubernetesClient.Aot" />
+	</ItemGroup>
+
+</Project>
