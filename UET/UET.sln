@@ -382,6 +382,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager.HostedService.Rkm", "Redpoint.KubernetesManager.HostedService.Rkm\Redpoint.KubernetesManager.HostedService.Rkm.csproj", "{299D0B37-9D9F-46E7-9246-553F039A9604}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp", "Lib\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp.csproj", "{FF246122-1FE3-476E-89B7-7ED216001BDA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1040,6 +1042,10 @@ Global
 		{299D0B37-9D9F-46E7-9246-553F039A9604}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{299D0B37-9D9F-46E7-9246-553F039A9604}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{299D0B37-9D9F-46E7-9246-553F039A9604}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1178,6 +1184,7 @@ Global
 		{95FADB3D-2623-484E-BD1F-2C6BFFB977D2} = {22C39CFD-6FF1-4E7B-8EE4-CCCF1D2ED461}
 		{9E347546-446E-4795-BA67-4C0D864C5501} = {22C39CFD-6FF1-4E7B-8EE4-CCCF1D2ED461}
 		{299D0B37-9D9F-46E7-9246-553F039A9604} = {22C39CFD-6FF1-4E7B-8EE4-CCCF1D2ED461}
+		{FF246122-1FE3-476E-89B7-7ED216001BDA} = {39698A12-7C9B-47F5-BA1A-9F4884A770AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
