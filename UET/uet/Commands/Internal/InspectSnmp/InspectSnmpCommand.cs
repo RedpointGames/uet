@@ -4,9 +4,7 @@
     using Lextm.SharpSnmpLib.Messaging;
     using Microsoft.Extensions.Logging;
     using Redpoint.CommandLine;
-    using Redpoint.Pdu.Serveredge;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
     using System.Net;
     using System.Threading.Tasks;
 

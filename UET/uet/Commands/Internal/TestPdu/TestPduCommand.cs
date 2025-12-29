@@ -5,13 +5,8 @@
     using Redpoint.Pdu.Abstractions;
     using Redpoint.Pdu.CyberPower;
     using Redpoint.Pdu.Serveredge;
-    using System;
-    using System.Collections.Generic;
     using System.CommandLine;
-    using System.CommandLine.Invocation;
-    using System.Linq;
     using System.Net;
-    using System.Text;
     using System.Threading.Tasks;
 
     internal class TestPduCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
