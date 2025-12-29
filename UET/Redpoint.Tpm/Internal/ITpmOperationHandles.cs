@@ -2,7 +2,7 @@
 {
     using Tpm2Lib;
 
-    internal interface ITpmOperationHandles : IDisposable
+    public interface ITpmOperationHandles : IDisposable
     {
         Tpm2Device TpmDevice { get; }
 

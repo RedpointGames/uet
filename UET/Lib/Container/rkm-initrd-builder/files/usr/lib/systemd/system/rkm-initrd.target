@@ -1,7 +1,7 @@
 [Unit]
 Description=RKM Initrd Target
 Requires=basic.target network.target
-Wants=dbus.service systemd-networkd.service rkm-rescue-shell.service xorg.service display-manager.service rkm-provision-client.service
+Wants=dbus.service systemd-networkd.service rkm-provisioning.target
 Conflicts=multi-user.target rescue.service rescue.target
 After=multi-user.target rescue.service rescue.target systemd-networkd.service
 AllowIsolate=yes

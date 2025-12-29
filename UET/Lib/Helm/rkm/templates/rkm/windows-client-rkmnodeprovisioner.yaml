@@ -1,0 +1,926 @@
+apiVersion: rkm.redpoint.games/v1
+kind: RkmNodeProvisioner
+metadata:
+  name: windows-client
+spec:
+  parameters:
+    esdFileDownloadUrl: "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/009d9a0d-8e1a-45ce-9540-21377534803e/26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_en-us.esd"
+    esdFileExpectedHash: "8ceab2838f8e90180ac7490e8752157fb05588cb"
+    esdFileImageIndex: "9" # Matches "Windows 11 Pro" in the default ESD.
+    clusterControllerIpAddress: "{{`{{provision:apiAddressIp}}`}}"
+  steps:
+  - type: atomicSequence
+    atomicSequence:
+      steps:
+      - type: deleteBootLoaderEntry
+        deleteBootLoaderEntry:
+          name: Windows Boot Manager
+      - type: executeProcess
+        executeProcess:
+          executable: bash
+          arguments:
+          - "{{script-path}}"
+          script: |
+            #!/bin/bash
+
+            set -e
+            set -x
+
+            if [ -e /var/mount/images/Windows.vhdx ]; then
+              echo "Deleting existing Windows VHDX so we have enough space to work..."
+              rm /var/mount/images/Windows.vhdx
+            fi
+            if [ -e /var/mount/boot/EFI/Boot ]; then
+              echo "Cleaning up installed bootloader..."
+              rm -rf /var/mount/boot/EFI/Boot
+            fi
+            if [ -e /var/mount/boot/EFI/Microsoft ]; then
+              echo "Cleaning up installed Microsoft bootloader..."
+              rm -rf /var/mount/boot/EFI/Microsoft
+            fi
+
+            mkdir -p /var/mount/pe
+
+            if [ -e /var/mount/images/reinitialize_wine ] || [ ! -e /var/mount/images/LinuxTmp.ext4 ]; then
+              echo "Initializing from start..."
+              truncate -s 8G /var/mount/images/LinuxTmp.ext4
+              mkfs.ext4 -F -F /var/mount/images/LinuxTmp.ext4
+            fi
+
+            echo "Mounting temporary disk..."
+            mount -o loop,exec,defaults /var/mount/images/LinuxTmp.ext4 /var/mount/pe
+            if [ ! -e /var/mount/pe/adk_installed ]; then
+              echo "Creating initial directories..."
+              mkdir -pv /var/mount/pe/wineprefix
+              mkdir -pv /var/mount/pe/.local/share
+              mkdir -pv /var/mount/pe/.cache
+            fi
+
+            export WINEPREFIX=/var/mount/pe/wineprefix
+            export XDG_DATA_HOME=/var/mount/pe/.local/share
+            export XDG_CACHE_HOME=/var/mount/pe/.cache
+
+            if [ ! -e /var/mount/pe/adk_installed ]; then
+              echo "Installing ADK and dependencies..."
+
+              if [ ! -e /var/mount/pe/winetricks ]; then
+                echo "Downloading winetricks..."
+                curl -o /var/mount/pe/winetricks -L https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
+              fi
+
+              echo "Installing .NET 4.8 framework (this might take a while)..."
+              WINEDLLOVERRIDES=mscoree=d bash /var/mount/pe/winetricks -q dotnet48
+
+              if [ ! -e /var/mount/pe/adksetup.exe ]; then
+                echo "Downloading adksetup.exe..."
+                curl -o /var/mount/pe/adksetup.exe -L https://download.microsoft.com/download/615540bc-be0b-433a-b91b-1f2b0642bb24/adk/adksetup.exe
+              fi
+
+              echo "Installing ADK..."
+              wine /var/mount/pe/adksetup.exe /quiet
+
+              if [ ! -e /var/mount/pe/adkwinpesetup.exe ]; then
+                echo "Downloading adkwinpesetup.exe..."
+                curl -o /var/mount/pe/adkwinpesetup.exe -L https://download.microsoft.com/download/5/5/6/556e01ec-9d78-417d-b1e1-d83a2eff20bc/ADKWinPEAddons/adkwinpesetup.exe
+              fi
+
+              echo "Installing WinPE add-ons for ADK..."
+              wine /var/mount/pe/adkwinpesetup.exe /quiet
+              sleep 10
+              kill $(pidof wineserver wine) || true
+
+              echo "ADK and dependencies has now been set up."
+              touch /var/mount/pe/adk_installed
+            else
+              echo "ADK and dependencies already set up."
+            fi
+
+            if [ ! -e /var/mount/images/install-$RKM_PARAM_ESD_FILE_EXPECTED_HASH.esd ]; then
+              echo "Downloading Windows 11 24H2 ESD file from Microsoft..."
+              curl --retry 10 --retry-all-errors -o /var/mount/images/install.esd.tmp "$RKM_PARAM_ESD_FILE_DOWNLOAD_URL"
+
+              echo "Hashing downloaded file to check integrity..."
+              sha1sum /var/mount/images/install.esd.tmp > /var/mount/images/install.esd.hash
+              SHA1SUM_RESULT=$(cat /var/mount/images/install.esd.hash)
+              DOWNLOADED_FILE_HASH=${SHA1SUM_RESULT%% *}
+              if [ "$DOWNLOADED_FILE_HASH" != "$RKM_PARAM_ESD_FILE_EXPECTED_HASH" ]; then
+                echo "Error! Downloaded ESD should match hash $RKM_PARAM_ESD_FILE_EXPECTED_HASH, but was $DOWNLOADED_FILE_HASH!"
+                exit 1
+              fi
+
+              mv /var/mount/images/install.esd.tmp /var/mount/images/install-$RKM_PARAM_ESD_FILE_EXPECTED_HASH.esd
+              rm /var/mount/images/install.esd.hash
+              echo "Windows 11 Pro 24H2 ESD file ready to go."
+            else
+              echo "Windows 11 Pro 24H2 ESD file already prepared."
+            fi
+
+            echo "Setting up boot files for WinPE Stage 0..."
+            echo '[LaunchApps]' >/var/mount/pe/winpeshl.ini
+            echo '"boot.bat"' >>/var/mount/pe/winpeshl.ini
+            echo '@echo off' >/var/mount/pe/boot.bat
+            echo 'wpeinit' >>/var/mount/pe/boot.bat
+            echo 'chkdsk /F C:' >>/var/mount/pe/boot.bat
+            echo 'rmdir /Q /S C:\WinPEStage1\mount' >>/var/mount/pe/boot.bat
+            echo 'rmdir /Q /S C:\WinPEStage1\scratch' >>/var/mount/pe/boot.bat
+            echo 'mkdir C:\WinPEStage1\mount' >>/var/mount/pe/boot.bat
+            echo 'mkdir C:\WinPEStage1\scratch' >>/var/mount/pe/boot.bat
+
+            echo "Copy files for WinPE Stage 1 Preparation..."
+            rm -rf /var/mount/images/WinPEStage1/data || true;
+            mkdir -p /var/mount/images/WinPEStage1/data
+            cp "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/en-us/winpe.wim" "/var/mount/images/WinPEStage1/data/winpe.wim"
+            echo 'copy /Y C:\WinPEStage1\data\winpe.wim C:\WinPEStage1\data\winpe-prep.wim' >>/var/mount/pe/boot.bat
+            echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
+            echo 'dism /Mount-Image /ImageFile:C:\WinPEStage1\data\winpe-prep.wim /MountDir:C:\WinPEStage1\mount' >>/var/mount/pe/boot.bat
+            echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
+            for OC in WinPE-WMI WinPE-NetFx WinPE-Scripting WinPE-PowerShell WinPE-DismCmdlets WinPE-SecureBootCmdlets WinPE-StorageWMI WinPE-Setup WinPE-Setup-Client WinPE-SecureStartup; do
+              echo "  Copying $OC package..."
+              cp "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/WinPE_OCs/$OC.cab" "/var/mount/images/WinPEStage1/data/$OC.cab"
+              echo "dism /Add-Package /Image:C:\\WinPEStage1\\mount /PackagePath:C:\\WinPEStage1\\data\\$OC.cab /ScratchDir:C:\\WinPEStage1\\scratch" >>/var/mount/pe/boot.bat
+              echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
+            done
+
+            echo "Finalising files..."
+            echo 'copy /Y C:\WinPEStage1\mount\Windows\System32\vcruntime140_clr0400.dll C:\WinPEStage1\mount\Windows\System32\vcruntime140.dll' >>/var/mount/pe/boot.bat
+            echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
+            echo 'dism /Unmount-Image /MountDir:C:\WinPEStage1\mount /Commit' >>/var/mount/pe/boot.bat
+            echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
+            echo 'copy /Y C:\WinPEStage1\data\winpe-prep.wim C:\WinPEStage1\data\winpe-ready.wim' >>/var/mount/pe/boot.bat
+            echo "uet internal pxeboot notify-for-reboot --fingerprint $RKM_PROVISION_AIK_FINGERPRINT" >>/var/mount/pe/boot.bat
+            unix2dos /var/mount/pe/winpeshl.ini
+            unix2dos /var/mount/pe/boot.bat
+      - type: uploadFiles
+        uploadFiles:
+          files:
+          - source: "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/en-us/winpe.wim"
+            target: winpe.wim
+          - source: "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/Media/Boot/BCD"
+            target: BCD
+          - source: "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/Media/Boot/boot.sdi"
+            target: boot.sdi
+          - source: "/var/mount/pe/winpeshl.ini"
+            target: winpeshl.ini
+          - source: "/var/mount/pe/boot.bat"
+            target: boot.bat
+  - type: reboot
+    reboot:
+      onceViaNotify: true
+      ipxeScriptTemplate: |
+        #!ipxe
+        {{dhcp}}
+        kernel static/wimboot
+        imgfetch --name BCD                         uploaded/BCD                BCD
+        imgfetch --name boot.sdi                    uploaded/boot.sdi           boot.sdi
+        imgfetch --name boot.wim                    uploaded/winpe.wim          boot.wim
+        imgfetch --name winpeshl.ini                uploaded/winpeshl.ini       winpeshl.ini
+        imgfetch --name boot.bat                    uploaded/boot.bat           boot.bat
+        imgfetch --name uet.exe                     static/uet.exe              uet.exe
+        imgfetch --name rkm-provision-context.json  rkm-provision-context.json  rkm-provision-context.json
+        boot
+  - type: atomicSequence
+    atomicSequence:
+      steps:
+      - type: executeProcess
+        executeProcess:
+          executable: bash
+          arguments:
+          - "{{script-path}}"
+          script: |
+            #!/bin/bash
+
+            set -e
+            set -x
+
+            if [ ! -e /var/mount/images/WinPEStage1/data/winpe-ready.wim ]; then
+              echo "WinPE Stage 0 failed to produce winpe-ready.wim!"
+              exit 1
+            fi
+
+            echo "Setting up boot files for WinPE Stage 1..."
+            echo '[LaunchApps]' >/var/mount/images/WinPEStage1/data/winpeshl.ini
+            echo '"boot.bat"' >>/var/mount/images/WinPEStage1/data/winpeshl.ini
+            echo '@echo off' >/var/mount/images/WinPEStage1/data/boot.bat
+            echo 'wpeinit' >>/var/mount/images/WinPEStage1/data/boot.bat
+            echo 'chkdsk /F C:' >>/var/mount/images/WinPEStage1/data/boot.bat
+            echo 'uet internal pxeboot provision-client' >>/var/mount/images/WinPEStage1/data/boot.bat
+            echo 'cmd' >>/var/mount/images/WinPEStage1/data/boot.bat
+            unix2dos /var/mount/images/WinPEStage1/data/winpeshl.ini
+            unix2dos /var/mount/images/WinPEStage1/data/boot.bat
+      - type: uploadFiles
+        uploadFiles:
+          files:
+          - source: "/var/mount/images/WinPEStage1/data/winpe-ready.wim"
+            target: winpe.wim
+          - source: "/var/mount/images/WinPEStage1/data/winpeshl.ini"
+            target: winpeshl.ini
+          - source: "/var/mount/images/WinPEStage1/data/boot.bat"
+            target: boot.bat
+  - type: reboot
+    reboot:
+      ipxeScriptTemplate: |
+        #!ipxe
+        {{dhcp}}
+        kernel static/wimboot
+        imgfetch --name BCD                         uploaded/BCD                BCD
+        imgfetch --name boot.sdi                    uploaded/boot.sdi           boot.sdi
+        imgfetch --name boot.wim                    uploaded/winpe.wim          boot.wim
+        imgfetch --name winpeshl.ini                uploaded/winpeshl.ini       winpeshl.ini
+        imgfetch --name boot.bat                    uploaded/boot.bat           boot.bat
+        imgfetch --name uet.ppkg                    uploaded/uet.ppkg           uet.ppkg
+        imgfetch --name uet.exe                     static/uet.exe              uet.exe
+        imgfetch --name rkm-provision-context.json  rkm-provision-context.json  rkm-provision-context.json
+        boot
+  - type: atomicSequence
+    atomicSequence:
+      steps:
+      - type: executeProcess
+        executeProcess:
+          executable: powershell
+          arguments:
+          - "-ExecutionPolicy"
+          - "Bypass"
+          - "{{script-path}}"
+          script: |
+            param()
+
+            $ErrorActionPreference = 'Stop'
+
+            if (Test-Path C:\Windows.vhdx) {
+              Write-Host "Deleting existing Windows installation..."
+              Remove-Item C:\Windows.vhdx
+            }
+
+            Write-Host "Creating new virtual disk for Windows..."
+            $TargetSize = [Math]::Round(((Get-Volume -DriveLetter C).SizeRemaining / 1024 / 1024) - (10 * 1024))
+            $Script = @"
+            create vdisk file="C:\Windows.vhdx" type=fixed maximum=$TargetSize
+            attach vdisk
+            clean
+            create partition primary
+            format quick fs=ntfs
+            assign letter=w
+            exit
+            "@
+            Set-Content -Path "$env:TEMP\vdisksetup.txt" -Value $Script
+            diskpart /s "$env:TEMP\vdisksetup.txt"
+            if ($LastExitCode -ne 0) {
+                exit 1
+            }
+
+            Write-Host "Applying image to virtual disk..."
+            dism /Apply-Image /ImageFile:C:\install-${env:RKM_PARAM_ESD_FILE_EXPECTED_HASH}.esd /Index:${env:RKM_PARAM_ESD_FILE_IMAGE_INDEX} /ApplyDir:W:\
+
+            Write-Host "Enabling Hyper-V and Containers features..."
+            dism /Image:W:\ /Enable-Feature /FeatureName:Containers /FeatureName:Microsoft-Hyper-V /All /ScratchDir:C:\
+
+            Write-Host "Install the bootloader from template..."
+            bcdboot W:\Windows /addlast /p
+            bcdedit /set "{fwbootmgr}" displayorder "{bootmgr}" /addlast
+
+            Write-Host "Copying UET to installed version of Windows..."
+            New-Item -ItemType Directory -Path W:\ProgramData\UET\RKM-Provisioned
+            Copy-Item -Force X:\Windows\System32\uet.exe W:\ProgramData\UET\RKM-Provisioned\uet.exe
+      - type: modifyFiles
+        modifyFiles:
+          files:
+          - path: "W:\\Windows\\Panther\\unattend.xml"
+            enableReplacements: true
+            content: |
+              <?xml version="1.0" encoding="utf-8"?>
+              <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+                <settings pass="specialize">
+                  <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+                    <ComputerName>{{provision:nodeName}}</ComputerName>
+                  </component>
+                  <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+                    <RunSynchronous>
+                      <RunSynchronousCommand wcm:action="add">
+                        <Order>1</Order>
+                        <Path>powershell.exe -WindowStyle "Normal" -ExecutionPolicy "Unrestricted" -NoProfile -File "C:\Windows\Setup\Scripts\Specialize.ps1"</Path>
+                      </RunSynchronousCommand>
+                      <RunSynchronousCommand wcm:action="add">
+                        <Order>2</Order>
+                        <Path>reg.exe load "HKU\DefaultUser" "C:\Users\Default\NTUSER.DAT"</Path>
+                      </RunSynchronousCommand>
+                      <RunSynchronousCommand wcm:action="add">
+                        <Order>3</Order>
+                        <Path>powershell.exe -WindowStyle "Normal" -ExecutionPolicy "Unrestricted" -NoProfile -File "C:\Windows\Setup\Scripts\DefaultUser.ps1"</Path>
+                      </RunSynchronousCommand>
+                      <RunSynchronousCommand wcm:action="add">
+                        <Order>4</Order>
+                        <Path>reg.exe unload "HKU\DefaultUser"</Path>
+                      </RunSynchronousCommand>
+                    </RunSynchronous>
+                  </component>
+                </settings>
+                <settings pass="oobeSystem">
+                  <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+                    <InputLocale>0409:00000409</InputLocale>
+                    <SystemLocale>en-US</SystemLocale>
+                    <UILanguage>en-US</UILanguage>
+                    <UserLocale>en-US</UserLocale>
+                  </component>
+                  <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+                    <UserAccounts>
+                      <LocalAccounts>
+                        <LocalAccount wcm:action="add">
+                          <Name>kubernetes</Name>
+                          <DisplayName></DisplayName>
+                          <Group>Administrators</Group>
+                          <Password>
+                            <Value>kubernetes</Value>
+                            <PlainText>true</PlainText>
+                          </Password>
+                        </LocalAccount>
+                      </LocalAccounts>
+                    </UserAccounts>
+                    <AutoLogon>
+                      <Username>kubernetes</Username>
+                      <Enabled>true</Enabled>
+                      <LogonCount>1</LogonCount>
+                      <Password>
+                        <Value>kubernetes</Value>
+                        <PlainText>true</PlainText>
+                      </Password>
+                    </AutoLogon>
+                    <OOBE>
+                      <ProtectYourPC>3</ProtectYourPC>
+                      <HideEULAPage>true</HideEULAPage>
+                      <HideWirelessSetupInOOBE>false</HideWirelessSetupInOOBE>
+                      <HideOnlineAccountScreens>false</HideOnlineAccountScreens>
+                    </OOBE>
+                    <FirstLogonCommands>
+                      <SynchronousCommand wcm:action="add">
+                        <Order>1</Order>
+                        <CommandLine>powershell.exe -WindowStyle "Normal" -ExecutionPolicy "Unrestricted" -NoProfile -File "C:\Windows\Setup\Scripts\FirstLogon.ps1"</CommandLine>
+                      </SynchronousCommand>
+                    </FirstLogonCommands>
+                  </component>
+                </settings>
+              </unattend>
+          - path: "W:\\Windows\\Setup\\Scripts\\RemovePackages.ps1"
+            content: |
+              $selectors = @(
+                'Microsoft.Microsoft3DViewer';
+                'Microsoft.BingSearch';
+                'Microsoft.WindowsCamera';
+                'Clipchamp.Clipchamp';
+                'Microsoft.Copilot';
+                'Microsoft.549981C3F5F10';
+                'MicrosoftCorporationII.MicrosoftFamily';
+                'Microsoft.WindowsFeedbackHub';
+                'Microsoft.Edge.GameAssist';
+                'Microsoft.Getstarted';
+                'microsoft.windowscommunicationsapps';
+                'Microsoft.WindowsMaps';
+                'Microsoft.MixedReality.Portal';
+                'Microsoft.BingNews';
+                'Microsoft.MicrosoftOfficeHub';
+                'Microsoft.Office.OneNote';
+                'Microsoft.OutlookForWindows';
+                'Microsoft.MSPaint';
+                'Microsoft.People';
+                'Microsoft.PowerAutomateDesktop';
+                'MicrosoftCorporationII.QuickAssist';
+                'Microsoft.SkypeApp';
+                'Microsoft.MicrosoftSolitaireCollection';
+                'Microsoft.MicrosoftStickyNotes';
+                'MicrosoftTeams';
+                'MSTeams';
+                'Microsoft.Todos';
+                'Microsoft.WindowsSoundRecorder';
+                'Microsoft.Wallet';
+                'Microsoft.BingWeather';
+                'Microsoft.Xbox.TCUI';
+                'Microsoft.XboxApp';
+                'Microsoft.XboxGameOverlay';
+                'Microsoft.XboxGamingOverlay';
+                'Microsoft.XboxIdentityProvider';
+                'Microsoft.XboxSpeechToTextOverlay';
+                'Microsoft.GamingApp';
+                'Microsoft.YourPhone';
+                'Microsoft.ZuneMusic';
+                'Microsoft.ZuneVideo';
+              );
+              $getCommand = {
+                Get-AppxProvisionedPackage -Online;
+              };
+              $filterCommand = {
+                $_.DisplayName -eq $selector;
+              };
+              $removeCommand = {
+                [CmdletBinding()]
+                param(
+                  [Parameter( Mandatory, ValueFromPipeline )]
+                  $InputObject
+                );
+                process {
+                  $InputObject | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction 'Continue';
+                }
+              };
+              $type = 'Package';
+              $logfile = 'C:\Windows\Setup\Scripts\RemovePackages.log';
+              & {
+                $installed = & $getCommand;
+                foreach( $selector in $selectors ) {
+                  $result = [ordered] @{
+                    Selector = $selector;
+                  };
+                  $found = $installed | Where-Object -FilterScript $filterCommand;
+                  if( $found ) {
+                    $result.Output = $found | & $removeCommand;
+                    if( $? ) {
+                      $result.Message = "$type removed.";
+                    } else {
+                      $result.Message = "$type not removed.";
+                      $result.Error = $Error[0];
+                    }
+                  } else {
+                    $result.Message = "$type not installed.";
+                  }
+                  $result | ConvertTo-Json -Depth 3 -Compress;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
+          - path: "W:\\Windows\\Setup\\Scripts\\RemoveCapabilities.ps1"
+            content: |
+              $selectors = @(
+                'Print.Fax.Scan';
+                'Language.Handwriting';
+                'MathRecognizer';
+                'OneCoreUAP.OneSync';
+                'App.Support.QuickAssist';
+                'Language.Speech';
+                'Language.TextToSpeech';
+                'App.StepsRecorder';
+                'Hello.Face.18967';
+                'Hello.Face.Migration.18967';
+                'Hello.Face.20134';
+              );
+              $getCommand = {
+                Get-WindowsCapability -Online | Where-Object -Property 'State' -NotIn -Value @(
+                  'NotPresent';
+                  'Removed';
+                );
+              };
+              $filterCommand = {
+                ($_.Name -split '~')[0] -eq $selector;
+              };
+              $removeCommand = {
+                [CmdletBinding()]
+                param(
+                  [Parameter( Mandatory, ValueFromPipeline )]
+                  $InputObject
+                );
+                process {
+                  $InputObject | Remove-WindowsCapability -Online -ErrorAction 'Continue';
+                }
+              };
+              $type = 'Capability';
+              $logfile = 'C:\Windows\Setup\Scripts\RemoveCapabilities.log';
+              & {
+                $installed = & $getCommand;
+                foreach( $selector in $selectors ) {
+                  $result = [ordered] @{
+                    Selector = $selector;
+                  };
+                  $found = $installed | Where-Object -FilterScript $filterCommand;
+                  if( $found ) {
+                    $result.Output = $found | & $removeCommand;
+                    if( $? ) {
+                      $result.Message = "$type removed.";
+                    } else {
+                      $result.Message = "$type not removed.";
+                      $result.Error = $Error[0];
+                    }
+                  } else {
+                    $result.Message = "$type not installed.";
+                  }
+                  $result | ConvertTo-Json -Depth 3 -Compress;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
+          - path: "W:\\Windows\\Setup\\Scripts\\RemoveFeatures.ps1"
+            content: |
+              $selectors = @(
+                'MediaPlayback';
+                'Recall';
+              );
+              $getCommand = {
+                Get-WindowsOptionalFeature -Online | Where-Object -Property 'State' -NotIn -Value @(
+                  'Disabled';
+                  'DisabledWithPayloadRemoved';
+                );
+              };
+              $filterCommand = {
+                $_.FeatureName -eq $selector;
+              };
+              $removeCommand = {
+                [CmdletBinding()]
+                param(
+                  [Parameter( Mandatory, ValueFromPipeline )]
+                  $InputObject
+                );
+                process {
+                  $InputObject | Disable-WindowsOptionalFeature -Online -Remove -NoRestart -ErrorAction 'Continue';
+                }
+              };
+              $type = 'Feature';
+              $logfile = 'C:\Windows\Setup\Scripts\RemoveFeatures.log';
+              & {
+                $installed = & $getCommand;
+                foreach( $selector in $selectors ) {
+                  $result = [ordered] @{
+                    Selector = $selector;
+                  };
+                  $found = $installed | Where-Object -FilterScript $filterCommand;
+                  if( $found ) {
+                    $result.Output = $found | & $removeCommand;
+                    if( $? ) {
+                      $result.Message = "$type removed.";
+                    } else {
+                      $result.Message = "$type not removed.";
+                      $result.Error = $Error[0];
+                    }
+                  } else {
+                    $result.Message = "$type not installed.";
+                  }
+                  $result | ConvertTo-Json -Depth 3 -Compress;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
+          - path: "W:\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.ps1"
+            content: |
+              $formatter = {
+                $args[0].ToString( "yyyy'-'MM'-'dd'T'HH':'mm':'ssK" );
+              };
+              $now = [datetime]::UtcNow;
+              $start = & $formatter $now;
+              $end = & $formatter $now.AddDays( 7 );
+
+              $params = @{
+                LiteralPath = 'Registry::HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings';
+                Type = 'String';
+                Force = $true;
+              };
+
+              Set-ItemProperty @params -Name 'PauseFeatureUpdatesStartTime' -Value $start;
+              Set-ItemProperty @params -Name 'PauseFeatureUpdatesEndTime' -Value $end;
+              Set-ItemProperty @params -Name 'PauseQualityUpdatesStartTime' -Value $start;
+              Set-ItemProperty @params -Name 'PauseQualityUpdatesEndTime' -Value $end;
+              Set-ItemProperty @params -Name 'PauseUpdatesStartTime' -Value $start;
+              Set-ItemProperty @params -Name 'PauseUpdatesExpiryTime' -Value $end;
+          - path: "W:\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.xml"
+            content: |
+              <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+                <Triggers>
+                  <BootTrigger>
+                    <Repetition>
+                      <Interval>P1D</Interval>
+                      <StopAtDurationEnd>false</StopAtDurationEnd>
+                    </Repetition>
+                    <Enabled>true</Enabled>
+                  </BootTrigger>
+                </Triggers>
+                <Principals>
+                  <Principal id="Author">
+                    <UserId>S-1-5-19</UserId>
+                    <RunLevel>LeastPrivilege</RunLevel>
+                  </Principal>
+                </Principals>
+                <Settings>
+                  <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+                  <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                  <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                  <AllowHardTerminate>true</AllowHardTerminate>
+                  <StartWhenAvailable>false</StartWhenAvailable>
+                  <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+                  <IdleSettings>
+                    <StopOnIdleEnd>true</StopOnIdleEnd>
+                    <RestartOnIdle>false</RestartOnIdle>
+                  </IdleSettings>
+                  <AllowStartOnDemand>true</AllowStartOnDemand>
+                  <Enabled>true</Enabled>
+                  <Hidden>false</Hidden>
+                  <RunOnlyIfIdle>false</RunOnlyIfIdle>
+                  <WakeToRun>false</WakeToRun>
+                  <ExecutionTimeLimit>PT72H</ExecutionTimeLimit>
+                  <Priority>7</Priority>
+                </Settings>
+                <Actions Context="Author">
+                  <Exec>
+                    <Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command>
+                    <Arguments>-ExecutionPolicy "Unrestricted" -NoProfile -File "C:\Windows\Setup\Scripts\PauseWindowsUpdate.ps1"</Arguments>
+                  </Exec>
+                </Actions>
+              </Task>
+          - path: "W:\\Windows\\Setup\\Scripts\\MoveActiveHours.vbs"
+            content: |
+              HKLM = &H80000002
+              key = "SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+              Set reg = GetObject("winmgmts://./root/default:StdRegProv")
+              current = Hour(Now)
+              reg.SetDWORDValue HKLM, key, "ActiveHoursStart", ( current + 23 ) Mod 24
+              reg.SetDWORDValue HKLM, key, "ActiveHoursEnd", ( current + 11 ) Mod 24
+              reg.SetDWORDValue HKLM, key, "SmartActiveHoursState", 2
+          - path: "W:\\Windows\\Setup\\Scripts\\MoveActiveHours.xml"
+            content: |
+              <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+                <Triggers>
+                  <BootTrigger>
+                    <Repetition>
+                      <Interval>PT4H</Interval>
+                      <StopAtDurationEnd>false</StopAtDurationEnd>
+                    </Repetition>
+                    <Enabled>true</Enabled>
+                  </BootTrigger>
+                  <RegistrationTrigger>
+                    <Repetition>
+                      <Interval>PT4H</Interval>
+                      <StopAtDurationEnd>false</StopAtDurationEnd>
+                    </Repetition>
+                    <Enabled>true</Enabled>
+                  </RegistrationTrigger>
+                </Triggers>
+                <Principals>
+                  <Principal id="Author">
+                    <UserId>S-1-5-19</UserId>
+                    <RunLevel>LeastPrivilege</RunLevel>
+                  </Principal>
+                </Principals>
+                <Settings>
+                  <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+                  <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                  <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                  <AllowHardTerminate>true</AllowHardTerminate>
+                  <StartWhenAvailable>false</StartWhenAvailable>
+                  <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+                  <IdleSettings>
+                    <StopOnIdleEnd>true</StopOnIdleEnd>
+                    <RestartOnIdle>false</RestartOnIdle>
+                  </IdleSettings>
+                  <AllowStartOnDemand>true</AllowStartOnDemand>
+                  <Enabled>true</Enabled>
+                  <Hidden>false</Hidden>
+                  <RunOnlyIfIdle>false</RunOnlyIfIdle>
+                  <WakeToRun>false</WakeToRun>
+                  <ExecutionTimeLimit>PT72H</ExecutionTimeLimit>
+                  <Priority>7</Priority>
+                </Settings>
+                <Actions Context="Author">
+                  <Exec>
+                    <Command>C:\Windows\System32\wscript.exe</Command>
+                    <Arguments>C:\Windows\Setup\Scripts\MoveActiveHours.vbs</Arguments>
+                  </Exec>
+                </Actions>
+              </Task>
+          - path: "W:\\Windows\\Setup\\Scripts\\SetStartPins.ps1"
+            content: |
+              $json = '{"pinnedList":[]}';
+              if( [System.Environment]::OSVersion.Version.Build -lt 20000 ) {
+                return;
+              }
+              $key = 'Registry::HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start';
+              New-Item -Path $key -ItemType 'Directory' -ErrorAction 'SilentlyContinue';
+              Set-ItemProperty -LiteralPath $key -Name 'ConfigureStartPins' -Value $json -Type 'String';
+          - path: "W:\\Windows\\Setup\\Scripts\\Specialize.ps1"
+            content: |
+              $scripts = @(
+                {
+                  Remove-Item -LiteralPath 'C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk', 'C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe' -ErrorAction 'Continue';
+                };
+                {
+                  Remove-Item -LiteralPath 'Registry::HKLM\Software\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\OutlookUpdate' -Force -ErrorAction 'SilentlyContinue';
+                };
+                {
+                  reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications" /v ConfigureChatAutoInstall /t REG_DWORD /d 0 /f;
+                };
+                {
+                  & 'C:\Windows\Setup\Scripts\RemovePackages.ps1';
+                };
+                {
+                  & 'C:\Windows\Setup\Scripts\RemoveCapabilities.ps1';
+                };
+                {
+                  & 'C:\Windows\Setup\Scripts\RemoveFeatures.ps1';
+                };
+                {
+                  net.exe accounts /maxpwage:UNLIMITED;
+                };
+                {
+                  Register-ScheduledTask -TaskName 'PauseWindowsUpdate' -Xml $( Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\PauseWindowsUpdate.xml' -Raw );
+                };
+                {
+                  reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f
+                };
+                {
+                  netsh.exe advfirewall firewall set rule group="@FirewallAPI.dll,-28752" new enable=Yes;
+                  reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f;
+                };
+                {
+                  Set-ExecutionPolicy -Scope 'LocalMachine' -ExecutionPolicy 'RemoteSigned' -Force;
+                };
+                {
+                  reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 4 /f;
+                  reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoRebootWithLoggedOnUsers /t REG_DWORD /d 1 /f;
+                };
+                {
+                  Register-ScheduledTask -TaskName 'MoveActiveHours' -Xml $( Get-Content -LiteralPath 'C:\Windows\Setup\Scripts\MoveActiveHours.xml' -Raw );
+                };
+                {
+                  reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v AllowNewsAndInterests /t REG_DWORD /d 0 /f;
+                };
+                {
+                  reg.exe add "HKLM\Software\Policies\Microsoft\Edge" /v HideFirstRunExperience /t REG_DWORD /d 1 /f;
+                };
+                {
+                  & 'C:\Windows\Setup\Scripts\SetStartPins.ps1';
+                };
+              );
+
+              & {
+                [float] $complete = 0;
+                [float] $increment = 100 / $scripts.Count;
+                foreach( $script in $scripts ) {
+                  Write-Progress -Activity 'Running scripts to customize your Windows installation. Do not close this window.' -PercentComplete $complete;
+                  '*** Will now execute command «{0}».' -f $(
+                    $str = $script.ToString().Trim() -replace '\s+', ' ';
+                    $max = 100;
+                    if( $str.Length -le $max ) {
+                      $str;
+                    } else {
+                      $str.Substring( 0, $max - 1 ) + '…';
+                    }
+                  );
+                  $start = [datetime]::Now;
+                  & $script;
+                  '*** Finished executing command after {0:0} ms.' -f [datetime]::Now.Subtract( $start ).TotalMilliseconds;
+                  "`r`n" * 3;
+                  $complete += $increment;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> "C:\Windows\Setup\Scripts\Specialize.log";
+          - path: "W:\\Windows\\Setup\\Scripts\\UserOnce.ps1"
+            content: |
+              $scripts = @(
+                {
+                  Get-AppxPackage -Name 'Microsoft.Windows.Ai.Copilot.Provider' | Remove-AppxPackage;
+                };
+                {
+                  Set-ItemProperty -LiteralPath 'Registry::HKCU\Software\Microsoft\Windows\CurrentVersion\Search' -Name 'SearchboxTaskbarMode' -Type 'DWord' -Value 0;
+                };
+                {
+                  Get-Process -Name 'explorer' -ErrorAction 'SilentlyContinue' | Where-Object -FilterScript {
+                    $_.SessionId -eq ( Get-Process -Id $PID ).SessionId;
+                  } | Stop-Process -Force;
+                };
+              );
+
+              & {
+                [float] $complete = 0;
+                [float] $increment = 100 / $scripts.Count;
+                foreach( $script in $scripts ) {
+                  Write-Progress -Activity 'Running scripts to configure this user account. Do not close this window.' -PercentComplete $complete;
+                  '*** Will now execute command «{0}».' -f $(
+                    $str = $script.ToString().Trim() -replace '\s+', ' ';
+                    $max = 100;
+                    if( $str.Length -le $max ) {
+                      $str;
+                    } else {
+                      $str.Substring( 0, $max - 1 ) + '…';
+                    }
+                  );
+                  $start = [datetime]::Now;
+                  & $script;
+                  '*** Finished executing command after {0:0} ms.' -f [datetime]::Now.Subtract( $start ).TotalMilliseconds;
+                  "`r`n" * 3;
+                  $complete += $increment;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> "$env:TEMP\UserOnce.log";
+          - path: "W:\\Windows\\Setup\\Scripts\\DefaultUser.ps1"
+            content: |
+              $scripts = @(
+                {
+                  reg.exe add "HKU\DefaultUser\Software\Policies\Microsoft\Windows\WindowsCopilot" /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f;
+                };
+                {
+                  Remove-ItemProperty -LiteralPath 'Registry::HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'OneDriveSetup' -Force -ErrorAction 'Continue';
+                };
+                {
+                  reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\GameDVR" /v AppCaptureEnabled /t REG_DWORD /d 0 /f;
+                };
+                {
+                  $names = @(
+                    'ContentDeliveryAllowed';
+                    'FeatureManagementEnabled';
+                    'OEMPreInstalledAppsEnabled';
+                    'PreInstalledAppsEnabled';
+                    'PreInstalledAppsEverEnabled';
+                    'SilentInstalledAppsEnabled';
+                    'SoftLandingEnabled';
+                    'SubscribedContentEnabled';
+                    'SubscribedContent-310093Enabled';
+                    'SubscribedContent-338387Enabled';
+                    'SubscribedContent-338388Enabled';
+                    'SubscribedContent-338389Enabled';
+                    'SubscribedContent-338393Enabled';
+                    'SubscribedContent-353694Enabled';
+                    'SubscribedContent-353696Enabled';
+                    'SubscribedContent-353698Enabled';
+                    'SystemPaneSuggestionsEnabled';
+                  );
+                  
+                  foreach( $name in $names ) {
+                    reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v $name /t REG_DWORD /d 0 /f;
+                  }
+                };
+                {
+                  reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v TaskbarAl /t REG_DWORD /d 0 /f;
+                };
+                {
+                  reg.exe add "HKU\DefaultUser\Software\Microsoft\Windows\CurrentVersion\RunOnce" /v "UnattendedSetup" /t REG_SZ /d "powershell.exe -WindowStyle \""Normal\"" -ExecutionPolicy \""Unrestricted\"" -NoProfile -File \""C:\Windows\Setup\Scripts\UserOnce.ps1\""" /f;
+                };
+              );
+
+              & {
+                [float] $complete = 0;
+                [float] $increment = 100 / $scripts.Count;
+                foreach( $script in $scripts ) {
+                  Write-Progress -Activity 'Running scripts to modify the default user’’s registry hive. Do not close this window.' -PercentComplete $complete;
+                  '*** Will now execute command «{0}».' -f $(
+                    $str = $script.ToString().Trim() -replace '\s+', ' ';
+                    $max = 100;
+                    if( $str.Length -le $max ) {
+                      $str;
+                    } else {
+                      $str.Substring( 0, $max - 1 ) + '…';
+                    }
+                  );
+                  $start = [datetime]::Now;
+                  & $script;
+                  '*** Finished executing command after {0:0} ms.' -f [datetime]::Now.Subtract( $start ).TotalMilliseconds;
+                  "`r`n" * 3;
+                  $complete += $increment;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> "C:\Windows\Setup\Scripts\DefaultUser.log";
+          - path: "W:\\Windows\\Setup\\Scripts\\FirstLogon.ps1"
+            enableReplacements: true
+            content: |
+              $scripts = @(
+                {
+                  Set-ItemProperty -LiteralPath 'Registry::HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'AutoLogonCount' -Type 'DWord' -Force -Value 0;
+                };
+                {
+                  Disable-ComputerRestore -Drive 'C:\';
+                };
+                {
+                  & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' cluster start --no-stream-logs --node "{{param:clusterControllerIpAddress}}"
+                };
+                {
+                  Remove-Item -LiteralPath @(
+                    'C:\Windows\Panther\unattend.xml';
+                    'C:\Windows\Panther\unattend-original.xml';
+                    'C:\Windows\Setup\Scripts\Wifi.xml';
+                  ) -Force -ErrorAction 'SilentlyContinue' -Verbose;
+                };
+              );
+
+              & {
+                [float] $complete = 0;
+                [float] $increment = 100 / $scripts.Count;
+                foreach( $script in $scripts ) {
+                  Write-Progress -Activity 'Running scripts to finalize your Windows installation. Do not close this window.' -PercentComplete $complete;
+                  '*** Will now execute command «{0}».' -f $(
+                    $str = $script.ToString().Trim() -replace '\s+', ' ';
+                    $max = 100;
+                    if( $str.Length -le $max ) {
+                      $str;
+                    } else {
+                      $str.Substring( 0, $max - 1 ) + '…';
+                    }
+                  );
+                  $start = [datetime]::Now;
+                  & $script;
+                  '*** Finished executing command after {0:0} ms.' -f [datetime]::Now.Subtract( $start ).TotalMilliseconds;
+                  "`r`n" * 3;
+                  $complete += $increment;
+                }
+              } *>&1 | Out-String -Width 1KB -Stream >> "C:\Windows\Setup\Scripts\FirstLogon.log";
+  - type: reboot
+    reboot:
+      defaultInitrd: true
+  - type: executeProcess
+    executeProcess:
+      executable: bash
+      arguments:
+      - "{{script-path}}"
+      script: |
+        #!/bin/bash
+
+        set -e
+        set -x
+
+        echo "Tidying up files we no longer need..."
+        rm -rf /var/mount/images/WinPEStage1 || true;
+
+        # note: we keep LinuxTmp.ext4 and install.esd as these take a long to prepare
+  - type: test
+    test:
+      value: Running in Linux initrd once more to fix up boot manager order, and then we're done.

@@ -3,7 +3,7 @@
     using System.Security.Cryptography;
     using System.Threading.Tasks;
 
-    internal interface ITpmService
+    public interface ITpmService
     {
         Task<(byte[] ekPublicBytes, byte[] aikPublicBytes, ITpmOperationHandles operationHandles)> CreateRequestAsync();
 

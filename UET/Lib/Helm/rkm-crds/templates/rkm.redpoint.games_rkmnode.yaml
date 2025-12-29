@@ -33,6 +33,12 @@ spec:
                 description: If true, the node will forcibly reprovision the operating system even if it's already provisioned.
                 nullable: true
                 type: boolean
+              inactiveBootEntries:
+                description: A list of boot entries that RKM should set to inactive during provisioning. This can be used to disable network boot entries from network adapters that are not attached, speeding up the boot process. Entries not in this list will always be set to active.
+                nullable: true
+                type: array
+                items:
+                  type: string
           status:
             type: object
             properties:
@@ -68,15 +74,70 @@ spec:
               architecture:
                 type: string
                 description: Specifies the CPU architecture of this machine.
+              provisioner:
+                type: object
+                nullable: true
+                description: The current provisioner state for this node.
+                properties:
+                  name:
+                    type: string
+                  hash:
+                    type: string
+                  lastStepCommittedIndex:
+                    type: number
+                  rebootStepIndex:
+                    type: number
+                  rebootNotificationForOnceViaNotifyOccurred:
+                    type: boolean
+                  currentStepIndex:
+                    type: number
+                  currentStepStarted:
+                    type: boolean
+              lastSuccessfulProvision:
+                type: object
+                nullable: true
+                description: Information about the last time this node was successfully provisioned. This is used to automatically detect when the node is out-of-date with the provisioner and trigger a reprovision.
+                properties:
+                  name:
+                    type: string
+                  hash:
+                    type: string
+              registeredIpAddresses:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    address:
+                      type: string
+                    expiresAt:
+                      type: string
+                      format: date-time
+              bootToDisk:
+                type: boolean
+              bootEntries:
+                description: The list of boot entries in the EFI firmware, automatically synchronised whenever the initrd starts up. This can be used to then set inactiveBootEntries if needed.
+                nullable: true
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bootId:
+                      type: string
+                      description: The boot ID; this should be the value set into inactiveBootEntries.
+                    name:
+                      type: string
+                      description: The boot entry name.
+                    path:
+                      type: string
+                      description: The boot entry path.
+                    active:
+                      type: boolean
+                      description: If the entry was active last time the initrd environment ran.
     selectableFields:
     - jsonPath: .spec.nodeName
     - jsonPath: .spec.nodeGroup
     - jsonPath: .spec.authorized
     additionalPrinterColumns:
-    - jsonPath: .status.attestationIdentityKeyFingerprint
-      name: "Fingerprint"
-      description: The fingerprint of the attestation identity key.
-      type: string
     - jsonPath: .spec.nodeName
       name: "Node Name"
       description: The name given to this node if it is authorized. You can't authorize a node without giving it a name.

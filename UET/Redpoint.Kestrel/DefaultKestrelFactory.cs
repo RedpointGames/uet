@@ -8,6 +8,7 @@
     using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
     using Microsoft.AspNetCore.WebSockets;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
     using System;
@@ -17,11 +18,14 @@
     internal class DefaultKestrelFactory : IKestrelFactory, Microsoft.AspNetCore.Hosting.IApplicationLifetime
     {
         private readonly IHostApplicationLifetime _hostApplicationLifetime;
+        private readonly ILoggerFactory? _loggerFactory;
 
         public DefaultKestrelFactory(
-            IHostApplicationLifetime hostApplicationLifetime)
+            IHostApplicationLifetime hostApplicationLifetime,
+            ILoggerFactory? loggerFactory = null)
         {
             _hostApplicationLifetime = hostApplicationLifetime;
+            _loggerFactory = loggerFactory;
         }
 
         public CancellationToken ApplicationStarted => _hostApplicationLifetime.ApplicationStarted;
@@ -76,7 +80,7 @@
             CancellationToken cancellationToken)
         {
             var transportOptions = new SocketTransportOptions();
-            var loggerFactory = new NullLoggerFactory();
+            var loggerFactory = _loggerFactory ?? new NullLoggerFactory();
 
             var transportFactory = new SocketTransportFactory(
                 new OptionsWrapper<SocketTransportOptions>(transportOptions),

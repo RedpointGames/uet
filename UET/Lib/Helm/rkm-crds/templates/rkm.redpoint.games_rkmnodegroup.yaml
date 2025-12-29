@@ -20,37 +20,21 @@ spec:
           spec:
             type: object
             properties:
-              platform:
+              provisioner:
                 type: string
                 nullable: true
-                description: Specifies the platform that this machine should be provisioned as. If not set, nodes in this group will provision as the first platform they are capable of running.
-                enum: [Windows, Linux, Mac]
-              activeDirectory:
+                description: Specifies the provisioner to use to provision this machine.
+              provisionerArguments:
                 type: object
+                description: An arbitrary map of parameter values that should be available when provisioning. These will override the default parameter values that the provisioner has set. Each entry here will be cause '{{`{{param:<key>}}`}}' to be substituted, and RKM_PARAM_KEY_NAME_TRANSFORMED as an environment variable. KEY_NAME_TRANSFORMED is the key transformed such that 'keyNameTransformed' is 'KEY_NAME_TRANSFORMED'.
+                x-kubernetes-preserve-unknown-fields: true
                 nullable: true
-                properties:
-                  domain:
-                    type: string
-                    description: The Active Directory domain that this machine will be joined to.
-                  join:
-                    type: boolean
-                    description: If true, this machine will be joined to Active Directory.
-                  computerGroups:
-                    description: The list of groups that the machine's Active Directory account will be a member of.
-                    type: array
-                    items:
-                      type: string
+              clusterControllerIpAddress:
+                type: string
+                nullable: true
+                description: If set, overrides the Kubernetes controller IP address that provisioned machines should join.
     selectableFields: []
     additionalPrinterColumns:
-    - jsonPath: .spec.platform
-      name: "Platform"
-      type: string
-    - jsonPath: .spec.activeDirectory.domain
-      name: "AD Domain"
-      type: string
-    - jsonPath: .spec.activeDirectory.join
-      name: "AD Join"
-      type: string
-    - jsonPath: .spec.activeDirectory.computerGroups[*]
-      name: "AD Computer Groups"
+    - jsonPath: .spec.provisioner
+      name: "Provisioner"
       type: string

@@ -40,6 +40,16 @@
         }
 
         /// <summary>
+        /// Computes the SHA256 hash for the stream and returns it as a lowercase hexadecimal string.
+        /// </summary>
+        /// <param name="stream">The stream to compute the hash for.</param>
+        /// <returns>The lowercase hexadecimal string.</returns>
+        public static string Sha256AsHexString(Stream stream)
+        {
+            return HexString(SHA256.HashData(stream));
+        }
+
+        /// <summary>
         /// Computes the SHA256 hash for the string value using the specified encoding and returns it as a lowercase hexadecimal string.
         /// </summary>
         /// <param name="value">The string value to compute the hash for.</param>

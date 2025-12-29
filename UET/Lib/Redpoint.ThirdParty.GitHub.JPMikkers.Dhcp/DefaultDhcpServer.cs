@@ -937,6 +937,7 @@ public class DefaultDhcpServer : IDhcpServer
             {
                 DhcpClient client = DhcpClient.CreateFromMessage(dhcpMessage);
                 _logger.LogTrace($"Client {client} sent {dhcpMessage.MessageType}");
+                _logger.LogInformation($"DHCP client is identified as '{Utils.BytesToHexString(client.Identifier, "-")}'.");
                 // is it a known client?
                 DhcpClient? knownClient = GetKnownClient(client);
 

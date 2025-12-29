@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Redpoint.ProgressMonitor
+﻿namespace Redpoint.ProgressMonitor
 {
     using System;
     using System.IO;
@@ -60,6 +58,12 @@ namespace Redpoint.ProgressMonitor
         }
 
         /// <inheritdoc/>
+        public override int ReadTimeout { get => _underlyingStream.ReadTimeout; set => _underlyingStream.ReadTimeout = value; }
+
+        /// <inheritdoc/>
+        public override int WriteTimeout { get => _underlyingStream.WriteTimeout; set => _underlyingStream.WriteTimeout = value; }
+
+        /// <inheritdoc/>
         public override void Flush()
         {
             _underlyingStream.Flush();
@@ -76,16 +80,11 @@ namespace Redpoint.ProgressMonitor
         /// <inheritdoc/>
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-#if NETCOREAPP2_1_OR_GREATER
             var bytesRead = await _underlyingStream.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
-#else
-            var bytesRead = await _underlyingStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
-#endif
             _position += bytesRead;
             return bytesRead;
         }
 
-#if NETCOREAPP2_1_OR_GREATER
         /// <inheritdoc/>
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
@@ -93,7 +92,6 @@ namespace Redpoint.ProgressMonitor
             _position += bytesRead;
             return bytesRead;
         }
-#endif
 
         /// <inheritdoc/>
         public override long Seek(long offset, SeekOrigin origin)

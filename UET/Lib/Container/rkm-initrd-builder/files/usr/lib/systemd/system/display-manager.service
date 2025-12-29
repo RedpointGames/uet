@@ -5,7 +5,8 @@ After=xorg.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/evilwm --bw 5 --display :0.0
-ExecStartPost=/bin/bash -c "grep rkm-in-recovery /proc/cmdline && DISPLAY=:0.0 feh --bg-scale /usr/share/background-x11-recovery.png --no-fehbg || DISPLAY=:0.0 feh --bg-scale /usr/share/background-x11.png --no-fehbg || true"
-Restart=always
+ExecStartPre=/bin/timeout 1s /bin/xset q
+ExecStart=/usr/bin/evilwm --bw 5
+ExecStartPost=/bin/bash -c "grep rkm-in-recovery /proc/cmdline && feh --bg-scale /usr/share/background-x11-recovery.png --no-fehbg || feh --bg-scale /usr/share/background-x11.png --no-fehbg || true"
 RestartSec=1s
+Environment="DISPLAY=:0"

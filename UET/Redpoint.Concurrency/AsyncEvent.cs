@@ -163,5 +163,17 @@
                     }).ConfigureAwait(false);
             }
         }
+
+        /// <summary>
+        /// Returns true if there are any handlers bound to this event.
+        /// </summary>
+        public bool HasAnyBindings
+        {
+            get
+            {
+                using var _ = _handlersLock.Wait(CancellationToken.None);
+                return _handlers.Count > 0;
+            }
+        }
     }
 }

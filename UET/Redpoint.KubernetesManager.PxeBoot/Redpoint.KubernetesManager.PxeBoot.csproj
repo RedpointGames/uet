@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Tftp.Net\Redpoint.ThirdParty.Tftp.Net.csproj" />
+		<ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />
+		<ProjectReference Include="..\Redpoint.CommandLine\Redpoint.CommandLine.csproj" />
+		<ProjectReference Include="..\Redpoint.Kestrel\Redpoint.Kestrel.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.Configuration\Redpoint.KubernetesManager.Configuration.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService\Redpoint.KubernetesManager.HostedService.csproj" />
+		<ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
+		<ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+		<ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
+		<ProjectReference Include="..\Redpoint.RuntimeJson\Redpoint.RuntimeJson.csproj" />
+		<ProjectReference Include="..\Redpoint.RuntimeJson.SourceGenerator\Redpoint.RuntimeJson.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Redpoint.Tpm\Redpoint.Tpm.csproj" />
+	</ItemGroup>
+
+</Project>

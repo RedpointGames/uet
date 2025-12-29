@@ -31,7 +31,7 @@
 
         public async Task<(byte[] ekPublicBytes, byte[] aikPublicBytes, ITpmOperationHandles operationHandles)> CreateRequestAsync()
         {
-            var handles = new DefaultTpmOperationHandles();
+            var handles = new DefaultTpmOperationHandles(_logger);
             var returningHandles = false;
             try
             {
@@ -51,7 +51,7 @@
                 }
 
                 // Create AIK.
-                _logger.LogTrace("Creating AIK...");
+                _logger.LogTrace($"Creating AIK (alg {SecurityConstants.TpmHashAlgorithmId}, bits {SecurityConstants.RsaKeyBitsTpm})...");
                 var aikPublicTemplate = new TpmPublic(
                     SecurityConstants.TpmHashAlgorithmId,
                     ObjectAttr.Restricted |
@@ -74,10 +74,14 @@
                 handles._aikPublic = aikCreateResponse.outPublic;
                 handles._aikHandle = aikCreateResponse.handle;
 
+                var ekPublicBytes = handles.EkPublic.GetTpmRepresentation();
+                var aikPublicBytes = handles.AikPublic.GetTpmRepresentation();
+                _logger.LogTrace($"CreateRequestAsync result (EK public bytes size: {ekPublicBytes.Length}, AIK public bytes size: {aikPublicBytes.Length}, AIK name hex: {Convert.ToHexStringLower(aikCreateResponse.outPublic.GetName())})");
+
                 returningHandles = true;
                 return (
-                    handles.EkPublic.GetTpmRepresentation(),
-                    handles.AikPublic.GetTpmRepresentation(),
+                    ekPublicBytes,
+                    aikPublicBytes,
                     handles);
             }
             finally
@@ -143,20 +147,13 @@
             var ekPublicKey = new Marshaller(ekPublicBytes).Get<TpmPublic>();
             var aikPublicKey = new Marshaller(aikPublicBytes).Get<TpmPublic>();
 
-            _logger.LogTrace("Creating activation credentials for AIK...");
-            var certInfo = ekPublicKey.CreateActivationCredentials(
+            _logger.LogTrace($"Creating activation credentials for AIK (unencrypted key length: {symmetricUnencryptedKey.Length}, AIK public key name length: {aikPublicKey.GetName().Length})...");
+            var envelopingKey = ekPublicKey.CreateActivationCredentials(
                 symmetricUnencryptedKey,
                 aikPublicKey.GetName(),
-                out var aesEncryptedKey);
+                out var symmetricEncryptedKey);
 
-            var envelopingKeyMarshaller = new Marshaller();
-            envelopingKeyMarshaller.Put(certInfo.integrityHMAC.Length, "integrityHMAC.Length");
-            envelopingKeyMarshaller.Put(certInfo.integrityHMAC, "integrityHMAC");
-            envelopingKeyMarshaller.Put(certInfo.encIdentity.Length, "encIdentity");
-            envelopingKeyMarshaller.Put(certInfo.encIdentity, "encIdentity.Length");
-            byte[] envelopingKey = envelopingKeyMarshaller.GetBytes();
-
-            return (envelopingKey, aesEncryptedKey, symmetricEncryptedData);
+            return (envelopingKey.EnvelopingKeyToBytes(_logger), symmetricEncryptedKey, symmetricEncryptedData);
         }
 
         public byte[] DecryptSecretKey(ITpmOperationHandles handles, byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData)
@@ -164,24 +161,25 @@
             try
             {
                 // Get enveloping key.
-                IdObject envelopingKey = new IdObject();
-                {
-                    var envelopingKeyMarshaller = new Marshaller(envelopingKeyBytes);
-                    int len = envelopingKeyMarshaller.Get<int>();
-                    envelopingKey.integrityHMAC = envelopingKeyMarshaller.GetArray<byte>(len);
-                    len = envelopingKeyMarshaller.Get<int>();
-                    envelopingKey.encIdentity = envelopingKeyMarshaller.GetArray<byte>(len);
-                }
+                IdObject envelopingKey = envelopingKeyBytes.BytesToEnvelopingKey(_logger);
+
+                _logger.LogTrace($"TPM device: {handles.TpmDevice}");
+                _logger.LogTrace($"TPM: {handles.Tpm}");
+                _logger.LogTrace($"EK handle: {handles.EkHandle}");
+                _logger.LogTrace($"EK public key: {handles.EkPublic}");
+                _logger.LogTrace($"AIK handle: {handles.AikHandle}");
+                _logger.LogTrace($"AIK public key: {handles.AikPublic}");
 
                 // Create sessions for AIK usage.
-                _logger.LogTrace("Activating AIK...");
+                _logger.LogTrace($"Starting auth session for AIK...");
                 var aikSession = handles.Tpm.StartAuthSessionEx(
                     TpmSe.Policy,
                     SecurityConstants.TpmHashAlgorithmId);
-                using var aikSessionAutoFlush = new TpmAutoFlush(handles.Tpm, aikSession);
+                using var aikSessionAutoFlush = new TpmAutoFlush(_logger, handles.Tpm, aikSession);
                 aikSession.RunPolicy(handles.Tpm, GetAikPolicyTree(), "Activate");
 
                 // Determine policy tree for EK usage.
+                _logger.LogTrace($"Creating policy tree for EK...");
                 var ekPolicyTree = new PolicyTree(handles.EkPublic.nameAlg);
                 ekPolicyTree.SetPolicyRoot(new TpmPolicySecret(
                     TpmRh.Endorsement,
@@ -191,13 +189,15 @@
                     null));
 
                 // Create session for EK usage.
+                _logger.LogTrace($"Starting auth session for EK (alg: {handles.EkPublic.nameAlg})...");
                 var ekSession = handles.Tpm.StartAuthSessionEx(
                     TpmSe.Policy,
                     handles.EkPublic.nameAlg);
-                using var ekSessionAutoFlush = new TpmAutoFlush(handles.Tpm, ekSession);
+                using var ekSessionAutoFlush = new TpmAutoFlush(_logger, handles.Tpm, ekSession);
                 ekSession.RunPolicy(handles.Tpm, ekPolicyTree);
 
                 // Activate the AIK credential.
+                _logger.LogTrace($"Activating AIK... (enveloping key bytes size: {envelopingKeyBytes.Length}, encrypted Key: {encryptedKey.Length})");
                 var symmetricUnencryptedKey = handles.Tpm[aikSession, ekSession]
                     .ActivateCredential(
                         handles.AikHandle,
@@ -206,6 +206,7 @@
                         encryptedKey);
 
                 // Use libsodium to decrypt the data with the decrypted symmetric key.
+                _logger.LogTrace($"Decrypting data with unencrypted symmetric key...");
                 {
                     var symmetricAlgorithm = SecurityConstants.SymmetricAlgorithm;
                     var symmetricKey = Key.Import(
@@ -229,17 +230,20 @@
 
         private class TpmAutoFlush : IDisposable
         {
+            private readonly ILogger _logger;
             private readonly Tpm2 _tpm;
             private readonly TpmHandle _handle;
 
-            public TpmAutoFlush(Tpm2 tpm, TpmHandle handle)
+            public TpmAutoFlush(ILogger logger, Tpm2 tpm, TpmHandle handle)
             {
+                _logger = logger;
                 _tpm = tpm;
                 _handle = handle;
             }
 
             public void Dispose()
             {
+                _logger.LogTrace($"Disposing TPM handle {_handle}.");
                 _tpm.FlushContext(_handle);
             }
         }
