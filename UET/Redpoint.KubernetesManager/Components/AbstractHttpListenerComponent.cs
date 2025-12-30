@@ -7,9 +7,9 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
+    using Redpoint.Kestrel;
     using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
-    using Redpoint.KubernetesManager.Services.Kestrel;
     using Redpoint.KubernetesManager.Signalling;
     using System;
     using System.Collections.Generic;

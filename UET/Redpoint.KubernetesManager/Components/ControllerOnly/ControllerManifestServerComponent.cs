@@ -1,18 +1,13 @@
 ﻿namespace Redpoint.KubernetesManager.Components.ControllerOnly
 {
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Redpoint.Concurrency;
     using Redpoint.KubernetesManager.ControllerApi;
     using Redpoint.KubernetesManager.Services;
-    using Redpoint.KubernetesManager.Services.Kestrel;
     using Redpoint.KubernetesManager.Signalling;
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 

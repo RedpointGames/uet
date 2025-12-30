@@ -9,9 +9,9 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Compile Remove="Manifests\**" />
-	  <EmbeddedResource Remove="Manifests\**" />
-	  <None Remove="Manifests\**" />
+		<Compile Remove="Manifests\**" />
+		<EmbeddedResource Remove="Manifests\**" />
+		<None Remove="Manifests\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -27,6 +27,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.TSS\Redpoint.ThirdParty.Microsoft.TSS.csproj" />
 		<ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+		<ProjectReference Include="..\Redpoint.Kestrel\Redpoint.Kestrel.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Abstractions\Redpoint.KubernetesManager.Abstractions.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Manifest\Redpoint.KubernetesManager.Manifest.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.PerpetualProcess\Redpoint.KubernetesManager.PerpetualProcess.csproj" />

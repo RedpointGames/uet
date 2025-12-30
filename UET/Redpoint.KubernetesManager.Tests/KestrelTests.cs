@@ -4,8 +4,8 @@
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Redpoint.Kestrel;
     using Redpoint.KubernetesManager.HostedService;
-    using Redpoint.KubernetesManager.Services.Kestrel;
     using System;
     using System.Collections.Generic;
     using System.Linq;

@@ -1,30 +1,24 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Redpoint.KubernetesManager.Components.ControllerOnly;
-using Redpoint.KubernetesManager.Components.NodeOnly;
-using Redpoint.KubernetesManager.Components;
-using Redpoint.KubernetesManager.Services.Windows;
-using Redpoint.KubernetesManager.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Resources;
-using System.Text;
-using System.Threading.Tasks;
-using Redpoint.KubernetesManager.Implementations;
-using Redpoint.Windows.HostNetworkingService;
-using Redpoint.Windows.Firewall;
-using Redpoint.KubernetesManager.Services.Helm;
-using Redpoint.KubernetesManager.ControllerApi;
-using Redpoint.KubernetesManager.Manifest;
-using Redpoint.KubernetesManager.PerpetualProcess;
-using Redpoint.KubernetesManager.Abstractions;
-using Redpoint.KubernetesManager.Services.Wsl;
-using Redpoint.KubernetesManager.Services.Linux;
-using Redpoint.KubernetesManager.Components.DownstreamService;
-using Redpoint.KubernetesManager.Services.Kestrel;
-
-namespace Redpoint.KubernetesManager
+﻿namespace Redpoint.KubernetesManager
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Kestrel;
+    using Redpoint.KubernetesManager.Abstractions;
+    using Redpoint.KubernetesManager.Components;
+    using Redpoint.KubernetesManager.Components.ControllerOnly;
+    using Redpoint.KubernetesManager.Components.DownstreamService;
+    using Redpoint.KubernetesManager.Components.NodeOnly;
+    using Redpoint.KubernetesManager.ControllerApi;
+    using Redpoint.KubernetesManager.Implementations;
+    using Redpoint.KubernetesManager.Manifest;
+    using Redpoint.KubernetesManager.PerpetualProcess;
+    using Redpoint.KubernetesManager.Services;
+    using Redpoint.KubernetesManager.Services.Helm;
+    using Redpoint.KubernetesManager.Services.Linux;
+    using Redpoint.KubernetesManager.Services.Windows;
+    using Redpoint.KubernetesManager.Services.Wsl;
+    using Redpoint.Windows.Firewall;
+    using Redpoint.Windows.HostNetworkingService;
+
     public static class KubernetesManagerServiceExtensions
     {
         public static void AddKubernetesManager(this IServiceCollection services, bool withPathProvider)
@@ -50,10 +44,10 @@ namespace Redpoint.KubernetesManager
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
             services.AddSingleton<IHelmDeployment, DefaultHelmDeployment>();
             services.AddSingleton<ITpmService, DefaultTpmService>();
-            services.AddSingleton<IKestrelFactory, DefaultKestrelFactory>();
 
             services.AddRkmManifest();
             services.AddRkmPerpetualProcess();
+            services.AddKestrelFactory();
 
             services.AddSingleton<IControllerEndpoint, GetLegacyManifestControllerEndpoint>();
             services.AddSingleton<IControllerEndpoint, GetNodeManifestControllerEndpoint>();
