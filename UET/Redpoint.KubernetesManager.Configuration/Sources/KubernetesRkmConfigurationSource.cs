@@ -8,6 +8,7 @@
     using System.Linq;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization.Metadata;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -28,6 +29,11 @@
             throw new NotImplementedException();
         }
 
+        public Task<RkmNode?> GetRkmNodeByRegisteredIpAddressAsync(string registeredIpAddress, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
             string attestationIdentityKeyFingerprint,
             RkmNodeStatus status,
@@ -38,6 +44,7 @@
 
         public Task<RkmNodeProvisioner?> GetRkmNodeProvisionerAsync(
             string name,
+            JsonTypeInfo<RkmNodeProvisionerSpec> jsonTypeInfoWithSerializerForSteps,
             CancellationToken cancellationToken)
         {
             throw new NotImplementedException();

@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="KubernetesClient.Aot" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 	</ItemGroup>
 
 </Project>

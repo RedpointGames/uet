@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.Configuration.Types;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
     using Redpoint.KubernetesManager.PxeBoot.ProvisioningStep;
     using Redpoint.RuntimeJson;
@@ -21,25 +22,37 @@
             _logger = logger;
         }
 
-        public string Type => "Test";
+        public string Type => "test";
 
         public IRuntimeJson Settings => new ProvisioningStepConfigRuntimeJson(ProvisioningStepConfigJsonSerializerContext.WithStringEnum).TestProvisioningStepConfig;
 
-        public Task ExecuteOnServerBeforeAsync(TestProvisioningStepConfig config, CancellationToken cancellationToken)
+        public ProvisioningStepFlags Flags => ProvisioningStepFlags.None;
+
+        public Task ExecuteOnServerBeforeAsync(
+            TestProvisioningStepConfig config,
+            RkmNodeStatus nodeStatus,
+            IProvisioningStepServerContext serverContext,
+            CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"ServerBefore '{config.Test}'");
+            _logger.LogInformation($"ServerBefore '{config.Value}'");
             return Task.CompletedTask;
         }
 
-        public Task ExecuteOnClientAsync(TestProvisioningStepConfig config, CancellationToken cancellationToken)
+        public Task ExecuteOnClientAsync(
+            TestProvisioningStepConfig config,
+            CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Client '{config.Test}'");
+            _logger.LogInformation($"Client '{config.Value}'");
             return Task.CompletedTask;
         }
 
-        public Task ExecuteOnServerAfterAsync(TestProvisioningStepConfig config, CancellationToken cancellationToken)
+        public Task ExecuteOnServerAfterAsync(
+            TestProvisioningStepConfig config,
+            RkmNodeStatus nodeStatus,
+            IProvisioningStepServerContext serverContext,
+            CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"ServerAfter '{config.Test}'");
+            _logger.LogInformation($"ServerAfter '{config.Value}'");
             return Task.CompletedTask;
         }
     }

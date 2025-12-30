@@ -9,7 +9,7 @@
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
-    internal class RkmNodeProvisionerStepJsonConverter : JsonConverter<RkmNodeProvisionerStep>
+    public class RkmNodeProvisionerStepJsonConverter : JsonConverter<RkmNodeProvisionerStep>
     {
         private readonly IProvisioningStep[] _provisioningSteps;
 
@@ -42,14 +42,19 @@
 
         public override void Write(Utf8JsonWriter writer, RkmNodeProvisionerStep value, JsonSerializerOptions options)
         {
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(value);
+
             writer.WriteStartObject();
 
-            writer.WriteString("Type", value.Type);
+            writer.WriteString("type", value.Type);
 
-            writer.WritePropertyName(value.Type);
-
-            var provider = _provisioningSteps.First(x => x.Type == value.Type);
-            provider.Settings.Serialize(writer, value.DynamicSettings);
+            if (value.DynamicSettings != null)
+            {
+                writer.WritePropertyName(value.Type[0].ToString().ToLowerInvariant() + value.Type[1..]);
+                var provider = _provisioningSteps.First(x => x.Type == value.Type);
+                provider.Settings.Serialize(writer, value.DynamicSettings);
+            }
 
             writer.WriteEndObject();
         }
@@ -74,14 +79,14 @@
                 {
                     var propertyName = readerClone.GetString();
                     readerClone.Read();
-                    if (propertyName == "Type")
+                    if (propertyName == "type")
                     {
                         var propertyValue = readerClone.GetString();
                         if (provisioningSteps.Length > 0)
                         {
                             foreach (var provider in provisioningSteps)
                             {
-                                if (provider.Type == propertyValue)
+                                if (string.Equals(provider.Type, propertyValue, StringComparison.OrdinalIgnoreCase))
                                 {
                                     return provider;
                                 }
@@ -117,7 +122,6 @@
             JsonSerializerOptions options)
         {
             var gotType = false;
-            var gotDynamicSettings = false;
 
             var providerType = provider.Type;
 
@@ -138,7 +142,7 @@
                     reader.Read();
                     switch (propertyName)
                     {
-                        case "Type":
+                        case "type":
                             var type = reader.GetString();
                             if (type == null)
                             {
@@ -148,10 +152,9 @@
                             gotType = true;
                             break;
                         default:
-                            if (propertyName == providerType)
+                            if (string.Equals(propertyName, providerType, StringComparison.OrdinalIgnoreCase))
                             {
                                 result.DynamicSettings = provider.Settings.Deserialize(ref reader);
-                                gotDynamicSettings = true;
                             }
                             break;
                     }
@@ -161,10 +164,6 @@
             if (!gotType)
             {
                 throw new JsonException($"Expected property 'Type' to be found on provisioning step entry.");
-            }
-            if (!gotDynamicSettings)
-            {
-                throw new JsonException($"Expected property '{providerType}' to be found on provisioning step entry.");
             }
         }
     }

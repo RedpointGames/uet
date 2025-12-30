@@ -13,6 +13,8 @@ namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step
 
     [RuntimeJsonProvider(typeof(ProvisioningStepConfigJsonSerializerContext))]
     [JsonSerializable(typeof(TestProvisioningStepConfig))]
+    [JsonSerializable(typeof(EmptyProvisioningStepConfig))]
+    [JsonSerializable(typeof(RebootProvisioningStepConfig))]
     internal partial class ProvisioningStepConfigRuntimeJson
     {
     }

@@ -7,12 +7,12 @@
         /// <summary>
         /// Specifies the provisioning step type.
         /// </summary>
-        [JsonPropertyName("Type"), JsonRequired]
+        [JsonPropertyName("type"), JsonRequired]
         public string Type { get; set; } = string.Empty;
 
         /// <summary>
         /// The dynamic settings associated with this provisioning step.
         /// </summary>
-        public object DynamicSettings { get; set; } = new object();
+        public object? DynamicSettings { get; set; }
     }
 }

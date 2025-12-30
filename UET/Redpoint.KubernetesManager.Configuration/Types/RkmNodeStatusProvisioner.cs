@@ -12,5 +12,8 @@
 
         [JsonPropertyName("currentStepIndex")]
         public int? CurrentStepIndex { get; set; }
+
+        [JsonPropertyName("currentStepStarted")]
+        public bool? CurrentStepStarted { get; set; }
     }
 }

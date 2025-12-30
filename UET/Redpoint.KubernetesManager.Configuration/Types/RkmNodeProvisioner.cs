@@ -2,9 +2,7 @@
 {
     using k8s;
     using k8s.Models;
-    using System;
     using System.Linq;
-    using System.Text;
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 

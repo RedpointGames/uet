@@ -8,7 +8,7 @@
     [JsonSerializable(typeof(KubernetesList<RkmNodeGroup>))]
     [JsonSerializable(typeof(KubernetesList<RkmNodeProvisioner>))]
     [JsonSerializable(typeof(KubernetesList<RkmConfiguration>))]
-    internal partial class KubernetesRkmJsonSerializerContext : JsonSerializerContext
+    public partial class KubernetesRkmJsonSerializerContext : JsonSerializerContext
     {
     }
 }

@@ -4,7 +4,7 @@
 
     internal class TestProvisioningStepConfig
     {
-        [JsonPropertyName("test")]
-        public required string Test { get; set; }
+        [JsonPropertyName("value")]
+        public string Value { get; set; } = string.Empty;
     }
 }

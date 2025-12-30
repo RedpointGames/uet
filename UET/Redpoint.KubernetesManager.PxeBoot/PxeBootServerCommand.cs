@@ -5,8 +5,12 @@
     using Microsoft.Extensions.Hosting;
     using Redpoint.CommandLine;
     using Redpoint.Kestrel;
+    using Redpoint.KubernetesManager.Configuration.Sources;
     using Redpoint.KubernetesManager.HostedService;
     using Redpoint.KubernetesManager.PxeBoot.Disk;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.KubernetesManager.PxeBoot.Server;
     using System;
     using System.Collections.Generic;
@@ -32,6 +36,13 @@
                     services.AddHostedService<PxeBootHostedService>();
                     services.AddDhcpServer();
                     services.AddKestrelFactory();
+
+                    // @todo: Base on provided options.
+                    services.AddSingleton<IRkmConfigurationSource, TestRkmConfigurationSource>();
+
+                    services.AddSingleton<IProvisioningStep, TestProvisioningStep>();
+                    services.AddSingleton<IProvisioningStep, RegisterRemoteIpProvisioningStep>();
+                    services.AddSingleton<IProvisioningStep, RebootProvisioningStep>();
                 })
             .Build();
     }

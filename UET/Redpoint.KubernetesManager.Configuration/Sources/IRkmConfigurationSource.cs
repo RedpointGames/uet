@@ -5,12 +5,18 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
     using System.Threading.Tasks;
 
-    internal interface IRkmConfigurationSource
+    public interface IRkmConfigurationSource
     {
         Task<RkmNode?> GetRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
+            CancellationToken cancellationToken);
+
+        Task<RkmNode?> GetRkmNodeByRegisteredIpAddressAsync(
+            string registeredIpAddress,
             CancellationToken cancellationToken);
 
         Task UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
@@ -20,6 +26,7 @@
 
         Task<RkmNodeProvisioner?> GetRkmNodeProvisionerAsync(
             string name,
+            JsonTypeInfo<RkmNodeProvisionerSpec> jsonTypeInfoWithSerializerForSteps,
             CancellationToken cancellationToken);
 
         Task<RkmConfiguration> GetRkmConfigurationAsync(

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
     public class RkmNodeStatus
@@ -25,12 +26,17 @@
         public DateTimeOffset? MostRecentJoinRequest { get; set; }
 
         [JsonPropertyName("capablePlatforms")]
-        public IList<RkmNodePlatform>? CapablePlatforms { get; set; }
+        [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "Used for JSON serialization.")]
+        public List<RkmNodePlatform>? CapablePlatforms { get; set; }
 
         [JsonPropertyName("architecture")]
         public string? Architecture { get; set; }
 
         [JsonPropertyName("provisioner")]
         public RkmNodeStatusProvisioner? Provisioner { get; set; }
+
+        [JsonPropertyName("registeredIpAddresses")]
+        [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "We need RemoveAll on this property.")]
+        public List<RkmNodeStatusRegisteredIpAddress>? RegisteredIpAddresses { get; set; }
     }
 }
