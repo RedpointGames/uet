@@ -1,25 +1,19 @@
 ﻿namespace Redpoint.KubernetesManager.Components
 {
-    using k8s.KubeConfigModels;
-    using k8s.Models;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.Concurrency;
     using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Manifest;
     using Redpoint.KubernetesManager.Manifest.Client;
     using Redpoint.KubernetesManager.Manifests;
-    using Redpoint.KubernetesManager.Models;
     using Redpoint.KubernetesManager.Services;
-    using Redpoint.KubernetesManager.Services.Kestrel;
     using Redpoint.KubernetesManager.Services.Wsl;
     using Redpoint.KubernetesManager.Signalling;
     using Redpoint.KubernetesManager.Signalling.Data;
     using Redpoint.KubernetesManager.Versions;
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
     using System.Net.WebSockets;
     using System.Text;
