@@ -384,6 +384,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.KubernetesManager.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp", "Lib\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp.csproj", "{FF246122-1FE3-476E-89B7-7ED216001BDA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Kestrel", "Redpoint.Kestrel\Redpoint.Kestrel.csproj", "{3CAD52BD-B610-4005-AC79-347190FE4E2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1046,6 +1048,10 @@ Global
 		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF246122-1FE3-476E-89B7-7ED216001BDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CAD52BD-B610-4005-AC79-347190FE4E2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CAD52BD-B610-4005-AC79-347190FE4E2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CAD52BD-B610-4005-AC79-347190FE4E2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CAD52BD-B610-4005-AC79-347190FE4E2C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
