@@ -17,6 +17,7 @@
     using UET.Commands.Internal.InspectSnmp;
     using UET.Commands.Internal.InstallPackage;
     using UET.Commands.Internal.InstallPlatformSdk;
+    using UET.Commands.Internal.ListCustomObjects;
     using UET.Commands.Internal.Patch;
     using UET.Commands.Internal.RegisterGitLabRunner;
     using UET.Commands.Internal.RemoteZfsServer;
@@ -93,6 +94,7 @@
                     builder.AddCommand<VerifyDllFileIntegrityCommand>();
                     builder.AddCommand<WindowsImagingCommand>();
                     builder.AddCommand<TpmCommand>();
+                    builder.AddCommand<ListCustomObjectsCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
                     command.IsHidden = true;
