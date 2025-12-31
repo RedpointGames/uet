@@ -1,10 +1,12 @@
-﻿namespace Redpoint.KubernetesManager.Services
+﻿namespace Redpoint.KubernetesManager.Tpm
 {
     using Microsoft.Extensions.Logging;
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
     using Tpm2Lib;
+    using static System.Runtime.InteropServices.JavaScript.JSType;
 
     internal class DefaultTpmService : ITpmService
     {
@@ -68,15 +70,25 @@
                 null);
 
             aikPublicKey = aikCreateResponse.outPublic;
-            var aikContext = tpm.ContextSave(aikCreateResponse.handle);
+            var aikContext = tpm._AllowErrors().ContextSave(aikCreateResponse.handle);
 
             return (
                 ekPublicKey.GetTpmRepresentation(),
                 aikPublicKey.GetTpmRepresentation(),
-                aikContext.GetTpmRepresentation());
+                aikContext?.GetTpmRepresentation() ?? []);
         }
 
         public (string pem, string hash) GetPemAndHash(byte[] publicKeyBytes)
+        {
+            var parameters = GetRsaParameters(publicKeyBytes);
+
+            var publicKey = new RSACryptoServiceProvider();
+            publicKey.ImportParameters(parameters);
+
+            return (publicKey.ExportRSAPublicKeyPem(), Convert.ToHexStringLower(SHA256.HashData([.. parameters.Exponent!, .. parameters.Modulus!])));
+        }
+
+        public RSAParameters GetRsaParameters(byte[] publicKeyBytes)
         {
             var tpmPublicKey = new Marshaller(publicKeyBytes).Get<TpmPublic>();
 
@@ -84,18 +96,36 @@
             var exponent = rsaParams.exponent != 0 ? Globs.HostToNet(rsaParams.exponent) : RsaParms.DefaultExponent;
             var modulus = (tpmPublicKey.unique as Tpm2bPublicKeyRsa)!.buffer;
 
-            var publicKey = new RSACryptoServiceProvider();
-            publicKey.ImportParameters(new RSAParameters
+            return new RSAParameters
             {
                 Exponent = exponent,
                 Modulus = modulus,
-            });
-
-            return (publicKey.ExportRSAPublicKeyPem(), Convert.ToHexStringLower(SHA256.HashData([.. exponent, .. modulus])));
+            };
         }
 
-        public (byte[] envelopingKey, byte[] encryptedData) Authorize(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] data)
+        public (byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData) Authorize(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] data)
         {
+            // Generate an AES key and encrypt the data with it. We'll then encrypt the AES
+            // key with the TPM AIK. This is required because the TPM ActivateCredential() command 
+            // doesn't work if the original data is longer than 256 bytes.
+            byte[] aesUnencryptedKey;
+            byte[] aesEncryptedData;
+            {
+                using var aes = Aes.Create();
+                aes.KeySize = 256;
+                aes.BlockSize = 128;
+                aes.GenerateKey();
+                aes.GenerateIV();
+                using var encryptor = aes.CreateEncryptor();
+                using var memoryStream = new MemoryStream();
+                using (var encryptStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                {
+                    encryptStream.Write(data);
+                }
+                aesUnencryptedKey = aes.Key;
+                aesEncryptedData = [.. aes.IV, .. memoryStream.ToArray()];
+            }
+
             using Tpm2Device tpmDevice = OperatingSystem.IsWindows() ? new TbsDevice() : new LinuxTpmDevice();
             tpmDevice.Connect();
 
@@ -106,9 +136,9 @@
 
             _logger.LogInformation("Creating activation credentials for AIK...");
             var certInfo = ekPublicKey.CreateActivationCredentials(
-                data,
+                aesUnencryptedKey,
                 aikPublicKey.GetName(),
-                out var encryptedData);
+                out var aesEncryptedKey);
 
             var envelopingKeyMarshaller = new Marshaller();
             envelopingKeyMarshaller.Put(certInfo.integrityHMAC.Length, "integrityHMAC.Length");
@@ -117,10 +147,10 @@
             envelopingKeyMarshaller.Put(certInfo.encIdentity, "encIdentity.Length");
             byte[] envelopingKey = envelopingKeyMarshaller.GetBytes();
 
-            return (envelopingKey, encryptedData);
+            return (envelopingKey, aesEncryptedKey, aesEncryptedData);
         }
 
-        public byte[] DecryptSecretKey(byte[] aikContextBytes, byte[] envelopingKeyBytes, byte[] encryptedSecret)
+        public byte[] DecryptSecretKey(byte[] aikContextBytes, byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData)
         {
             using Tpm2Device tpmDevice = OperatingSystem.IsWindows() ? new TbsDevice() : new LinuxTpmDevice();
             tpmDevice.Connect();
@@ -147,8 +177,38 @@
             }
 
             // Load AIK context.
-            var aikContext = new Marshaller(aikContextBytes).Get<Context>();
-            var aikHandle = tpm.ContextLoad(aikContext);
+            TpmHandle? aikHandle;
+            if (aikContextBytes.Length == 0)
+            {
+                // When running under Windows, we can't use ContextSave/ContextLoad for the AIK,
+                // so we just resubmit the same request as earlier and hope that the AIK hasn't changed.
+                var aikPublicKey = new TpmPublic(
+                    _tpmAlgId,
+                    ObjectAttr.Restricted |
+                        ObjectAttr.Sign |
+                        ObjectAttr.FixedParent |
+                        ObjectAttr.FixedTPM |
+                        ObjectAttr.AdminWithPolicy |
+                        ObjectAttr.SensitiveDataOrigin,
+                    GetAikPolicyTree().GetPolicyDigest(),
+                    new RsaParms(new SymDefObject(), new SchemeRsassa(_tpmAlgId), 2048, 0),
+                    new Tpm2bPublicKeyRsa());
+                aikHandle = tpm.CreatePrimary(
+                    TpmRh.Endorsement,
+                    new SensitiveCreate(tpm.GetRandom(TpmHash.DigestSize(_tpmAlgId)), null),
+                    aikPublicKey,
+                    null,
+                    null,
+                    out _,
+                    out _,
+                    out _,
+                    out _);
+            }
+            else
+            {
+                var aikContext = new Marshaller(aikContextBytes).Get<Context>();
+                aikHandle = tpm.ContextLoad(aikContext);
+            }
 
             // Create sessions for AIK usage.
             _logger.LogInformation("Activating AIK...");
@@ -175,12 +235,29 @@
             ekSession.RunPolicy(tpm, ekPolicyTree);
 
             // Activate the AIK credential.
-            return tpm[aikSession, ekSession]
+            var aesUnencryptedKey = tpm[aikSession, ekSession]
                 .ActivateCredential(
                     aikHandle,
                     ekHandle,
                     envelopingKey,
-                    encryptedSecret);
+                    encryptedKey);
+
+            // Use AES to decrypt the encrypted data with the now decrypted key.
+            {
+                using var aes = Aes.Create();
+                aes.Key = aesUnencryptedKey;
+                aes.IV = encryptedData[0..16];
+                using var decryptor = aes.CreateDecryptor();
+                using var memoryStream = new MemoryStream(encryptedData[16..]);
+                byte[] decryptedData;
+                using (var encryptStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                {
+                    using var decryptedStream = new MemoryStream();
+                    encryptStream.CopyTo(decryptedStream);
+                    decryptedData = decryptedStream.ToArray();
+                }
+                return decryptedData;
+            }
         }
 
         private class TpmAutoFlush : IDisposable

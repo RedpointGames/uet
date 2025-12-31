@@ -1,0 +1,18 @@
+﻿namespace Redpoint.KubernetesManager.Tpm
+{
+    using System.Security.Cryptography;
+    using System.Threading.Tasks;
+
+    public interface ITpmService
+    {
+        Task<(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] aikContextBytes)> CreateRequestAsync();
+
+        (string pem, string hash) GetPemAndHash(byte[] publicKeyBytes);
+
+        RSAParameters GetRsaParameters(byte[] publicKeyBytes);
+
+        (byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData) Authorize(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] data);
+
+        byte[] DecryptSecretKey(byte[] aikContextBytes, byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData);
+    }
+}

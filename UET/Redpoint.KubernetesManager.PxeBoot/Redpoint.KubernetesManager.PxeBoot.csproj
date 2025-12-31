@@ -12,6 +12,7 @@
 		<ProjectReference Include="..\Redpoint.Kestrel\Redpoint.Kestrel.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Configuration\Redpoint.KubernetesManager.Configuration.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService\Redpoint.KubernetesManager.HostedService.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.Tpm\Redpoint.KubernetesManager.Tpm.csproj" />
 		<ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
 		<ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
 		<ProjectReference Include="..\Redpoint.RuntimeJson\Redpoint.RuntimeJson.csproj" />

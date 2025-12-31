@@ -31,6 +31,7 @@
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Abstractions\Redpoint.KubernetesManager.Abstractions.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Manifest\Redpoint.KubernetesManager.Manifest.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.PerpetualProcess\Redpoint.KubernetesManager.PerpetualProcess.csproj" />
+		<ProjectReference Include="..\Redpoint.KubernetesManager.Tpm\Redpoint.KubernetesManager.Tpm.csproj" />
 		<ProjectReference Include="..\Redpoint.PackageManagement\Redpoint.PackageManagement.csproj" />
 		<ProjectReference Include="..\Redpoint.Registry\Redpoint.Registry.csproj" />
 		<ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />

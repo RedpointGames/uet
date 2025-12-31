@@ -5,6 +5,7 @@
     using Redpoint.KubernetesManager.Manifest;
     using Redpoint.KubernetesManager.Manifests;
     using Redpoint.KubernetesManager.Services;
+    using Redpoint.KubernetesManager.Tpm;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -78,7 +79,7 @@
             };
 
             // Authorize and encrypt bundle.
-            var (envelopingKey, encryptedBundle) = _tpmService.Authorize(
+            var (envelopingKey, encryptedKey, encryptedBundle) = _tpmService.Authorize(
                 ekPublicKeyTpmRepresentation,
                 aikPublicKeyTpmRepresentation,
                 Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
@@ -89,6 +90,7 @@
             var response = new NodeAuthorizeResponse
             {
                 EnvelopingKeyBase64 = Convert.ToBase64String(envelopingKey),
+                EncryptedKeyBase64 = Convert.ToBase64String(encryptedKey),
                 EncryptedBundleBase64 = Convert.ToBase64String(encryptedBundle),
             };
             context.Response.StatusCode = (int)HttpStatusCode.OK;

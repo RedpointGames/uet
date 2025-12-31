@@ -10,6 +10,9 @@
         [JsonPropertyName("envelopingKeyBase64")]
         public required string EnvelopingKeyBase64 { get; set; }
 
+        [JsonPropertyName("encryptedKeyBase64")]
+        public required string EncryptedKeyBase64 { get; set; }
+
         [JsonPropertyName("encryptedBundleBase64")]
         public required string EncryptedBundleBase64 { get; set; }
     }

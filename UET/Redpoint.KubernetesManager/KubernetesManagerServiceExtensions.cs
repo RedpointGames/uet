@@ -16,6 +16,7 @@
     using Redpoint.KubernetesManager.Services.Linux;
     using Redpoint.KubernetesManager.Services.Windows;
     using Redpoint.KubernetesManager.Services.Wsl;
+    using Redpoint.KubernetesManager.Tpm;
     using Redpoint.Windows.Firewall;
     using Redpoint.Windows.HostNetworkingService;
 
@@ -43,10 +44,10 @@
             services.AddSingleton<IWslTranslation, DefaultWslTranslation>();
             services.AddSingleton<IRkmGlobalRootProvider, DefaultRkmGlobalRootProvider>();
             services.AddSingleton<IHelmDeployment, DefaultHelmDeployment>();
-            services.AddSingleton<ITpmService, DefaultTpmService>();
 
             services.AddRkmManifest();
             services.AddRkmPerpetualProcess();
+            services.AddRkmTpm();
             services.AddKestrelFactory();
 
             services.AddSingleton<IControllerEndpoint, GetLegacyManifestControllerEndpoint>();
