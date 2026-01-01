@@ -46,6 +46,7 @@
         [Fact]
         public async Task TestTpmAndCertificates()
         {
+            Assert.SkipWhen(Environment.GetEnvironmentVariable("CI") == "true", "TPM is not accessible on GitHub Actions.");
             Assert.SkipUnless(IsAdministrator, "This test can only be run as Administrator, as it requires access to the TPM.");
 
             var serviceCollection = new ServiceCollection();
