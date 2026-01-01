@@ -5,10 +5,8 @@
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
-    using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
     using Redpoint.CommandLine;
     using Redpoint.Kestrel;
     using Redpoint.KubernetesManager.Configuration.Json;
@@ -21,7 +19,6 @@
     using System.Collections.Generic;
     using System.Net;
     using System.Net.NetworkInformation;
-    using System.Net.Sockets;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;

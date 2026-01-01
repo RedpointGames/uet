@@ -1,10 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot
 {
     using Redpoint.CommandLine;
-    using System.Collections.Generic;
     using System.CommandLine;
-    using System.Linq;
-    using System.Text;
 
     public class PxeBootCommand : ICommandDescriptorProvider
     {

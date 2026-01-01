@@ -8,7 +8,6 @@
     using Redpoint.KubernetesManager.PxeBoot.Api;
     using Redpoint.KubernetesManager.PxeBoot.Disk;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
-    using Redpoint.KubernetesManager.PxeBoot.ProvisioningStep;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Tpm;
@@ -18,7 +17,6 @@
     using System.Net;
     using System.Net.Http.Json;
     using System.Runtime.InteropServices;
-    using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Text.RegularExpressions;

@@ -2,23 +2,11 @@
 {
     using GitHub.JPMikkers.Dhcp;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
     using Redpoint.CommandLine;
     using Redpoint.Kestrel;
-    using Redpoint.KubernetesManager.Configuration.Sources;
     using Redpoint.KubernetesManager.HostedService;
-    using Redpoint.KubernetesManager.PxeBoot.Disk;
-    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
-    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp;
-    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.KubernetesManager.PxeBoot.Server;
-    using Redpoint.Tpm;
-    using System;
-    using System.Collections.Generic;
     using System.CommandLine;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     internal class PxeBootServerCommand : ICommandDescriptorProvider
     {

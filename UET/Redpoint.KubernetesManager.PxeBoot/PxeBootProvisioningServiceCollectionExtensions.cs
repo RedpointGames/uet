@@ -5,11 +5,6 @@
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.Tpm;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
 
     internal static class PxeBootProvisioningServiceCollectionExtensions
     {
