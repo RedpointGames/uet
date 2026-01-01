@@ -1,3 +1,4 @@
 ﻿launchSettings.json
 *.csproj.user
 TestResults/
+UET/Lib/Container/rkm-initrd-builder/static
