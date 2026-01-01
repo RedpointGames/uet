@@ -228,6 +228,11 @@
             transfer.Cancel(TftpErrorPacket.AccessViolation);
         }
 
+        private IPAddress GetHostAddress()
+        {
+            return _commandInvocationContext.ParseResult.GetValueForOption(_options.HostAddress) ?? IPAddress.Parse("192.168.0.1");
+        }
+
         private void OnTftpReadRequest(ITftpTransfer transfer, EndPoint client)
         {
             try
@@ -254,13 +259,17 @@
                 }
                 else if (transfer.Filename.TrimStart('/') == "autoexec.ipxe")
                 {
-                    _logger.LogInformation($"Transferring autoexec.ipxe...");
+                    _logger.LogInformation($"Transferring autoexec.ipxe on TFTP to chainload...");
                     var stream = new MemoryStream();
+                    var hostAddress = GetHostAddress().ToString();
                     using (var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true))
                     {
-                        var ipEndpoint = (IPEndPoint)client;
-                        // @todo: We probably need to modify Tftp.Net to work async...
-                        writer.Write(GetAutoexecScript(ipEndpoint.Address, CancellationToken.None).Result);
+                        writer.Write(
+                            $"""
+                            #!ipxe
+                            dhcp
+                            chain http://{hostAddress}:8790/autoexec-nodhcp.ipxe
+                            """);
                     }
                     stream.Seek(0, SeekOrigin.Begin);
                     transfer.Start(stream);
@@ -330,13 +339,17 @@
             public IPAddress RemoteIpAddress => _remoteIpAddress;
         }
 
-        private async Task<string> GetAutoexecScript(IPAddress sourceIpAddress, CancellationToken cancellationToken)
+        private async Task<string> GetAutoexecScript(IPAddress sourceIpAddress, bool skipDhcp, CancellationToken cancellationToken)
         {
             var defaultScript =
-                """
+                $"""
                 #!ipxe
-                dhcp
-                shell
+                {(!skipDhcp ? "dhcp" : string.Empty)}
+                
+                kernel static/vmlinux console=ttyS0 quiet rkm-api-address={GetHostAddress()}
+                initrd static/rootfs.cpio
+                imgstat
+                boot --replace
                 """;
 
             var node = await _rkmConfigurationSource!.GetRkmNodeByRegisteredIpAddressAsync(
@@ -420,9 +433,10 @@
 
         async Task IKestrelRequestHandler.HandleRequestAsync(HttpContext httpContext)
         {
+            _logger.LogInformation($"HTTP request to: {httpContext.Request.Path}");
+
             if (httpContext.Request.Path == "/ipxe.efi")
             {
-                _logger.LogInformation($"Transferring ipxe.efi...");
                 httpContext.Response.StatusCode = 200;
                 httpContext.Response.Headers.Add("Content-Type", "application/octet-stream");
                 using (var stream = new FileStream(@"ipxe.efi", FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -431,15 +445,65 @@
                 }
                 return;
             }
-            else if (httpContext.Request.Path == "/autoexec.ipxe")
+            else if (
+                httpContext.Request.Path == "/autoexec.ipxe" ||
+                httpContext.Request.Path == "/autoexec-nodhcp.ipxe")
             {
-                _logger.LogInformation($"Transferring autoexec.ipxe...");
                 httpContext.Response.StatusCode = 200;
                 httpContext.Response.Headers.Add("Content-Type", "text/plain");
                 using (var writer = new StreamWriter(httpContext.Response.Body))
                 {
-                    await writer.WriteAsync(await GetAutoexecScript(httpContext.Connection.RemoteIpAddress, httpContext.RequestAborted));
+                    await writer.WriteAsync(await GetAutoexecScript(
+                        httpContext.Connection.RemoteIpAddress,
+                        httpContext.Request.Path == "/autoexec-nodhcp.ipxe",
+                        httpContext.RequestAborted));
+                    await writer.FlushAsync();
                 }
+                return;
+            }
+            else if (httpContext.Request.Path.StartsWithSegments("/static", out var staticRemaining))
+            {
+                string targetFilename;
+                if (staticRemaining == "/vmlinux")
+                {
+                    targetFilename = "vmlinux";
+                }
+                else if (staticRemaining == "/rootfs.cpio")
+                {
+                    targetFilename = "rootfs.cpio";
+                }
+                else
+                {
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    return;
+                }
+
+                var targetFullPath = Path.Combine(
+                    _commandInvocationContext.ParseResult.GetValueForOption(
+                    _options.StaticFiles)!.FullName,
+                    targetFilename);
+                if (!File.Exists(targetFullPath))
+                {
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    return;
+                }
+
+                using (var fileStream = new FileStream(
+                    targetFullPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read))
+                {
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+                    httpContext.Response.Headers.Add(
+                        "Content-Type",
+                        "application/octet-stream");
+                    await fileStream.CopyToAsync(
+                        httpContext.Response.Body,
+                        httpContext.RequestAborted);
+                    await httpContext.Response.Body.FlushAsync();
+                }
+
                 return;
             }
             else if (httpContext.Request.Path.StartsWithSegments("/api/node-provisioning", out var remaining))

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.Server
 {
     using System.CommandLine;
+    using System.Net;
 
     internal class PxeBootServerOptions
     {
@@ -12,5 +13,14 @@
             "--source",
             () => PxeBootServerSource.Test,
             "The configuration source.");
+
+        public Option<IPAddress> HostAddress = new Option<IPAddress>(
+            "--host-address",
+            "The address that the PXE boot server is listening on; used to notify machines of the API address.");
+
+        public Option<DirectoryInfo> StaticFiles = new Option<DirectoryInfo>(
+            "--static-files",
+            () => new DirectoryInfo("/build/buildroot/output/images"),
+            "The directory that contains the 'bzImage' and 'rootfs.cpio' files.");
     }
 }
