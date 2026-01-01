@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Tpm.Internal
 {
     using Microsoft.Extensions.Logging;
+    using NSec.Cryptography;
     using System;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
@@ -101,25 +102,24 @@
 
         public (byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData) Authorize(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] data)
         {
-            // Generate an AES key and encrypt the data with it. We'll then encrypt the AES
-            // key with the TPM AIK. This is required because the TPM ActivateCredential() command 
-            // doesn't work if the original data is longer than 256 bytes.
-            byte[] aesUnencryptedKey;
-            byte[] aesEncryptedData;
+            // Use libsodium to encrypt the data with a symmetric key, then
+            // encrypt the symmetric key for decryption by the TPM.
+            byte[] symmetricUnencryptedKey;
+            byte[] symmetricEncryptedData;
             {
-                using var aes = Aes.Create();
-                aes.KeySize = SecurityConstants.AesKeySize;
-                aes.BlockSize = SecurityConstants.AesBlockSize;
-                aes.GenerateKey();
-                aes.GenerateIV();
-                using var encryptor = aes.CreateEncryptor();
-                using var memoryStream = new MemoryStream();
-                using (var encryptStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                var symmetricAlgorithm = SecurityConstants.SymmetricAlgorithm;
+                var symmetricKey = Key.Create(symmetricAlgorithm, new KeyCreationParameters
                 {
-                    encryptStream.Write(data);
-                }
-                aesUnencryptedKey = aes.Key;
-                aesEncryptedData = [.. aes.IV, .. memoryStream.ToArray()];
+                    ExportPolicy = KeyExportPolicies.AllowPlaintextExport,
+                });
+                var symmetricNonce = RandomNumberGenerator.GetBytes(symmetricAlgorithm.NonceSize);
+                var symmetricEncryptedDataWithoutNonce = symmetricAlgorithm.Encrypt(
+                    symmetricKey,
+                    symmetricNonce,
+                    [],
+                    data);
+                symmetricUnencryptedKey = symmetricKey.Export(SecurityConstants.SymmetricKeyBlobFormat);
+                symmetricEncryptedData = [.. symmetricNonce, .. symmetricEncryptedDataWithoutNonce];
             }
 
             var ekPublicKey = new Marshaller(ekPublicBytes).Get<TpmPublic>();
@@ -127,7 +127,7 @@
 
             _logger.LogInformation("Creating activation credentials for AIK...");
             var certInfo = ekPublicKey.CreateActivationCredentials(
-                aesUnencryptedKey,
+                symmetricUnencryptedKey,
                 aikPublicKey.GetName(),
                 out var aesEncryptedKey);
 
@@ -138,7 +138,7 @@
             envelopingKeyMarshaller.Put(certInfo.encIdentity, "encIdentity.Length");
             byte[] envelopingKey = envelopingKeyMarshaller.GetBytes();
 
-            return (envelopingKey, aesEncryptedKey, aesEncryptedData);
+            return (envelopingKey, aesEncryptedKey, symmetricEncryptedData);
         }
 
         public byte[] DecryptSecretKey(byte[] aikContextBytes, byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData)
@@ -226,28 +226,27 @@
             ekSession.RunPolicy(tpm, ekPolicyTree);
 
             // Activate the AIK credential.
-            var aesUnencryptedKey = tpm[aikSession, ekSession]
+            var symmetricUnencryptedKey = tpm[aikSession, ekSession]
                 .ActivateCredential(
                     aikHandle,
                     ekHandle,
                     envelopingKey,
                     encryptedKey);
 
-            // Use AES to decrypt the encrypted data with the now decrypted key.
+            // Use libsodium to decrypt the data with the decrypted symmetric key.
             {
-                using var aes = Aes.Create();
-                aes.Key = aesUnencryptedKey;
-                aes.IV = encryptedData[0..SecurityConstants.AesIvSize];
-                using var decryptor = aes.CreateDecryptor();
-                using var memoryStream = new MemoryStream(encryptedData[SecurityConstants.AesIvSize..]);
-                byte[] decryptedData;
-                using (var encryptStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
-                {
-                    using var decryptedStream = new MemoryStream();
-                    encryptStream.CopyTo(decryptedStream);
-                    decryptedData = decryptedStream.ToArray();
-                }
-                return decryptedData;
+                var symmetricAlgorithm = SecurityConstants.SymmetricAlgorithm;
+                var symmetricKey = Key.Import(
+                    symmetricAlgorithm,
+                    symmetricUnencryptedKey,
+                    SecurityConstants.SymmetricKeyBlobFormat);
+                var symmetricNonce = encryptedData[0..symmetricAlgorithm.NonceSize];
+                var symmetricEncryptedDataWithoutNonce = encryptedData[symmetricAlgorithm.NonceSize..];
+                return symmetricAlgorithm.Decrypt(
+                    symmetricKey,
+                    symmetricNonce,
+                    [],
+                    symmetricEncryptedDataWithoutNonce)!;
             }
         }
 

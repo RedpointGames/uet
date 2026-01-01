@@ -23,6 +23,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.1" />
     <PackageVersion Include="Microsoft.TSS" Version="2.1.1" />
     <PackageVersion Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    <PackageVersion Include="NSec.Cryptography" Version="25.4.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.14.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.14.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />

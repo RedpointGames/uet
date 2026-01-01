@@ -1,4 +1,8 @@
-﻿namespace Redpoint.Tpm
+﻿using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Redpoint.Tpm.Tests")]
+
+namespace Redpoint.Tpm
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Tpm.Internal;

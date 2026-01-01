@@ -1,11 +1,7 @@
 ﻿namespace Redpoint.Tpm
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+    using NSec.Cryptography;
     using System.Security.Cryptography;
-    using System.Text;
-    using System.Threading.Tasks;
     using Tpm2Lib;
 
     internal static class SecurityConstants
@@ -16,11 +12,9 @@
 
         public const int RsaKeyBits = 3072;
 
-        public const int AesKeySize = 256;
+        public static readonly AeadAlgorithm SymmetricAlgorithm = AeadAlgorithm.XChaCha20Poly1305;
 
-        public const int AesBlockSize = 128;
-
-        public const int AesIvSize = AesBlockSize / 8;
+        public const KeyBlobFormat SymmetricKeyBlobFormat = KeyBlobFormat.NSecSymmetricKey;
 
         public const TpmAlgId TpmHashAlgorithmId = TpmAlgId.Sha256;
     }
