@@ -1,50 +1,51 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 
-  <PropertyGroup>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
-  <PropertyGroup>
-    <Description>Provides common types for xUnit-based unit testing in Redpoint code.</Description>
-    <PackageTags>unit, testing</PackageTags>
-  </PropertyGroup>
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>Provides common types for xUnit-based unit testing in Redpoint code.</Description>
+		<PackageTags>unit, testing</PackageTags>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <IsTestProject>false</IsTestProject>
-  </PropertyGroup>
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<IsTestProject>false</IsTestProject>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="UseRedpointTestFramework.cs" />
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Remove="UseRedpointTestFramework.cs" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="UseRedpointTestFramework.cs">
-      <IncludeInPackage>true</IncludeInPackage>
-      <PackagePath>content</PackagePath>
-      <BuildAction>None</BuildAction>
-    </Content>
-    <Content Include="xunit.runner.json">
-      <IncludeInPackage>true</IncludeInPackage>
-      <PackagePath>content</PackagePath>
-      <BuildAction>None</BuildAction>
-    </Content>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="UseRedpointTestFramework.cs">
+			<IncludeInPackage>true</IncludeInPackage>
+			<PackagePath>content</PackagePath>
+			<BuildAction>None</BuildAction>
+		</Content>
+		<Content Include="xunit.runner.json">
+			<IncludeInPackage>true</IncludeInPackage>
+			<PackagePath>content</PackagePath>
+			<BuildAction>None</BuildAction>
+		</Content>
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="xunit.v3.extensibility.core" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="xunit.v3.extensibility.core" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="Redpoint.XunitFramework.targets">
-      <IncludeInPackage>true</IncludeInPackage>
-      <PackagePath>buildTransitive;build</PackagePath>
-      <BuildAction>None</BuildAction>
-    </Content>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="Redpoint.XunitFramework.targets">
+			<IncludeInPackage>true</IncludeInPackage>
+			<PackagePath>buildTransitive;build</PackagePath>
+			<BuildAction>None</BuildAction>
+		</Content>
+	</ItemGroup>
 
 </Project>
