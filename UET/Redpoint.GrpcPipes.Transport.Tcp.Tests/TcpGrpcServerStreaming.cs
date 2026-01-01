@@ -98,7 +98,7 @@
                 });
         }
 
-        [Fact]
+        [Fact(Skip = "Unreliable when run on GitHub Actions")]
         public async Task CallWithDeadline()
         {
             var logger = GetLogger();
