@@ -13,23 +13,23 @@ chmod a+x $TARGET_DIR/usr/sbin/swapoff
 
 touch $TARGET_DIR/rkm-initrd
 
-cat >$TARGET_DIR/usr/lib/systemd/system/rkm-linux.target <<EOF
+cat >$TARGET_DIR/usr/lib/systemd/system/rkm-initrd.target <<EOF
 [Unit]
-Description=RKM Minimal Linux Target
+Description=RKM Initrd Target
 Requires=basic.target network.target
-Wants=dbus.service rkm-bootstrap.service
+Wants=dbus.service rkm-provision-client.service
 Conflicts=multi-user.target rescue.service rescue.target
 After=multi-user.target rescue.service rescue.target
 AllowIsolate=yes
 EOF
 
-cat >$TARGET_DIR/usr/lib/systemd/system/rkm-bootstrap.service <<EOF
+cat >$TARGET_DIR/usr/lib/systemd/system/rkm-provision-client.service <<EOF
 [Unit]
-Description=RKM Bootstrap
+Description=RKM Provision Client
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/uet-bootstrap internal pxeboot initrd-bootstrap
+ExecStart=/usr/bin/uet-bootstrap internal pxeboot provision-client
 StandardInput=tty
 StandardOutput=tty
 TTYPath=/dev/ttyS0
@@ -39,7 +39,7 @@ Restart=always
 RestartSec=2
 
 [Install]
-WantedBy=rkm-linux.target
+WantedBy=rkm-initrd.target
 EOF
 
 cat >$TARGET_DIR/etc/systemd/network/ethernet.network <<EOF

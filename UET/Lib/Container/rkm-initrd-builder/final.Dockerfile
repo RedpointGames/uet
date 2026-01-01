@@ -1,27 +1,9 @@
-FROM ubuntu:noble
-
-RUN apt update
-RUN apt install -y sed make binutils build-essential diffutils gcc g++ patch gzip bzip2 perl tar cpio unzip rsync file bc findutils gawk wget libncurses-dev curl
-
-RUN mkdir /build
-WORKDIR /build
-
-RUN curl -L -o buildroot.tar.xz https://buildroot.org/downloads/buildroot-2025.11.tar.xz
-RUN tar -xf buildroot.tar.xz && mv buildroot-2025.11 buildroot
-
-WORKDIR /build/buildroot
-COPY buildroot.config .config
-RUN mkdir output
+FROM ghcr.io/redpointgames/uet/buildroot-prebuilt-base:latest
 
 COPY files /build/files
 COPY setup.sh /build/setup.sh
-COPY kernel.config /build/kernel.config
 
-RUN make syncconfig
-RUN make target-finalize
-
-# At this point we have a target directory that is ready for it's final file copy to be done.
-#RUN make
+RUN make
 
 # --mount=type=cache,target=/build/buildroot/output --mount=type=cache,target=/root/.buildroot-ccache 
 
