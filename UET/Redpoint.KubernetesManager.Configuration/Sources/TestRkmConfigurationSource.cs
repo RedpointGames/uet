@@ -52,7 +52,7 @@
                         NodeGroup = string.Empty,
                         NodeName = string.Empty,
                         Authorized = false,
-                        ForceReprovision = false,
+                        ForceReprovision = true,
                     },
                     Status = new RkmNodeStatus
                     {
@@ -80,14 +80,18 @@
 
             // @note: The test configuration immediately authorizes nodes and sets them
             // up for provisioning.
-            value.Spec.Authorized = true;
-            value.Spec.NodeName = "test-node";
-            value.Status.Provisioner = new RkmNodeStatusProvisioner
+            if (value.Spec.ForceReprovision)
             {
-                Name = "default",
-                Hash = string.Empty,
-                CurrentStepIndex = 0,
-            };
+                value.Spec.ForceReprovision = false;
+                value.Spec.Authorized = true;
+                value.Spec.NodeName = "test-node";
+                value.Status.Provisioner = new RkmNodeStatusProvisioner
+                {
+                    Name = "default",
+                    Hash = string.Empty,
+                    CurrentStepIndex = 0,
+                };
+            }
 
             return Task.FromResult(value);
         }

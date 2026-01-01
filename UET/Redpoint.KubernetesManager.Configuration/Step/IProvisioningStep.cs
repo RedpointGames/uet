@@ -27,6 +27,7 @@
 
         Task ExecuteOnClientUncastedAsync(
             object? configUncasted,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken);
 
         Task ExecuteOnServerUncastedAfterAsync(
@@ -52,6 +53,7 @@
 
         Task ExecuteOnClientAsync(
             TConfig config,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken);
 
         Task ExecuteOnServerAfterAsync(
@@ -86,10 +88,12 @@
         [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This can't be sealed.")]
         Task IProvisioningStep.ExecuteOnClientUncastedAsync(
             object? configUncasted,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken)
         {
             return ExecuteOnClientAsync(
                 configUncasted == null ? new() : (TConfig)configUncasted,
+                context,
                 cancellationToken);
         }
 

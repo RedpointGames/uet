@@ -181,6 +181,19 @@
             }
         }
 
+        private class DefaultProvisioningStepClientContext(
+            bool isLocalTesting,
+            HttpClient provisioningApiClient,
+            string provisioningApiEndpoint)
+                : IProvisioningStepClientContext
+        {
+            public bool IsLocalTesting => isLocalTesting;
+
+            public HttpClient ProvisioningApiClient => provisioningApiClient;
+
+            public string ProvisioningApiEndpoint => provisioningApiEndpoint;
+        }
+
         private enum PlatformType
         {
             LinuxInitrd,
@@ -307,6 +320,10 @@
                 }
 
                 // Now process provisioning steps.
+                var clientContext = new DefaultProvisioningStepClientContext(
+                    context.ParseResult.GetValueForOption(_options.Local),
+                    client,
+                    $"https://{apiAddress}:8791");
                 do
                 {
                     var stepResponseRaw = await client.GetAsync(
@@ -331,28 +348,37 @@
                 immediatelyStartNextStep:
                     await provisioningStep.ExecuteOnClientUncastedAsync(
                         currentStep?.DynamicSettings,
+                        clientContext,
                         context.GetCancellationToken());
 
-                    var stepCompleteResponseRaw = await client.GetAsync(
-                        new Uri($"{secureEndpoint}/step-complete"),
-                        context.GetCancellationToken());
-                    if (stepCompleteResponseRaw.StatusCode == HttpStatusCode.NoContent)
+                    if (provisioningStep.Flags.HasFlag(ProvisioningStepFlags.AssumeCompleteWhenIpxeScriptFetched))
                     {
-                        // We didn't implicitly get the next step (there might be none). Loop
-                        // again and exit if /step also returns 204 No Content.
-                        continue;
+                        _logger.LogInformation("Provisioning step completes on next iPXE script fetch. Exiting now.");
+                        return 0;
                     }
-                    stepCompleteResponseRaw.EnsureSuccessStatusCode();
+                    else
+                    {
+                        var stepCompleteResponseRaw = await client.GetAsync(
+                            new Uri($"{secureEndpoint}/step-complete"),
+                            context.GetCancellationToken());
+                        if (stepCompleteResponseRaw.StatusCode == HttpStatusCode.NoContent)
+                        {
+                            // We didn't implicitly get the next step (there might be none). Loop
+                            // again and exit if /step also returns 204 No Content.
+                            continue;
+                        }
+                        stepCompleteResponseRaw.EnsureSuccessStatusCode();
 
-                    currentStep = await stepCompleteResponseRaw.Content.ReadFromJsonAsync(
-                        _jsonSerializerContext.RkmNodeProvisionerStep,
-                        context.GetCancellationToken());
-                    provisioningStep = _provisioningSteps.FirstOrDefault(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
-                    if (provisioningStep == null)
-                    {
-                        throw new UnableToProvisionSystemException($"The provisioning step type '{currentStep?.Type}' does not exist on the client.");
+                        currentStep = await stepCompleteResponseRaw.Content.ReadFromJsonAsync(
+                            _jsonSerializerContext.RkmNodeProvisionerStep,
+                            context.GetCancellationToken());
+                        provisioningStep = _provisioningSteps.FirstOrDefault(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
+                        if (provisioningStep == null)
+                        {
+                            throw new UnableToProvisionSystemException($"The provisioning step type '{currentStep?.Type}' does not exist on the client.");
+                        }
+                        goto immediatelyStartNextStep;
                     }
-                    goto immediatelyStartNextStep;
                 }
                 while (!context.GetCancellationToken().IsCancellationRequested);
 

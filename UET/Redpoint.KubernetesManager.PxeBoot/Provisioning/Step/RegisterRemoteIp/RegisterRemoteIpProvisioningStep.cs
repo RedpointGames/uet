@@ -74,6 +74,7 @@
 
         public Task ExecuteOnClientAsync(
             EmptyProvisioningStepConfig config,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken)
         {
             // Nothing to do on the client.

@@ -36,6 +36,7 @@
 
         public Task ExecuteOnClientAsync(
             TestProvisioningStepConfig config,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Client '{config.Value}'");
