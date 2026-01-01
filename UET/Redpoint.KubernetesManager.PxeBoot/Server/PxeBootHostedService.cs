@@ -458,16 +458,17 @@
 
                 if (remaining == "/authorize")
                 {
-                    var request = await JsonSerializer.DeserializeAsync(
+                    var request = (await JsonSerializer.DeserializeAsync(
                         httpContext.Request.Body,
                         ApiJsonSerializerContext.WithStringEnum.AuthorizeNodeRequest,
-                        httpContext.RequestAborted)!;
+                        httpContext.RequestAborted))!;
 
-                    // @todo: We need to create or update the existing RkmNode object with
-                    // the parameters instead of calling Get here.
-
-                    var candidateNode = await _rkmConfigurationSource!.GetRkmNodeByAttestationIdentityKeyPemAsync(
+                    var candidateNode = await _rkmConfigurationSource!.CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
                         pem,
+                        [RkmNodeRole.Worker],
+                        false,
+                        request.CapablePlatforms,
+                        request.Architecture,
                         httpContext.RequestAborted);
                     if (!(candidateNode?.Spec?.Authorized ?? false) ||
                         string.IsNullOrWhiteSpace(candidateNode?.Spec?.NodeName))

@@ -27,6 +27,71 @@
             _logger = logger;
         }
 
+        public Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
+            string attestationIdentityKeyPem,
+            RkmNodeRole[] roles,
+            bool immutable,
+            IList<RkmNodePlatform> capablePlatforms,
+            string architecture,
+            CancellationToken cancellationToken)
+        {
+            var fingerprint = RkmNodeFingerprint.CreateFromPem(attestationIdentityKeyPem);
+
+            if (!_nodes.TryGetValue(fingerprint, out var value))
+            {
+                value = new RkmNode
+                {
+                    ApiVersion = "rkm.redpoint.games/v1",
+                    Kind = "RkmNode",
+                    Metadata = new V1ObjectMeta
+                    {
+                        Name = fingerprint.Substring(0, 8),
+                    },
+                    Spec = new RkmNodeSpec
+                    {
+                        NodeGroup = string.Empty,
+                        NodeName = string.Empty,
+                        Authorized = false,
+                        ForceReprovision = false,
+                    },
+                    Status = new RkmNodeStatus
+                    {
+                        Roles = null,
+                        Immutable = false,
+                        AttestationIdentityKeyFingerprint = fingerprint,
+                        AttestationIdentityKeyPem = attestationIdentityKeyPem,
+                        FirstSeen = DateTimeOffset.UtcNow,
+                        MostRecentJoinRequest = null,
+                        CapablePlatforms = null,
+                        Architecture = null,
+                    },
+                };
+                _nodes.Add(fingerprint, value);
+            }
+
+            value.Spec ??= new();
+            value.Status ??= new();
+
+            value.Status.Roles = roles;
+            value.Status.Immutable = immutable;
+            value.Status.MostRecentJoinRequest = DateTimeOffset.UtcNow;
+            value.Status.CapablePlatforms = [.. capablePlatforms];
+            value.Status.Architecture = architecture;
+
+            // @note: The test configuration immediately authorizes nodes and sets them
+            // up for provisioning.
+            value.Spec.Authorized = true;
+            value.Spec.NodeName = "test-node";
+            value.Status.Provisioner = new RkmNodeStatusProvisioner
+            {
+                Name = "default",
+                Hash = string.Empty,
+                CurrentStepIndex = 0,
+            };
+
+            return Task.FromResult(value);
+        }
+
         public Task<RkmNode?> GetRkmNodeByAttestationIdentityKeyPemAsync(string attestationIdentityKeyPem, CancellationToken cancellationToken)
         {
             var fingerprint = RkmNodeFingerprint.CreateFromPem(attestationIdentityKeyPem);
@@ -36,42 +101,7 @@
                 return Task.FromResult<RkmNode?>(value);
             }
 
-            value = new RkmNode
-            {
-                ApiVersion = "rkm.redpoint.games/v1",
-                Kind = "RkmNode",
-                Metadata = new V1ObjectMeta
-                {
-                    Name = fingerprint.Substring(0, 8),
-                },
-                Spec = new RkmNodeSpec
-                {
-                    NodeGroup = string.Empty,
-                    NodeName = "test-node",
-                    Authorized = true,
-                    ForceReprovision = false,
-                },
-                Status = new RkmNodeStatus
-                {
-                    Roles = [RkmNodeRole.Worker],
-                    Immutable = false,
-                    AttestationIdentityKeyFingerprint = fingerprint,
-                    AttestationIdentityKeyPem = attestationIdentityKeyPem,
-                    FirstSeen = DateTimeOffset.UtcNow,
-                    MostRecentJoinRequest = DateTimeOffset.UtcNow,
-                    CapablePlatforms = [RkmNodePlatform.Windows, RkmNodePlatform.Linux],
-                    Architecture = "amd64",
-                    Provisioner = new RkmNodeStatusProvisioner
-                    {
-                        Name = "default",
-                        Hash = string.Empty,
-                        CurrentStepIndex = 0,
-                    }
-                },
-            };
-            _nodes.Add(fingerprint, value);
-
-            return Task.FromResult<RkmNode?>(value);
+            return Task.FromResult<RkmNode?>(null);
         }
 
         public Task<RkmNode?> GetRkmNodeByRegisteredIpAddressAsync(string registeredIpAddress, CancellationToken cancellationToken)

@@ -22,6 +22,17 @@
             _kubernetes = kubernetes;
         }
 
+        public Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
+            string attestationIdentityKeyPem,
+            RkmNodeRole[] roles,
+            bool immutable,
+            IList<RkmNodePlatform> capablePlatforms,
+            string architecture,
+            CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<RkmNode?> GetRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
             CancellationToken cancellationToken)
