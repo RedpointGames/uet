@@ -65,45 +65,55 @@
             Uri negotiateUrl,
             CancellationToken cancellationToken)
         {
-            var (ekPublicBytes, aikPublicBytes, aikContextBytes) = await _tpmService.CreateRequestAsync();
-            var (aikPublicPem, _) = _tpmService.GetPemAndHash(aikPublicBytes);
+            var (ekPublicBytes, aikPublicBytes, handles) = await _tpmService.CreateRequestAsync();
+            string aikPublicPem;
+            NegotiateCertificateResponseBundle decryptedBundle;
+            X509Certificate2 clientCertificate, certificateAuthority;
+            try
+            {
+                (aikPublicPem, _) = _tpmService.GetPemAndHash(aikPublicBytes);
 
-            var (clientCsr, clientPrivateKey) = CreatePrivateKeyAndCsrForAik(aikPublicBytes);
+                var (clientCsr, clientPrivateKey) = CreatePrivateKeyAndCsrForAik(aikPublicBytes);
 
-            var clientCsrPem = clientCsr.CreateSigningRequestPem();
+                var clientCsrPem = clientCsr.CreateSigningRequestPem();
 
-            using var negotiateClient = new HttpClient();
+                using var negotiateClient = new HttpClient();
 
-            var response = await negotiateClient.PutAsJsonAsync(
-                negotiateUrl,
-                new NegotiateCertificateRequest
-                {
-                    EkTpmPublicBase64 = Convert.ToBase64String(ekPublicBytes),
-                    AikTpmPublicBase64 = Convert.ToBase64String(aikPublicBytes),
-                    ClientCertificateCsrPem = clientCsrPem,
-                },
-                NegotiateJsonSerializerContext.Default.NegotiateCertificateRequest,
-                cancellationToken);
-            response.EnsureSuccessStatusCode();
+                var response = await negotiateClient.PutAsJsonAsync(
+                    negotiateUrl,
+                    new NegotiateCertificateRequest
+                    {
+                        EkTpmPublicBase64 = Convert.ToBase64String(ekPublicBytes),
+                        AikTpmPublicBase64 = Convert.ToBase64String(aikPublicBytes),
+                        ClientCertificateCsrPem = clientCsrPem,
+                    },
+                    NegotiateJsonSerializerContext.Default.NegotiateCertificateRequest,
+                    cancellationToken);
+                response.EnsureSuccessStatusCode();
 
-            var responseJson = await response.Content.ReadFromJsonAsync(
-                NegotiateJsonSerializerContext.Default.NegotiateCertificateResponse,
-                cancellationToken);
+                var responseJson = await response.Content.ReadFromJsonAsync(
+                    NegotiateJsonSerializerContext.Default.NegotiateCertificateResponse,
+                    cancellationToken);
 
-            var decryptedBundleJson = Encoding.ASCII.GetString(_tpmService.DecryptSecretKey(
-                aikContextBytes,
-                Convert.FromBase64String(responseJson!.EnvelopingKeyBase64),
-                Convert.FromBase64String(responseJson.EncryptedKeyBase64),
-                Convert.FromBase64String(responseJson.EncryptedBundleJsonBase64)));
-            var decryptedBundle = JsonSerializer.Deserialize(
-                decryptedBundleJson,
-                NegotiateJsonSerializerContext.Default.NegotiateCertificateResponseBundle);
+                var decryptedBundleJson = Encoding.ASCII.GetString(_tpmService.DecryptSecretKey(
+                    handles,
+                    Convert.FromBase64String(responseJson!.EnvelopingKeyBase64),
+                    Convert.FromBase64String(responseJson.EncryptedKeyBase64),
+                    Convert.FromBase64String(responseJson.EncryptedBundleJsonBase64)));
+                decryptedBundle = JsonSerializer.Deserialize(
+                    decryptedBundleJson,
+                    NegotiateJsonSerializerContext.Default.NegotiateCertificateResponseBundle)!;
 
-            var clientCertificate = X509Certificate2.CreateFromPem(
-                decryptedBundle!.ClientSignedPem,
-                clientPrivateKey.ExportRSAPrivateKeyPem());
-            var certificateAuthority = X509Certificate2.CreateFromPem(
-                decryptedBundle.CertificateAuthorityPem);
+                clientCertificate = X509Certificate2.CreateFromPem(
+                    decryptedBundle.ClientSignedPem,
+                    clientPrivateKey.ExportRSAPrivateKeyPem());
+                certificateAuthority = X509Certificate2.CreateFromPem(
+                    decryptedBundle.CertificateAuthorityPem);
+            }
+            finally
+            {
+                handles.Dispose();
+            }
 
             // @note: If we wanted to validate the received certificate authority against an
             // external source, this is where it needs to happen.
