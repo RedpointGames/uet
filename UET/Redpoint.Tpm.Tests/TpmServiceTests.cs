@@ -60,18 +60,18 @@
 
             var tpmService = serviceProvider.GetRequiredService<ITpmService>();
 
-            var (ekPublicBytes, aikPublicBytes, aikContextBytes) = await tpmService.CreateRequestAsync();
+            var (ekPublicBytes, aikPublicBytes, handles) = await tpmService.CreateRequestAsync();
 
             var (envelopingKey, encryptedKey, encryptedData) = tpmService.Authorize(
-                   ekPublicBytes,
-                   aikPublicBytes,
-                   Encoding.ASCII.GetBytes("hello world"));
+                ekPublicBytes,
+                aikPublicBytes,
+                Encoding.ASCII.GetBytes("hello world"));
 
             var decryptedMessage = Encoding.ASCII.GetString(tpmService.DecryptSecretKey(
-                    aikContextBytes,
-                    envelopingKey,
-                    encryptedKey,
-                    encryptedData));
+                handles,
+                envelopingKey,
+                encryptedKey,
+                encryptedData));
             Assert.Equal("hello world", decryptedMessage);
         }
     }

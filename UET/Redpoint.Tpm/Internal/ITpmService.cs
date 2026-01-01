@@ -5,7 +5,7 @@
 
     internal interface ITpmService
     {
-        Task<(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] aikContextBytes)> CreateRequestAsync();
+        Task<(byte[] ekPublicBytes, byte[] aikPublicBytes, ITpmOperationHandles operationHandles)> CreateRequestAsync();
 
         (string pem, string hash) GetPemAndHash(byte[] publicKeyBytes);
 
@@ -13,6 +13,6 @@
 
         (byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData) Authorize(byte[] ekPublicBytes, byte[] aikPublicBytes, byte[] data);
 
-        byte[] DecryptSecretKey(byte[] aikContextBytes, byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData);
+        byte[] DecryptSecretKey(ITpmOperationHandles operationHandles, byte[] envelopingKeyBytes, byte[] encryptedKey, byte[] encryptedData);
     }
 }
