@@ -10,6 +10,7 @@
     using Redpoint.KubernetesManager.Tpm;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Tpm;
     using System;
     using System.CommandLine;
     using System.Net;
@@ -18,20 +19,21 @@
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal class PxeBootInitrdBootstrapCommand : ICommandDescriptorProvider
+    internal class PxeBootProvisionClientCommand : ICommandDescriptorProvider
     {
         public static CommandDescriptor Descriptor => CommandDescriptor.NewBuilder()
-            .WithInstance<PxeBootInitrdBootstrapCommandInstance>()
+            .WithOptions<PxeBootProvisionClientOptions>()
+            .WithInstance<PxeBootProvisionClientCommandInstance>()
             .WithCommand(
                 builder =>
                 {
-                    return new Command("initrd-bootstrap", "Initialize this machine for booting Linux or Windows RKM nodes from PXE Boot.");
+                    return new Command("provision-client", "Provision this client via PXE boot.");
                 })
             .WithRuntimeServices(
                 (_, services, _) =>
                 {
-                    services.AddRkmTpm();
                     services.AddSingleton<IParted, DefaultParted>();
+                    services.AddPxeBootProvisioning();
                 })
             .Build();
     }

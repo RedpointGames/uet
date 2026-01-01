@@ -12,7 +12,7 @@
             .WithCommand(
                 builder =>
                 {
-                    builder.AddCommand<PxeBootInitrdBootstrapCommand>();
+                    builder.AddCommand<PxeBootProvisionClientCommand>();
                     builder.AddCommand<PxeBootServerCommand>();
 
                     return new Command("pxeboot", "Internal commands for PXE Boot.");

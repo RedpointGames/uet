@@ -12,6 +12,7 @@
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.KubernetesManager.PxeBoot.Server;
+    using Redpoint.Tpm;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -36,13 +37,7 @@
                     services.AddHostedService<PxeBootHostedService>();
                     services.AddDhcpServer();
                     services.AddKestrelFactory();
-
-                    // @todo: Base on provided options.
-                    services.AddSingleton<IRkmConfigurationSource, TestRkmConfigurationSource>();
-
-                    services.AddSingleton<IProvisioningStep, TestProvisioningStep>();
-                    services.AddSingleton<IProvisioningStep, RegisterRemoteIpProvisioningStep>();
-                    services.AddSingleton<IProvisioningStep, RebootProvisioningStep>();
+                    services.AddPxeBootProvisioning();
                 })
             .Build();
     }

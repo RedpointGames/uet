@@ -8,14 +8,8 @@
     using System.Text.Json.Serialization;
     using System.Threading.Tasks;
 
-    internal class NegotiateCertificateRequest
+    internal class AuthorizeNodeRequest
     {
-        [JsonPropertyName("aikPem")]
-        public required string AikPem { get; set; }
-
-        [JsonPropertyName("clientCertificateCsrPem")]
-        public required string ClientCertificateCsrPem { get; set; }
-
         [JsonPropertyName("capablePlatforms")]
         public required IList<RkmNodePlatform> CapablePlatforms { get; set; }
 

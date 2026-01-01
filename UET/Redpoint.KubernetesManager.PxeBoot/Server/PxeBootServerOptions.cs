@@ -8,8 +8,9 @@
             "--dhcp",
             "If specified, this command will run a DHCP server that will provide addresses to the network on the specified interface. This can be used to simplify testing of PXE boot with virtual machines.");
 
-        public Option<bool> InsecureTest = new Option<bool>(
-            "--insecure-test",
-            "For internal testing only. Do not use.");
+        public Option<PxeBootServerSource> Source = new Option<PxeBootServerSource>(
+            "--source",
+            () => PxeBootServerSource.Test,
+            "The configuration source.");
     }
 }

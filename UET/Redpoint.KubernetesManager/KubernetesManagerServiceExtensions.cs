@@ -16,7 +16,7 @@
     using Redpoint.KubernetesManager.Services.Linux;
     using Redpoint.KubernetesManager.Services.Windows;
     using Redpoint.KubernetesManager.Services.Wsl;
-    using Redpoint.KubernetesManager.Tpm;
+    using Redpoint.Tpm;
     using Redpoint.Windows.Firewall;
     using Redpoint.Windows.HostNetworkingService;
 
@@ -47,7 +47,7 @@
 
             services.AddRkmManifest();
             services.AddRkmPerpetualProcess();
-            services.AddRkmTpm();
+            services.AddTpm();
             services.AddKestrelFactory();
 
             services.AddSingleton<IControllerEndpoint, GetLegacyManifestControllerEndpoint>();

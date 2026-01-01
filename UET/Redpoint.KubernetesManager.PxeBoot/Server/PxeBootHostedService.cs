@@ -1,18 +1,22 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.Server
 {
     using GitHub.JPMikkers.Dhcp;
+    using k8s;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
     using Redpoint.CommandLine;
     using Redpoint.Kestrel;
     using Redpoint.KubernetesManager.Configuration.Json;
     using Redpoint.KubernetesManager.Configuration.Sources;
     using Redpoint.KubernetesManager.Configuration.Types;
+    using Redpoint.KubernetesManager.PxeBoot.Api;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.Tpm;
     using System;
     using System.Collections.Generic;
     using System.Net;
@@ -33,14 +37,18 @@
         private readonly PxeBootServerOptions _options;
         private readonly ICommandInvocationContext _commandInvocationContext;
         private readonly IKestrelFactory _kestrelFactory;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
+        private readonly ITpmSecuredHttp _tpmSecuredHttp;
+        private readonly IServiceProvider _serviceProvider;
         private readonly List<IProvisioningStep> _provisioningSteps;
-        private readonly IRkmConfigurationSource _rkmConfigurationSource;
         private readonly KubernetesRkmJsonSerializerContext _jsonSerializerContext;
 
+        private IRkmConfigurationSource? _rkmConfigurationSource;
         private TftpServer? _tftpServer;
         private IDhcpServer? _dhcpServer;
         private KestrelServer? _kestrelServer;
-        private bool _testWithoutClientCertificate;
+        private ITpmSecuredHttpServer? _tpmSecuredHttpServer;
 
         public PxeBootHostedService(
             ILogger<PxeBootHostedService> logger,
@@ -48,18 +56,22 @@
             PxeBootServerOptions options,
             ICommandInvocationContext commandInvocationContext,
             IKestrelFactory kestrelFactory,
-            IRkmConfigurationSource rkmConfigurationSource,
-            IEnumerable<IProvisioningStep> provisioningSteps)
+            IEnumerable<IProvisioningStep> provisioningSteps,
+            ILoggerFactory loggerFactory,
+            IHostApplicationLifetime hostApplicationLifetime,
+            ITpmSecuredHttp tpmSecuredHttp,
+            IServiceProvider serviceProvider)
         {
             _logger = logger;
             _dhcpServerFactory = dhcpServerFactory;
             _options = options;
             _commandInvocationContext = commandInvocationContext;
             _kestrelFactory = kestrelFactory;
+            _loggerFactory = loggerFactory;
+            _hostApplicationLifetime = hostApplicationLifetime;
+            _tpmSecuredHttp = tpmSecuredHttp;
+            _serviceProvider = serviceProvider;
             _provisioningSteps = provisioningSteps.ToList();
-
-            // @todo: Should be based on command line options.
-            _rkmConfigurationSource = rkmConfigurationSource;
 
             _jsonSerializerContext = new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
             {
@@ -70,12 +82,30 @@
                     new KubernetesDateTimeOffsetConverter(),
                 }
             });
-
-            _testWithoutClientCertificate = commandInvocationContext.ParseResult.GetValueForOption(options.InsecureTest);
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            switch (_commandInvocationContext.ParseResult.GetValueForOption(_options.Source))
+            {
+                case PxeBootServerSource.Test:
+                    _rkmConfigurationSource = new TestRkmConfigurationSource(
+                        _loggerFactory.CreateLogger<TestRkmConfigurationSource>());
+                    break;
+                case PxeBootServerSource.KubernetesDefault:
+                    _rkmConfigurationSource = new KubernetesRkmConfigurationSource(
+                        new Kubernetes(KubernetesClientConfiguration.BuildDefaultConfig()));
+                    break;
+                case PxeBootServerSource.KubernetesInCluster:
+                    _rkmConfigurationSource = new KubernetesRkmConfigurationSource(
+                        new Kubernetes(KubernetesClientConfiguration.InClusterConfig()));
+                    break;
+                default:
+                    _logger.LogError("Unsupported configuration source.");
+                    _hostApplicationLifetime.StopApplication();
+                    return;
+            }
+
             if (!File.Exists("ipxe.efi"))
             {
                 try
@@ -154,22 +184,36 @@
                 _kestrelServer.Dispose();
             }
 
+            // @todo: Source certificate authority from somewhere rather than generating it here.
+            using var certificateAuthorityPrivateKey = RSA.Create();
+            var certificateAuthorityCertificateRequest = new CertificateRequest(
+                "CN=Test Issuing Authority",
+                certificateAuthorityPrivateKey,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+            certificateAuthorityCertificateRequest.CertificateExtensions.Add(
+                new X509BasicConstraintsExtension(
+                    certificateAuthority: true,
+                    hasPathLengthConstraint: false,
+                    pathLengthConstraint: 0,
+                    critical: true));
+            var certificateAuthority = certificateAuthorityCertificateRequest.CreateSelfSigned(
+                DateTimeOffset.UtcNow.AddDays(-1),
+                DateTimeOffset.UtcNow.AddDays(1));
+
+            // @todo: If the certificate authority doesn't change, this also doesn't need to be recreated.
+            _tpmSecuredHttpServer = _tpmSecuredHttp.CreateHttpServer(certificateAuthority);
+
             var kestrelOptions = new KestrelServerOptions();
+            kestrelOptions.ApplicationServices = _serviceProvider;
             kestrelOptions.ListenAnyIP(8790);
-
-            // @todo: Listen on HTTPS and validate client certificates issued by RKM.
-            // RKM should check TPM attestation and issue a certificate for further communication.
-
-            /*
             kestrelOptions.ListenAnyIP(8791, options =>
             {
-                options.UseHttps(options =>
+                options.UseHttps(https =>
                 {
-                    options.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
-                    options.ClientCertificateValidation
+                    _tpmSecuredHttpServer.ConfigureHttps(https);
                 });
             });
-            */
 
             _kestrelServer = await _kestrelFactory.CreateAndStartServerAsync(
                 kestrelOptions,
@@ -298,7 +342,7 @@
                 shell
                 """;
 
-            var node = await _rkmConfigurationSource.GetRkmNodeByRegisteredIpAddressAsync(
+            var node = await _rkmConfigurationSource!.GetRkmNodeByRegisteredIpAddressAsync(
                 sourceIpAddress.ToString(),
                 cancellationToken);
             if (node == null)
@@ -403,60 +447,65 @@
             }
             else if (httpContext.Request.Path.StartsWithSegments("/api/node-provisioning", out var remaining))
             {
-                var clientCertificate = await httpContext.Connection.GetClientCertificateAsync(httpContext.RequestAborted);
-                string fingerprint, pem;
-                if (clientCertificate == null)
-                {
-                    if (_testWithoutClientCertificate)
-                    {
-                        // This is just a pre-generated key we can use for insecurely testing the /api endpoints.
-                        pem =
-                            """
-                            -----BEGIN RSA PUBLIC KEY-----
-                            MIIBCgKCAQEA4fi4jc0VkSUD5a4Yw6jxWQB6yhhGpCmdzuUiQhiCIlJwfTzQ0TpN
-                            4ocD90qV9sCW6H58WBx6QYoceD8NIyouz6r7TvyZjK7+Lc1J3prBZ9JjuPLj2fQx
-                            tI6xGJhU85DnlH6Q/+9qX2rcCMfPMLlMK93U7sSxR/L8GwfET/G1X18s8jlHu3f6
-                            7ycfG5N+EdgltykxB7uCbOzdz4k9lgc/omh2NEmqog1hDTsO9v9mCPALSFUusaQI
-                            rW5kuuqww2giROZOVPD/JFqYxquYBEBBpTgQUkq9Yy6X8VTIuLQyopYUcbQP8MD3
-                            E3YMY2ZsjuIHSgcN2hi4P9Mx9LzpY1o7TQIDAQAB
-                            -----END RSA PUBLIC KEY-----
-                            """;
-                        fingerprint = RkmNodeFingerprint.CreateFromPem(pem);
-                    }
-                    else
-                    {
-                        // Client certificate must be supplied.
-                        httpContext.Response.StatusCode = 401;
-                        return;
-                    }
-                }
-                else
-                {
-                    fingerprint = RkmNodeFingerprint.CreateFromClientCertificate(clientCertificate, out pem);
-                }
-
                 if (remaining == "/negotiate-certificate")
                 {
-                    _logger.LogError("Not yet implemented.");
-                    httpContext.Response.StatusCode = 500;
+                    await _tpmSecuredHttpServer!.HandleNegotiationRequestAsync(httpContext);
                     return;
                 }
-                else if (remaining == "/step" || remaining == "/step-complete")
+
+                var pem = await _tpmSecuredHttpServer!.GetAikPemVerifiedByClientCertificateAsync(httpContext);
+                var fingerprint = RkmNodeFingerprint.CreateFromPem(pem);
+
+                if (remaining == "/authorize")
                 {
-                    var node = await _rkmConfigurationSource.GetRkmNodeByAttestationIdentityKeyPemAsync(
+                    var request = await JsonSerializer.DeserializeAsync(
+                        httpContext.Request.Body,
+                        ApiJsonSerializerContext.WithStringEnum.AuthorizeNodeRequest,
+                        httpContext.RequestAborted)!;
+
+                    // @todo: We need to create or update the existing RkmNode object with
+                    // the parameters instead of calling Get here.
+
+                    var candidateNode = await _rkmConfigurationSource!.GetRkmNodeByAttestationIdentityKeyPemAsync(
                         pem,
                         httpContext.RequestAborted);
-                    if (node == null)
+                    if (!(candidateNode?.Spec?.Authorized ?? false) ||
+                        string.IsNullOrWhiteSpace(candidateNode?.Spec?.NodeName))
                     {
-                        // No such node found, caller needs to use /api/node-provisioning/negotiate-certificate first.
-                        httpContext.Response.StatusCode = 404;
+                        // Not yet authorized.
+                        httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                         return;
                     }
 
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+                    await JsonSerializer.SerializeAsync(
+                        httpContext.Response.Body,
+                        new AuthorizeNodeResponse
+                        {
+                            NodeName = candidateNode.Spec.NodeName
+                        },
+                        ApiJsonSerializerContext.WithStringEnum.AuthorizeNodeResponse,
+                        httpContext.RequestAborted);
+                    return;
+                }
+
+                var node = await _rkmConfigurationSource!.GetRkmNodeByAttestationIdentityKeyPemAsync(
+                    pem,
+                    httpContext.RequestAborted);
+                if (!(node?.Spec?.Authorized ?? false) ||
+                    string.IsNullOrWhiteSpace(node?.Spec?.NodeName))
+                {
+                    // Not yet authorized.
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    return;
+                }
+
+                if (remaining == "/step" || remaining == "/step-complete")
+                {
                     if (string.IsNullOrWhiteSpace(node?.Status?.Provisioner?.Name))
                     {
                         // No content; the node isn't provisioning or has run out of steps.
-                        httpContext.Response.StatusCode = 204;
+                        httpContext.Response.StatusCode = (int)HttpStatusCode.NoContent;
                         return;
                     }
 
@@ -471,7 +520,7 @@
                         (provisioner.Spec?.Steps?.Count ?? 0) <= (node.Status.Provisioner.CurrentStepIndex ?? 0))
                     {
                         // Provisioner changed or was invalidated since this client started provisioning.
-                        httpContext.Response.StatusCode = 204;
+                        httpContext.Response.StatusCode = (int)HttpStatusCode.NoContent;
                         return;
                     }
 
@@ -499,7 +548,7 @@
                         // Serialize the current step to the client.
                         // @todo: Replace variables in step config...
                         var currentStepSerialized = JsonSerializer.Serialize(currentStep, _jsonSerializerContext.RkmNodeProvisionerStep);
-                        httpContext.Response.StatusCode = 200;
+                        httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
                         httpContext.Response.Headers.Add("Content-Type", "application/json");
                         using (var writer = new StreamWriter(httpContext.Response.Body))
                         {
@@ -513,7 +562,7 @@
                         {
                             // The /step endpoint must be called first because this step hasn't started.
                             _logger.LogInformation($"Step {node.Status.Provisioner.CurrentStepIndex} can't be completed, because it hasn't been started yet.");
-                            httpContext.Response.StatusCode = 400;
+                            httpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                             return;
                         }
 
@@ -547,7 +596,7 @@
                                 node.Status,
                                 httpContext.RequestAborted);
 
-                            httpContext.Response.StatusCode = 204;
+                            httpContext.Response.StatusCode = (int)HttpStatusCode.NoContent;
                         }
                         else
                         {
@@ -566,7 +615,7 @@
                                 httpContext.RequestAborted);
 
                             var nextStepSerialized = JsonSerializer.Serialize(nextStep, _jsonSerializerContext.RkmNodeProvisionerStep);
-                            httpContext.Response.StatusCode = 200;
+                            httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
                             httpContext.Response.Headers.Add("Content-Type", "application/json");
                             using (var writer = new StreamWriter(httpContext.Response.Body))
                             {

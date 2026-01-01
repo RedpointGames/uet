@@ -99,7 +99,7 @@
                 value.Status = status;
             }
 
-            _logger.LogInformation(JsonSerializer.Serialize(status, new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
+            _logger.LogTrace(JsonSerializer.Serialize(status, new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
             {
                 Converters =
                 {

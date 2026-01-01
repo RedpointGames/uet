@@ -2,12 +2,16 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.Configuration.Json;
+    using Redpoint.KubernetesManager.Configuration.Sources;
     using Redpoint.KubernetesManager.Configuration.Types;
     using Redpoint.KubernetesManager.PxeBoot.Api;
     using Redpoint.KubernetesManager.PxeBoot.Disk;
-    using Redpoint.KubernetesManager.Tpm;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.KubernetesManager.PxeBoot.ProvisioningStep;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
+    using Redpoint.Tpm;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -15,32 +19,48 @@
     using System.Net.Http.Json;
     using System.Runtime.InteropServices;
     using System.Text;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    internal class PxeBootInitrdBootstrapCommandInstance : ICommandInstance
+    internal class PxeBootProvisionClientCommandInstance : ICommandInstance
     {
-        private readonly ILogger<PxeBootInitrdBootstrapCommandInstance> _logger;
+        private readonly ILogger<PxeBootProvisionClientCommandInstance> _logger;
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
         private readonly IParted _parted;
-        private readonly ITpmService _tpmService;
-        private readonly ITpmCertificateService _tpmCertificateService;
+        private readonly ITpmSecuredHttp _tpmSecuredHttp;
+        private readonly PxeBootProvisionClientOptions _options;
+        private readonly List<IProvisioningStep> _provisioningSteps;
+        private readonly KubernetesRkmJsonSerializerContext _jsonSerializerContext;
 
-        public PxeBootInitrdBootstrapCommandInstance(
-            ILogger<PxeBootInitrdBootstrapCommandInstance> logger,
+        public PxeBootProvisionClientCommandInstance(
+            ILogger<PxeBootProvisionClientCommandInstance> logger,
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
             IParted parted,
-            ITpmService tpmService,
-            ITpmCertificateService tpmCertificateService)
+            ITpmSecuredHttp tpmSecuredHttp,
+            IEnumerable<IProvisioningStep> provisioningSteps,
+            PxeBootProvisionClientOptions options)
         {
             _logger = logger;
             _pathResolver = pathResolver;
             _processExecutor = processExecutor;
             _parted = parted;
-            _tpmService = tpmService;
-            _tpmCertificateService = tpmCertificateService;
+            _tpmSecuredHttp = tpmSecuredHttp;
+            _options = options;
+            _provisioningSteps = provisioningSteps.ToList();
+
+            _jsonSerializerContext = new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
+            {
+                Converters =
+                {
+                    new JsonStringEnumConverter(),
+                    new RkmNodeProvisionerStepJsonConverter(provisioningSteps),
+                    new KubernetesDateTimeOffsetConverter(),
+                }
+            });
         }
 
         private async Task ProvisionAndMountDisksAsync(CancellationToken cancellationToken)
@@ -173,6 +193,7 @@
 
         public async Task<int> ExecuteAsync(ICommandInvocationContext context)
         {
+            var allowRecoveryShell = false;
             try
             {
                 // Figure out the environment we're running in.
@@ -183,6 +204,7 @@
                     {
                         _logger.LogInformation("Running on Linux initrd platform.");
                         platformType = PlatformType.LinuxInitrd;
+                        allowRecoveryShell = true;
                     }
                     else
                     {
@@ -207,80 +229,77 @@
 
                 // Determine the API address.
                 string apiAddress;
-                if (platformType == PlatformType.LinuxInitrd || platformType == PlatformType.Linux)
+                if (context.ParseResult.GetValueForOption(_options.Local))
                 {
-                    var kernelCmdline = await File.ReadAllTextAsync("/proc/cmdline", context.GetCancellationToken());
-                    var kernelCmdlineRegex = new Regex("rkm-api-address=(?<address>[0-9a-f:\\.]+)");
-                    var kernelCmdlineRegexMatch = kernelCmdlineRegex.Match(kernelCmdline);
-                    if (!kernelCmdlineRegexMatch.Success)
-                    {
-                        throw new UnableToProvisionSystemException("/proc/cmdline is missing the rkm-api-address= option.");
-                    }
-                    apiAddress = kernelCmdlineRegexMatch.Groups["address"].Value;
-                }
-                else if (platformType == PlatformType.Mac)
-                {
-                    // @todo: Probably need to use UDP auto-discovery...
-                    throw new PlatformNotSupportedException();
+                    apiAddress = "127.0.0.1";
                 }
                 else
                 {
-                    apiAddress = (await File.ReadAllTextAsync(
-                        Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.System),
-                            "rkm-api-address.txt"),
-                        context.GetCancellationToken())).Trim();
+                    if (platformType == PlatformType.LinuxInitrd || platformType == PlatformType.Linux)
+                    {
+                        var kernelCmdline = await File.ReadAllTextAsync("/proc/cmdline", context.GetCancellationToken());
+                        var kernelCmdlineRegex = new Regex("rkm-api-address=(?<address>[0-9a-f:\\.]+)");
+                        var kernelCmdlineRegexMatch = kernelCmdlineRegex.Match(kernelCmdline);
+                        if (!kernelCmdlineRegexMatch.Success)
+                        {
+                            throw new UnableToProvisionSystemException("/proc/cmdline is missing the rkm-api-address= option.");
+                        }
+                        apiAddress = kernelCmdlineRegexMatch.Groups["address"].Value;
+                    }
+                    else if (platformType == PlatformType.Mac)
+                    {
+                        // @todo: Probably need to use UDP auto-discovery...
+                        throw new PlatformNotSupportedException();
+                    }
+                    else
+                    {
+                        apiAddress = (await File.ReadAllTextAsync(
+                            Path.Combine(
+                                Environment.GetFolderPath(Environment.SpecialFolder.System),
+                                "rkm-api-address.txt"),
+                            context.GetCancellationToken())).Trim();
+                    }
                 }
                 _logger.LogInformation($"Using provisioner API address: {apiAddress}");
 
-                // Create or load our existing TPM AIK.
-                var (ekPublicBytes, aikPublicBytes, aikContextBytes) = await _tpmService.CreateRequestAsync();
-                var (aikPem, aikHash) = _tpmService.GetPemAndHash(aikPublicBytes);
-                _logger.LogInformation($"TPM AIK fingerprint is: {aikHash}");
+                // Create our TPM-secured HTTP client, and negotiate the client certificate.
+                using var client = await _tpmSecuredHttp.CreateHttpClientAsync(
+                    new Uri($"http://{apiAddress}:8790/api/node-provisioning/negotiate-certificate"),
+                    context.GetCancellationToken());
 
-                // Create a certificate signing request for our client certificate.
-                var (clientCertificateCsr, clientCertificatePrivateKey) = _tpmCertificateService.CreatePrivateKeyAndCsrForAik(aikPublicBytes);
-                _logger.LogInformation($"Client certificate public key: {clientCertificatePrivateKey.ExportRSAPublicKeyPem()}");
-
-                // Perform negotation.
-                var negotiateRequest = new NegotiateCertificateRequest
+                // Attempt to authorize ourselves with the cluster.
+                var authorizeRequest = new AuthorizeNodeRequest
                 {
-                    AikPem = aikPem,
-                    ClientCertificateCsrPem = clientCertificateCsr.CreateSigningRequestPem(),
                     CapablePlatforms = OperatingSystem.IsMacOS()
                         ? [RkmNodePlatform.Mac]
                         : [RkmNodePlatform.Windows, RkmNodePlatform.Linux],
                     Architecture = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "amd64",
                 };
-                NegotiateCertificateResponse negotiateResponse;
+                var secureEndpoint = $"https://{apiAddress}:8791/api/node-provisioning";
+                AuthorizeNodeResponse authorizeResponse;
             retryNegotiate:
-                using (var client = new HttpClient())
+                var authorizeResponseRaw = await client.PutAsJsonAsync(
+                    new Uri($"{secureEndpoint}/authorize"),
+                    authorizeRequest,
+                    ApiJsonSerializerContext.WithStringEnum.AuthorizeNodeRequest,
+                    context.GetCancellationToken());
+                if (authorizeResponseRaw.StatusCode == HttpStatusCode.Unauthorized)
                 {
-                    var response = await client.PutAsJsonAsync(
-                        new Uri($"http://{apiAddress}:8790/api/node-provisioning/negotiate-certificate"),
-                        negotiateRequest,
-                        ApiJsonSerializerContext.WithStringEnum.NegotiateCertificateRequest,
-                        context.GetCancellationToken());
-                    if (response.StatusCode == HttpStatusCode.Unauthorized)
-                    {
-                        _logger.LogError("This node is not yet authorized to join the cluster. To authorize it, update the RkmNode object in the cluster. Waiting 1 minute and then checking again...");
-                        await Task.Delay(60000, context.GetCancellationToken());
-                        goto retryNegotiate;
-                    }
-                    else if (response.StatusCode == HttpStatusCode.OK)
-                    {
-                        negotiateResponse = (await response.Content.ReadFromJsonAsync(
-                            ApiJsonSerializerContext.WithStringEnum.NegotiateCertificateResponse,
-                            context.GetCancellationToken()))!;
-                    }
-                    else
-                    {
-                        throw new UnableToProvisionSystemException($"Certificate negotiation endpoint returned unexpected response status code {response.StatusCode}.");
-                    }
+                    _logger.LogError("This node is not yet authorized to join the cluster. To authorize it, update the RkmNode object in the cluster. Waiting 1 minute and then checking again...");
+                    await Task.Delay(60000, context.GetCancellationToken());
+                    goto retryNegotiate;
                 }
-                _logger.LogInformation($"Authorized to join the cluster with node name '{negotiateResponse.NodeName}'.");
-
-                // @todo: Load client certificate.
+                else if (authorizeResponseRaw.StatusCode == HttpStatusCode.OK)
+                {
+                    authorizeResponse = (await authorizeResponseRaw.Content.ReadFromJsonAsync(
+                        ApiJsonSerializerContext.WithStringEnum.AuthorizeNodeResponse,
+                        context.GetCancellationToken()))!;
+                }
+                else
+                {
+                    throw new UnableToProvisionSystemException($"Certificate negotiation endpoint returned unexpected response status code {authorizeResponseRaw.StatusCode}.");
+                }
+                _logger.LogInformation($"Authorized to join the cluster with node name '{authorizeResponse.NodeName}'.");
 
                 // If we are running in the Linux initrd environment, make sure that we have provisioned the disks.
                 if (platformType == PlatformType.LinuxInitrd)
@@ -290,7 +309,56 @@
                 }
 
                 // Now process provisioning steps.
-                throw new NotImplementedException();
+                do
+                {
+                    var stepResponseRaw = await client.GetAsync(
+                        new Uri($"{secureEndpoint}/step"),
+                        context.GetCancellationToken());
+                    if (stepResponseRaw.StatusCode == HttpStatusCode.NoContent)
+                    {
+                        _logger.LogInformation("No further provisioning steps to run.");
+                        break;
+                    }
+                    stepResponseRaw.EnsureSuccessStatusCode();
+
+                    var currentStep = await stepResponseRaw.Content.ReadFromJsonAsync(
+                        _jsonSerializerContext.RkmNodeProvisionerStep,
+                        context.GetCancellationToken());
+                    var provisioningStep = _provisioningSteps.FirstOrDefault(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
+                    if (provisioningStep == null)
+                    {
+                        throw new UnableToProvisionSystemException($"The provisioning step type '{currentStep?.Type}' does not exist on the client.");
+                    }
+
+                immediatelyStartNextStep:
+                    await provisioningStep.ExecuteOnClientUncastedAsync(
+                        currentStep?.DynamicSettings,
+                        context.GetCancellationToken());
+
+                    var stepCompleteResponseRaw = await client.GetAsync(
+                        new Uri($"{secureEndpoint}/step-complete"),
+                        context.GetCancellationToken());
+                    if (stepCompleteResponseRaw.StatusCode == HttpStatusCode.NoContent)
+                    {
+                        // We didn't implicitly get the next step (there might be none). Loop
+                        // again and exit if /step also returns 204 No Content.
+                        continue;
+                    }
+                    stepCompleteResponseRaw.EnsureSuccessStatusCode();
+
+                    currentStep = await stepCompleteResponseRaw.Content.ReadFromJsonAsync(
+                        _jsonSerializerContext.RkmNodeProvisionerStep,
+                        context.GetCancellationToken());
+                    provisioningStep = _provisioningSteps.FirstOrDefault(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
+                    if (provisioningStep == null)
+                    {
+                        throw new UnableToProvisionSystemException($"The provisioning step type '{currentStep?.Type}' does not exist on the client.");
+                    }
+                    goto immediatelyStartNextStep;
+                }
+                while (!context.GetCancellationToken().IsCancellationRequested);
+
+                return 0;
             }
             catch (Exception ex)
             {
@@ -305,15 +373,22 @@
                     _logger.LogError(ex, "Unexpected exception!");
                 }
 
-                _logger.LogInformation("Starting recovery shell...");
-                return await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = await _pathResolver.ResolveBinaryPath(OperatingSystem.IsWindows() ? "powershell" : "bash"),
-                        Arguments = []
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
+                if (allowRecoveryShell)
+                {
+                    _logger.LogInformation("Starting recovery shell...");
+                    return await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = await _pathResolver.ResolveBinaryPath(OperatingSystem.IsWindows() ? "powershell" : "bash"),
+                            Arguments = []
+                        },
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                }
+                else
+                {
+                    return 1;
+                }
             }
         }
     }
