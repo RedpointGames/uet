@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.Tpm;

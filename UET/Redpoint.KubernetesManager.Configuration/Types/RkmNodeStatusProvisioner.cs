@@ -10,6 +10,12 @@
         [JsonPropertyName("hash")]
         public string? Hash { get; set; }
 
+        [JsonPropertyName("lastStepCommittedIndex")]
+        public int? LastStepCommittedIndex { get; set; }
+
+        [JsonPropertyName("rebootStepIndex")]
+        public int? RebootStepIndex { get; set; }
+
         [JsonPropertyName("currentStepIndex")]
         public int? CurrentStepIndex { get; set; }
 

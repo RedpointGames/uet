@@ -38,5 +38,8 @@
         [JsonPropertyName("registeredIpAddresses")]
         [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "We need RemoveAll on this property.")]
         public List<RkmNodeStatusRegisteredIpAddress>? RegisteredIpAddresses { get; set; }
+
+        [JsonPropertyName("bootToDisk")]
+        public bool? BootToDisk { get; set; }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Redpoint.KubernetesManager.PxeBoot.Server
+﻿using k8s.Models;
+
+namespace Redpoint.KubernetesManager.PxeBoot.Server
 {
     using GitHub.JPMikkers.Dhcp;
     using k8s;
@@ -17,6 +19,8 @@
     using Redpoint.Tpm;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
     using System.Net;
     using System.Net.NetworkInformation;
     using System.Security.Cryptography;
@@ -46,6 +50,22 @@
         private IDhcpServer? _dhcpServer;
         private KestrelServer? _kestrelServer;
         private ITpmSecuredHttpServer? _tpmSecuredHttpServer;
+
+        private const int _httpPort = 8790;
+        private const int _httpsPort = 8791;
+
+        private static readonly string[] _staticFileAllowlist = new[]
+        {
+            "ipxe.efi",
+            "bzImage",
+            "bzImage.efi",
+            "wimboot",
+            "background.png",
+            "vmlinuz",
+            "vmlinuz.efi",
+            "rootfs.cpio",
+            "initrd",
+        };
 
         public PxeBootHostedService(
             ILogger<PxeBootHostedService> logger,
@@ -103,26 +123,6 @@
                     return;
             }
 
-            if (!File.Exists("ipxe.efi"))
-            {
-                try
-                {
-                    using (var client = new HttpClient())
-                    {
-                        _logger.LogInformation("Downloading ipxe.efi...");
-                        var stream = await client.GetStreamAsync(new Uri("https://boot.ipxe.org/ipxe.efi"), cancellationToken);
-                        using (var target = new FileStream(@"ipxe.efi", FileMode.Create, FileAccess.Write, FileShare.None))
-                        {
-                            await stream.CopyToAsync(target, cancellationToken);
-                        }
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    File.Delete("ipxe.efi");
-                }
-            }
-
             _tftpServer?.Dispose();
 
             _tftpServer = new TftpServer(IPAddress.Any);
@@ -157,7 +157,7 @@
                     _dhcpServer.SubnetMask = IPAddress.Parse("255.255.255.0");
                     _dhcpServer.PoolStart = IPAddress.Parse("192.168.0.100");
                     _dhcpServer.PoolEnd = IPAddress.Parse("192.168.0.200");
-                    _dhcpServer.LeaseTime = TimeSpan.FromSeconds(3600);
+                    _dhcpServer.LeaseTime = Utils.InfiniteTimeSpan;
                     _dhcpServer.OfferExpirationTime = TimeSpan.FromSeconds(3600);
                     _dhcpServer.Interceptors.Add(this);
                     _dhcpServer.Reservations.Add(new ReservationItem
@@ -203,8 +203,8 @@
 
             var kestrelOptions = new KestrelServerOptions();
             kestrelOptions.ApplicationServices = _serviceProvider;
-            kestrelOptions.ListenAnyIP(8790);
-            kestrelOptions.ListenAnyIP(8791, options =>
+            kestrelOptions.ListenAnyIP(_httpPort);
+            kestrelOptions.ListenAnyIP(_httpsPort, options =>
             {
                 options.UseHttps(https =>
                 {
@@ -252,10 +252,15 @@
                     _logger.LogInformation($"Transfer error: {args}");
                 };
 
-                if (transfer.Filename.TrimStart('/') == "ipxe.efi")
+                if (_staticFileAllowlist.Contains(transfer.Filename.TrimStart('/'), StringComparer.Ordinal))
                 {
-                    _logger.LogInformation($"Transferring ipxe.efi...");
-                    transfer.Start(new FileStream(@"ipxe.efi", FileMode.Open, FileAccess.Read, FileShare.Read));
+                    var staticFilesPath = _commandInvocationContext.ParseResult.GetValueForOption(_options.StaticFiles)!.FullName;
+                    var staticFilePath = Path.Combine(staticFilesPath, transfer.Filename.TrimStart('/'));
+
+                    var fileStream = new FileStream(staticFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                    _logger.LogInformation($"Transferring {transfer.Filename.TrimStart('/')} ({fileStream.Length} bytes)...");
+                    transfer.Start(fileStream);
                 }
                 else if (transfer.Filename.TrimStart('/') == "autoexec.ipxe")
                 {
@@ -268,7 +273,7 @@
                             $"""
                             #!ipxe
                             dhcp
-                            chain http://{hostAddress}:8790/autoexec-nodhcp.ipxe
+                            chain --replace http://{hostAddress}:{_httpPort}/autoexec-nodhcp.ipxe
                             """);
                     }
                     stream.Seek(0, SeekOrigin.Begin);
@@ -315,7 +320,7 @@
                 if (vendorClient.StartsWith("HTTPClient", StringComparison.Ordinal))
                 {
                     _logger.LogInformation("DHCP boot from HTTPClient...");
-                    targetMsg.Options.Add(new DhcpOptionBootFileName("http://192.168.0.1:8790/ipxe.efi"));
+                    targetMsg.Options.Add(new DhcpOptionBootFileName($"http://192.168.0.1:{_httpPort}/ipxe.efi"));
                 }
                 else if (vendorClient.StartsWith("PXEClient", StringComparison.Ordinal))
                 {
@@ -342,81 +347,121 @@
         private async Task<string> GetAutoexecScript(IPAddress sourceIpAddress, bool skipDhcp, CancellationToken cancellationToken)
         {
             var defaultScript =
-                $"""
+                $$$"""
                 #!ipxe
-                {(!skipDhcp ? "dhcp" : string.Empty)}
-                
-                kernel static/vmlinux console=ttyS0 quiet rkm-api-address={GetHostAddress()}
-                initrd static/rootfs.cpio
-                imgstat
-                boot --replace
+                {{dhcp}}
+                kernel static/vmlinuz quiet nologo=0 rkm-api-address={{provisioner-api-address}} rkm-booted-from-step-index={{booted-from-step-index}}
+                initrd static/initrd
+                boot
                 """;
 
             var node = await _rkmConfigurationSource!.GetRkmNodeByRegisteredIpAddressAsync(
                 sourceIpAddress.ToString(),
                 cancellationToken);
-            if (node == null)
-            {
-                return defaultScript;
-            }
-            if (string.IsNullOrWhiteSpace(node?.Status?.Provisioner?.Name))
-            {
-                return defaultScript;
-            }
-            var provisioner = await _rkmConfigurationSource.GetRkmNodeProvisionerAsync(
-                node.Status.Provisioner.Name,
-                _jsonSerializerContext.RkmNodeProvisionerSpec,
-                cancellationToken);
-            if (provisioner == null ||
-                (provisioner.GetHash(_jsonSerializerContext.RkmNodeProvisioner) != node.Status.Provisioner.Hash && !string.IsNullOrWhiteSpace(node.Status.Provisioner.Hash)) ||
-                (provisioner.Spec?.Steps?.Count ?? 0) <= (node.Status.Provisioner.CurrentStepIndex ?? 0))
-            {
-                return defaultScript;
-            }
 
-            var serverContext = new IpxeProvisioningStepServerContext(sourceIpAddress);
-
-            var currentStep = provisioner.Spec!.Steps![node.Status.Provisioner.CurrentStepIndex!.Value];
-            var provisioningStep = _provisioningSteps.First(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
-
-            var selectedScript = await provisioningStep.GetIpxeAutoexecScriptOverrideOnServerUncastedAsync(
-                currentStep!.DynamicSettings,
-                node.Status,
-                serverContext,
-                cancellationToken);
-
-            if (provisioningStep.Flags.HasFlag(ProvisioningStepFlags.AssumeCompleteWhenIpxeScriptFetched))
+            async Task<string> GetSelectedScript()
             {
-                await provisioningStep.ExecuteOnServerUncastedAfterAsync(
-                    currentStep!.DynamicSettings,
+                if (node == null)
+                {
+                    return defaultScript;
+                }
+                if (node.Status?.BootToDisk ?? false)
+                {
+                    // Causes PXE boot to exit so the machine will fallthrough to the disk, which should be
+                    // the second boot entry in the firmware.
+                    node.Status.BootToDisk = false;
+                    await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+                        node.Status.AttestationIdentityKeyFingerprint!,
+                        node.Status,
+                        cancellationToken);
+                    return
+                        """
+                        #!ipxe
+                        echo Boot to disk requested.
+                        exit
+                        """;
+                }
+                if (string.IsNullOrWhiteSpace(node?.Status?.Provisioner?.Name))
+                {
+                    return defaultScript;
+                }
+                var provisioner = await _rkmConfigurationSource.GetRkmNodeProvisionerAsync(
+                    node.Status.Provisioner.Name,
+                    _jsonSerializerContext.RkmNodeProvisionerSpec,
+                    cancellationToken);
+                if (provisioner == null ||
+                    (provisioner.GetHash(_jsonSerializerContext.RkmNodeProvisioner) != node.Status.Provisioner.Hash && !string.IsNullOrWhiteSpace(node.Status.Provisioner.Hash)) ||
+                    (provisioner.Spec?.Steps?.Count ?? 0) <= (node.Status.Provisioner.RebootStepIndex ?? 0))
+                {
+                    return defaultScript;
+                }
+
+                var serverContext = new IpxeProvisioningStepServerContext(sourceIpAddress);
+
+                var rebootStep = provisioner.Spec!.Steps![node.Status.Provisioner.RebootStepIndex!.Value];
+                var provisioningRebootStep = _provisioningSteps.First(x => string.Equals(x.Type, rebootStep?.Type, StringComparison.OrdinalIgnoreCase));
+
+                var overrideScript = await provisioningRebootStep.GetIpxeAutoexecScriptOverrideOnServerUncastedAsync(
+                    rebootStep!.DynamicSettings,
                     node.Status,
                     serverContext,
                     cancellationToken);
 
-                // Increment current step index and then update node status.
-                if (!node.Status.Provisioner.CurrentStepIndex.HasValue)
+                if (provisioningRebootStep.Flags.HasFlag(ProvisioningStepFlags.AssumeCompleteWhenIpxeScriptFetched))
                 {
-                    node.Status.Provisioner.CurrentStepIndex = 0;
-                }
-                node.Status.Provisioner.CurrentStepIndex += 1;
-                if (node.Status.Provisioner.CurrentStepIndex >= provisioner.Spec.Steps.Count)
-                {
-                    node.Status.Provisioner = null;
-                }
-                else
-                {
-                    node.Status.Provisioner.CurrentStepStarted = !provisioningStep.Flags.HasFlag(ProvisioningStepFlags.DoNotStartAutomaticallyNextStepOnCompletion);
+                    await provisioningRebootStep.ExecuteOnServerUncastedAfterAsync(
+                        rebootStep!.DynamicSettings,
+                        node.Status,
+                        serverContext,
+                        cancellationToken);
+
+                    // Increment current step index and then update node status.
+                    if (!node.Status.Provisioner.CurrentStepIndex.HasValue)
+                    {
+                        node.Status.Provisioner.CurrentStepIndex = 0;
+                    }
+                    node.Status.Provisioner.CurrentStepIndex += 1;
+                    if (node.Status.Provisioner.CurrentStepIndex <= node.Status.Provisioner.RebootStepIndex)
+                    {
+                        // Make sure when the client grabs the next step, it's always continuing from the reboot point
+                        // if a later step hasn't committed.
+                        node.Status.Provisioner.CurrentStepIndex = node.Status.Provisioner.RebootStepIndex + 1;
+                    }
+                    if (node.Status.Provisioner.CurrentStepIndex >= provisioner.Spec.Steps.Count)
+                    {
+                        node.Status.Provisioner = null;
+                    }
+                    else
+                    {
+                        node.Status.Provisioner.CurrentStepStarted = false;
+                    }
+
+                    // We never automatically start the next step in this context, because we aren't returning
+                    // the next step data to UET; instead we're returning the IPXE script used for booting.
+                    await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+                        node.Status.AttestationIdentityKeyFingerprint!,
+                        node.Status,
+                        cancellationToken);
                 }
 
-                // We never automatically start the next step in this context, because we aren't returning
-                // the next step data to UET; instead we're returning the IPXE script used for booting.
-                await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
-                    node.Status.AttestationIdentityKeyFingerprint!,
-                    node.Status,
-                    cancellationToken);
+                return overrideScript ?? defaultScript;
             }
 
-            return selectedScript ?? defaultScript;
+            var bootedFromStepIndex = (node?.Status?.Provisioner?.RebootStepIndex ?? -1).ToString(CultureInfo.InvariantCulture);
+            _logger.LogInformation($"Informing machine that they are booting from step index {bootedFromStepIndex}.");
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "booted-from-step-index", bootedFromStepIndex },
+                { "dhcp", !skipDhcp ? "dhcp" : string.Empty },
+                { "provisioner-api-address", GetHostAddress().ToString() },
+            };
+            var selectedScript = await GetSelectedScript();
+            foreach (var kv in replacements)
+            {
+                selectedScript = selectedScript.Replace("{{" + kv.Key + "}}", kv.Value, StringComparison.Ordinal);
+            }
+            return selectedScript;
         }
 
         private class HttpContextProvisioningStepServerContext : IProvisioningStepServerContext
@@ -435,17 +480,7 @@
         {
             _logger.LogInformation($"HTTP request to: {httpContext.Request.Path}");
 
-            if (httpContext.Request.Path == "/ipxe.efi")
-            {
-                httpContext.Response.StatusCode = 200;
-                httpContext.Response.Headers.Add("Content-Type", "application/octet-stream");
-                using (var stream = new FileStream(@"ipxe.efi", FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    await stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
-                }
-                return;
-            }
-            else if (
+            if (
                 httpContext.Request.Path == "/autoexec.ipxe" ||
                 httpContext.Request.Path == "/autoexec-nodhcp.ipxe")
             {
@@ -463,47 +498,32 @@
             }
             else if (httpContext.Request.Path.StartsWithSegments("/static", out var staticRemaining))
             {
-                string targetFilename;
-                if (staticRemaining == "/vmlinux")
+                var targetFilename = staticRemaining.ToString().TrimStart('/');
+                if (targetFilename.Contains('/', StringComparison.Ordinal))
                 {
-                    targetFilename = "vmlinux";
+                    httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
                 }
-                else if (staticRemaining == "/rootfs.cpio")
+                else if (_staticFileAllowlist.Contains(targetFilename, StringComparer.Ordinal))
                 {
-                    targetFilename = "rootfs.cpio";
+                    var staticFilesPath = _commandInvocationContext.ParseResult.GetValueForOption(_options.StaticFiles)!.FullName;
+                    var staticFilePath = Path.Combine(staticFilesPath, targetFilename);
+
+                    httpContext.Response.StatusCode = 200;
+                    httpContext.Response.Headers.Add(
+                        "Content-Type",
+                        targetFilename.EndsWith(".ipxe", StringComparison.Ordinal)
+                            ? "text/plain"
+                            : "application/octet-stream");
+                    using (var stream = new FileStream(staticFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        _logger.LogInformation($"Transferring {staticFilePath} ({stream.Length} bytes)...");
+                        await stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted);
+                    }
                 }
                 else
                 {
                     httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    return;
                 }
-
-                var targetFullPath = Path.Combine(
-                    _commandInvocationContext.ParseResult.GetValueForOption(
-                    _options.StaticFiles)!.FullName,
-                    targetFilename);
-                if (!File.Exists(targetFullPath))
-                {
-                    httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    return;
-                }
-
-                using (var fileStream = new FileStream(
-                    targetFullPath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read))
-                {
-                    httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
-                    httpContext.Response.Headers.Add(
-                        "Content-Type",
-                        "application/octet-stream");
-                    await fileStream.CopyToAsync(
-                        httpContext.Response.Body,
-                        httpContext.RequestAborted);
-                    await httpContext.Response.Body.FlushAsync();
-                }
-
                 return;
             }
             else if (httpContext.Request.Path.StartsWithSegments("/api/node-provisioning", out var remaining))
@@ -562,6 +582,23 @@
                     return;
                 }
 
+                if (remaining == "/reboot-to-disk")
+                {
+                    _logger.LogInformation($"Node {node.Name()} is requesting to boot to disk on next PXE boot.");
+
+                    node.Status ??= new();
+                    node.Status.BootToDisk = true;
+
+                    await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+                        fingerprint,
+                        node.Status,
+                        httpContext.RequestAborted);
+
+                    httpContext.Response.StatusCode = 200;
+
+                    return;
+                }
+
                 if (remaining == "/step" || remaining == "/step-complete")
                 {
                     if (string.IsNullOrWhiteSpace(node?.Status?.Provisioner?.Name))
@@ -586,6 +623,49 @@
                         return;
                     }
 
+                    if (remaining == "/step" &&
+                        httpContext.Request.Query.TryGetValue("initial", out var initial) && initial.FirstOrDefault() == "true")
+                    {
+                        if (!httpContext.Request.Query.TryGetValue("bootedFromStepIndex", out var bootedFromStepIndex) ||
+                            string.IsNullOrWhiteSpace(bootedFromStepIndex) ||
+                            int.Parse(bootedFromStepIndex!, CultureInfo.InvariantCulture) != (node.Status.Provisioner.RebootStepIndex ?? -1))
+                        {
+                            // The machine didn't boot with the expected autoexec.ipxe script, usually because
+                            // the IP address of the machine during PXE boot and the IP address of the machine
+                            // during provisioning inside initrd is different. When this happens, autoexec.ipxe isn't
+                            // serving the desired script (which could result in the following provisioning steps
+                            // running in the complete wrong environment). Therefore this is a permanent failure that
+                            // needs to be fixed manually.
+                            _logger.LogError($"Machine should have booted from step index {(node.Status.Provisioner.RebootStepIndex ?? -1)}, but booted from {bootedFromStepIndex} instead.");
+                            httpContext.Response.StatusCode = (int)HttpStatusCode.FailedDependency;
+
+                            // Rewind the provisioner state to the start so that the machine can recovery by rebooting
+                            // and starting the process again from the start.
+                            node.Status.Provisioner.LastStepCommittedIndex = null;
+                            node.Status.Provisioner.RebootStepIndex = null;
+                            node.Status.Provisioner.CurrentStepIndex = 0;
+                            node.Status.Provisioner.CurrentStepStarted = false;
+                            await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+                                fingerprint,
+                                node.Status,
+                                httpContext.RequestAborted);
+
+                            return;
+                        }
+
+                        // Reset the "currentStepIndex" to the index after "lastStepCommittedIndex". This ensures
+                        // that step completion status don't carry over reboots unless explicitly committed.
+                        var lastStepCommittedIndex = node.Status.Provisioner.LastStepCommittedIndex ?? -1;
+                        var rebootStepIndex = node.Status.Provisioner.RebootStepIndex ?? -1;
+                        if (lastStepCommittedIndex < rebootStepIndex)
+                        {
+                            // Last committed step must always at least be the reboot step index.
+                            lastStepCommittedIndex = rebootStepIndex;
+                        }
+                        _logger.LogInformation($"Setting current step to {lastStepCommittedIndex + 1} during initial step fetch. Last committed step index is {lastStepCommittedIndex}, reboot step index is {rebootStepIndex}.");
+                        node.Status.Provisioner.CurrentStepIndex = lastStepCommittedIndex + 1;
+                    }
+
                     var currentStep = provisioner.Spec!.Steps![node.Status.Provisioner.CurrentStepIndex!.Value];
                     var provisioningStep = _provisioningSteps.First(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
 
@@ -600,6 +680,14 @@
                                 httpContext.RequestAborted);
 
                             node.Status.Provisioner.CurrentStepStarted = true;
+
+                            if (provisioningStep.Flags.HasFlag(ProvisioningStepFlags.SetAsRebootStepIndex))
+                            {
+                                // Set the reboot step index if this is a reboot step. This must be done during /step, since
+                                // the reboot steps don't "complete" like other steps.
+                                _logger.LogInformation($"Setting reboot step index to {node.Status.Provisioner.CurrentStepIndex}.");
+                                node.Status.Provisioner.RebootStepIndex = node.Status.Provisioner.CurrentStepIndex;
+                            }
 
                             await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
                                 fingerprint,
@@ -639,6 +727,10 @@
                         {
                             node.Status.Provisioner.CurrentStepIndex = 0;
                         }
+                        if (provisioningStep.Flags.HasFlag(ProvisioningStepFlags.CommitOnCompletion))
+                        {
+                            node.Status.Provisioner.LastStepCommittedIndex = node.Status.Provisioner.CurrentStepIndex;
+                        }
                         node.Status.Provisioner.CurrentStepIndex += 1;
                         if (node.Status.Provisioner.CurrentStepIndex >= provisioner.Spec.Steps.Count)
                         {
@@ -670,6 +762,14 @@
                                 node.Status,
                                 serverContext,
                                 httpContext.RequestAborted);
+
+                            if (nextProvisioningStep.Flags.HasFlag(ProvisioningStepFlags.SetAsRebootStepIndex))
+                            {
+                                // Set the reboot step index if this is a reboot step. This must be done when a reboot step is
+                                // started as part of /step-complete's next handling, since the reboot steps don't "complete" like other steps.
+                                _logger.LogInformation($"Setting reboot step index to {node.Status.Provisioner.CurrentStepIndex}.");
+                                node.Status.Provisioner.RebootStepIndex = node.Status.Provisioner.CurrentStepIndex;
+                            }
 
                             await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
                                 fingerprint,

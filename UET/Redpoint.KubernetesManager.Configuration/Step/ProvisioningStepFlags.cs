@@ -12,5 +12,9 @@
         DoNotStartAutomaticallyNextStepOnCompletion = 0x1,
 
         AssumeCompleteWhenIpxeScriptFetched = 0x2,
+
+        CommitOnCompletion = 0x4,
+
+        SetAsRebootStepIndex = 0x8,
     }
 }

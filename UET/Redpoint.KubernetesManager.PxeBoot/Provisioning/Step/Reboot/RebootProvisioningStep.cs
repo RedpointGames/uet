@@ -1,8 +1,8 @@
-﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp
+﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Configuration.Types;
-    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
     using Redpoint.KubernetesManager.PxeBoot.ProvisioningStep;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
@@ -32,7 +32,8 @@
 
         public ProvisioningStepFlags Flags =>
             ProvisioningStepFlags.DoNotStartAutomaticallyNextStepOnCompletion |
-            ProvisioningStepFlags.AssumeCompleteWhenIpxeScriptFetched;
+            ProvisioningStepFlags.AssumeCompleteWhenIpxeScriptFetched |
+            ProvisioningStepFlags.SetAsRebootStepIndex;
 
         public Task ExecuteOnServerBeforeAsync(
             RebootProvisioningStepConfig config,
@@ -60,6 +61,10 @@
             else
             {
                 // Reboot the machine.
+                _logger.LogInformation("Machine will be rebooted in 10 seconds...");
+                await Task.Delay(10000, cancellationToken);
+
+                _logger.LogInformation("Rebooting machine...");
                 if (OperatingSystem.IsWindows())
                 {
                     await _processExecutor.ExecuteAsync(

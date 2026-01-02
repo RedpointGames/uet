@@ -13,6 +13,7 @@
     using Redpoint.Tpm;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Net;
     using System.Net.Http.Json;
@@ -147,7 +148,7 @@
             }
             else
             {
-                _logger.LogInformation("Machine is already provisioned for PXE boot.");
+                _logger.LogInformation("Machine disks are already provisioned.");
             }
 
             Directory.CreateDirectory("/var/mount/boot");
@@ -240,6 +241,7 @@
 
                 // Determine the API address.
                 string apiAddress;
+                int bootedFromStepIndex = -1;
                 if (context.ParseResult.GetValueForOption(_options.Local))
                 {
                     apiAddress = "127.0.0.1";
@@ -249,13 +251,17 @@
                     if (platformType == PlatformType.LinuxInitrd || platformType == PlatformType.Linux)
                     {
                         var kernelCmdline = await File.ReadAllTextAsync("/proc/cmdline", context.GetCancellationToken());
-                        var kernelCmdlineRegex = new Regex("rkm-api-address=(?<address>[0-9a-f:\\.]+)");
-                        var kernelCmdlineRegexMatch = kernelCmdlineRegex.Match(kernelCmdline);
-                        if (!kernelCmdlineRegexMatch.Success)
+                        var kernelCmdlineAddressRegex = new Regex("rkm-api-address=(?<address>[0-9a-f:\\.]+)");
+                        var kernelCmdlineAddressRegexMatch = kernelCmdlineAddressRegex.Match(kernelCmdline);
+                        var kernelCmdlineBootStepIndexRegex = new Regex("rkm-booted-from-step-index=(?<index>[0-9-]+)");
+                        var kernelCmdlineBootStepIndexRegexMatch = kernelCmdlineBootStepIndexRegex.Match(kernelCmdline);
+                        if (!kernelCmdlineAddressRegexMatch.Success ||
+                            !kernelCmdlineBootStepIndexRegexMatch.Success)
                         {
-                            throw new UnableToProvisionSystemException("/proc/cmdline is missing the rkm-api-address= option.");
+                            throw new UnableToProvisionSystemException("/proc/cmdline is missing the rkm-api-address= or rkm-booted-from-step-index= option.");
                         }
-                        apiAddress = kernelCmdlineRegexMatch.Groups["address"].Value;
+                        apiAddress = kernelCmdlineAddressRegexMatch.Groups["address"].Value;
+                        bootedFromStepIndex = int.Parse(kernelCmdlineBootStepIndexRegexMatch.Groups["index"].Value, CultureInfo.InvariantCulture);
                     }
                     else if (platformType == PlatformType.Mac)
                     {
@@ -324,15 +330,37 @@
                     context.ParseResult.GetValueForOption(_options.Local),
                     client,
                     $"https://{apiAddress}:8791");
+                var initial = true;
                 do
                 {
+                    var @params = string.Empty;
+                    if (initial)
+                    {
+                        @params = $"?initial=true&bootedFromStepIndex={bootedFromStepIndex}";
+                    }
+
                     var stepResponseRaw = await client.GetAsync(
-                        new Uri($"{secureEndpoint}/step"),
+                        new Uri($"{secureEndpoint}/step{@params}"),
                         context.GetCancellationToken());
                     if (stepResponseRaw.StatusCode == HttpStatusCode.NoContent)
                     {
-                        _logger.LogInformation("No further provisioning steps to run.");
-                        break;
+                        // Ask the provisioner to reboot us to disk on next boot.
+                        _logger.LogInformation("No further provisioning steps to run, requesting reboot to disk on server...");
+                        var rebootToDiskResponse = await client.GetAsync(new Uri($"{secureEndpoint}/reboot-to-disk"), context.GetCancellationToken());
+                        rebootToDiskResponse.EnsureSuccessStatusCode();
+
+                        _logger.LogInformation("Scheduling reboot on client...");
+                        var rebootProvisioningStep = _provisioningSteps.First(x => x.Type == "reboot");
+                        await rebootProvisioningStep.ExecuteOnClientUncastedAsync(
+                            null,
+                            clientContext,
+                            context.GetCancellationToken());
+                        return 0;
+                    }
+                    if (stepResponseRaw.StatusCode == HttpStatusCode.FailedDependency)
+                    {
+                        _logger.LogError($"The server reported that this machine should not have booted from step index {bootedFromStepIndex}, but we did. This means the machine could be in a different environment than the one desired for provisioning to continue. Fix your DHCP server so that it provides the same IP addresses to machines across the PXE/initrd barrier.");
+                        throw new UnableToProvisionSystemException($"Incorrect boot environment.");
                     }
                     stepResponseRaw.EnsureSuccessStatusCode();
 
@@ -345,7 +373,10 @@
                         throw new UnableToProvisionSystemException($"The provisioning step type '{currentStep?.Type}' does not exist on the client.");
                     }
 
+                    initial = false;
+
                 immediatelyStartNextStep:
+                    _logger.LogInformation($"Now executing step '{currentStep?.Type}'...");
                     await provisioningStep.ExecuteOnClientUncastedAsync(
                         currentStep?.DynamicSettings,
                         clientContext,

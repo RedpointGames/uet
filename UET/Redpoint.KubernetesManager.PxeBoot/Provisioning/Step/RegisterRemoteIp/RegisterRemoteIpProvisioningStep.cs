@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Configuration.Types;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
     using Redpoint.KubernetesManager.PxeBoot.ProvisioningStep;
     using Redpoint.RuntimeJson;
     using System;

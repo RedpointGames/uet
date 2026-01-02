@@ -1,6 +1,8 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.ProvisioningStep
 {
     using Redpoint.KubernetesManager.Configuration.Json;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using System.Text.Json;
     using System.Text.Json.Serialization;

@@ -1,4 +1,4 @@
-﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test
+﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot
 {
     using System.Text.Json.Serialization;
 
