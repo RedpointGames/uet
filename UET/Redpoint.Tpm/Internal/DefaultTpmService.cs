@@ -61,7 +61,7 @@
                         ObjectAttr.AdminWithPolicy |
                         ObjectAttr.SensitiveDataOrigin,
                     GetAikPolicyTree().GetPolicyDigest(),
-                    new RsaParms(new SymDefObject(), new SchemeRsassa(SecurityConstants.TpmHashAlgorithmId), SecurityConstants.RsaKeyBits, 0),
+                    new RsaParms(new SymDefObject(), new SchemeRsassa(SecurityConstants.TpmHashAlgorithmId), SecurityConstants.RsaKeyBitsTpm, 0),
                     new Tpm2bPublicKeyRsa());
 
                 var aikCreateResponse = await handles.Tpm.CreatePrimaryAsync(

@@ -45,7 +45,7 @@
 
             var distinguishedName = new X500DistinguishedName($"CN=\"{commonName}\"");
 
-            var rsa = RSA.Create(SecurityConstants.RsaKeyBits);
+            var rsa = RSA.Create(SecurityConstants.RsaKeyBitsCert);
 
             var request = new CertificateRequest(
                 distinguishedName,

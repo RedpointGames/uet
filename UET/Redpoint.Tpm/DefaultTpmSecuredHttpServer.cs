@@ -65,9 +65,9 @@
             {
                 throw new InvalidNegotiationRequestException("Expected a PUT request.");
             }
-            var headers = httpContext.Request.GetTypedHeaders();
-            if (headers.ContentType == null ||
-                headers.ContentType.MediaType != "application/json")
+            if (!httpContext.Request.Headers.TryGetValue("Content-Type", out var contentTypes) ||
+                contentTypes.Count != 1 ||
+                MediaTypeHeaderValue.Parse(contentTypes[0]).MediaType != "application/json")
             {
                 throw new InvalidNegotiationRequestException("Expected content type to be 'application/json'.");
             }
@@ -123,7 +123,7 @@
             };
 
             httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
-            httpContext.Response.GetTypedHeaders().ContentType = new MediaTypeHeaderValue("application/json");
+            httpContext.Response.Headers.Add("Content-Type", "application/json");
             using (var writer = new StreamWriter(httpContext.Response.Body))
             {
                 await writer.WriteAsync(
