@@ -17,9 +17,9 @@ cat >$TARGET_DIR/usr/lib/systemd/system/rkm-initrd.target <<EOF
 [Unit]
 Description=RKM Initrd Target
 Requires=basic.target network.target
-Wants=dbus.service rkm-provision-client.service
+Wants=dbus.service rkm-provision-client.service systemd-networkd.service
 Conflicts=multi-user.target rescue.service rescue.target
-After=multi-user.target rescue.service rescue.target
+After=multi-user.target rescue.service rescue.target systemd-networkd.service
 AllowIsolate=yes
 EOF
 
@@ -32,7 +32,6 @@ Type=simple
 ExecStart=/usr/bin/uet-bootstrap internal pxeboot provision-client
 StandardInput=tty
 StandardOutput=tty
-TTYPath=/dev/ttyS0
 Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet-bundle"
 Environment="GRPC_PIPE_PATH_USER=/tmp/.grpc"
 Restart=always
@@ -53,4 +52,7 @@ DNS=1.1.1.1
 DNS=1.0.0.1
 DNS=8.8.8.8
 DNS=8.8.4.4
+
+[DHCP]
+ClientIdentifier=mac
 EOF
