@@ -34,6 +34,7 @@
 		<ProjectReference Include="..\Redpoint.PackageManagement\Redpoint.PackageManagement.csproj" />
 		<ProjectReference Include="..\Redpoint.Registry\Redpoint.Registry.csproj" />
 		<ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
+		<ProjectReference Include="..\Redpoint.Tpm\Redpoint.Tpm.csproj" />
 		<ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
 		<ProjectReference Include="..\Redpoint.Windows.Firewall\Redpoint.Windows.Firewall.csproj" />
 		<ProjectReference Include="..\Redpoint.Windows.HostNetworkingService\Redpoint.Windows.HostNetworkingService.csproj" />
