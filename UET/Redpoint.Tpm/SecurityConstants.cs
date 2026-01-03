@@ -20,7 +20,7 @@
 
         public static readonly AeadAlgorithm SymmetricAlgorithm = AeadAlgorithm.XChaCha20Poly1305;
 
-        public const KeyBlobFormat SymmetricKeyBlobFormat = KeyBlobFormat.NSecSymmetricKey;
+        public const KeyBlobFormat SymmetricKeyBlobFormat = KeyBlobFormat.RawSymmetricKey;
 
         public const TpmAlgId TpmHashAlgorithmId = TpmAlgId.Sha256;
     }

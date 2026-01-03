@@ -133,6 +133,10 @@
                     [],
                     data);
                 symmetricUnencryptedKey = symmetricKey.Export(SecurityConstants.SymmetricKeyBlobFormat);
+                if (symmetricUnencryptedKey.Length > 32)
+                {
+                    throw new InvalidOperationException("Exported symmetric key was larger than 32 bytes, which is the maximum data size supported by ActivateCredential on some hardware TPMs.");
+                }
                 symmetricEncryptedData = [.. symmetricNonce, .. symmetricEncryptedDataWithoutNonce];
             }
 
