@@ -1,16 +1,20 @@
 ﻿namespace Redpoint.KubernetesManager.Configuration.Sources
 {
     using k8s;
+    using k8s.Autorest;
     using k8s.Models;
     using Redpoint.KubernetesManager.Configuration.Types;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
+    using System.Net.NetworkInformation;
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization.Metadata;
     using System.Threading;
     using System.Threading.Tasks;
+    using YamlDotNet.Core.Tokens;
 
     public class KubernetesRkmConfigurationSource : IRkmConfigurationSource
     {
@@ -22,7 +26,7 @@
             _kubernetes = kubernetes;
         }
 
-        public Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
+        public async Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
             RkmNodeRole[] roles,
             bool immutable,
@@ -30,45 +34,214 @@
             string architecture,
             CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var fingerprint = RkmNodeFingerprint.CreateFromPem(attestationIdentityKeyPem);
+
+            object? nodeJson;
+            var node = await GetRkmNodeByAttestationIdentityKeyPemAsync(
+                attestationIdentityKeyPem,
+                cancellationToken);
+            if (node == null)
+            {
+                node = new RkmNode
+                {
+                    ApiVersion = "rkm.redpoint.games/v1",
+                    Kind = "RkmNode",
+                    Metadata = new V1ObjectMeta
+                    {
+                        Name = fingerprint.Substring(0, 8),
+                    },
+                    Spec = new RkmNodeSpec
+                    {
+                        NodeName = string.Empty,
+                        NodeGroup = string.Empty,
+                        Authorized = false,
+                        ForceReprovision = false,
+                    },
+                    Status = new RkmNodeStatus
+                    {
+                        Roles = null,
+                        Immutable = immutable,
+                        AttestationIdentityKeyFingerprint = fingerprint,
+                        AttestationIdentityKeyPem = attestationIdentityKeyPem,
+                        FirstSeen = DateTimeOffset.UtcNow,
+                        MostRecentJoinRequest = null,
+                        CapablePlatforms = null,
+                        Architecture = null,
+                        LastSuccessfulProvision = null,
+                        Provisioner = null,
+                        RegisteredIpAddresses = new(),
+                        BootToDisk = false,
+                    },
+                };
+                nodeJson = await _kubernetes.CustomObjects.CreateClusterCustomObjectAsync<JsonElement>(
+                    JsonSerializer.SerializeToElement(
+                        node,
+                        KubernetesRkmJsonSerializerContext.WithStringEnum.RkmNode),
+                    "rkm.redpoint.games",
+                    "v1",
+                    "rkmnodes",
+                    cancellationToken: cancellationToken);
+            }
+            else
+            {
+                nodeJson = await _kubernetes.CustomObjects.PatchClusterCustomObjectAsync<JsonElement>(
+                    JsonSerializer.SerializeToElement(
+                        new PatchRkmNodePartialUpdate
+                        {
+                            Status = new PatchRkmNodeStatusPartialUpdate
+                            {
+                                Roles = roles,
+                                Immutable = immutable,
+                                AttestationIdentityKeyFingerprint = fingerprint,
+                                AttestationIdentityKeyPem = attestationIdentityKeyPem,
+                                FirstSeen = node?.Status?.FirstSeen ?? DateTimeOffset.UtcNow,
+                                MostRecentJoinRequest = DateTimeOffset.UtcNow,
+                                CapablePlatforms = [.. capablePlatforms],
+                                Architecture = architecture,
+                            }
+                        },
+                        KubernetesRkmJsonSerializerContext.WithStringEnum.PatchRkmNodePartialUpdate),
+                    "rkm.redpoint.games",
+                    "v1",
+                    "rkmnodes",
+                    node!.Metadata.Name,
+                    cancellationToken: cancellationToken);
+            }
+
+            if (nodeJson == null)
+            {
+                throw new InvalidOperationException("Unable to create RkmNode!");
+            }
+            return JsonSerializer.Deserialize(
+                (JsonElement)nodeJson,
+                KubernetesRkmJsonSerializerContext.WithStringEnum.RkmNode)!;
         }
 
-        public Task<RkmNode?> GetRkmNodeByAttestationIdentityKeyPemAsync(
+        public async Task<RkmNode?> GetRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
             CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var fingerprint = RkmNodeFingerprint.CreateFromPem(attestationIdentityKeyPem);
+
+            try
+            {
+                var nodeJson = await _kubernetes.CustomObjects.GetClusterCustomObjectAsync<JsonElement>(
+                    "rkm.redpoint.games",
+                    "v1",
+                    "rkmnodes",
+                    fingerprint.Substring(0, 8),
+                    cancellationToken);
+                var node = JsonSerializer.Deserialize(
+                    (JsonElement)nodeJson,
+                    KubernetesRkmJsonSerializerContext.WithStringEnum.RkmNode);
+                if (node == null ||
+                    node?.Status?.AttestationIdentityKeyFingerprint != fingerprint ||
+                    node?.Status?.AttestationIdentityKeyPem != attestationIdentityKeyPem)
+                {
+                    return null;
+                }
+                return node;
+            }
+            catch (HttpOperationException ex) when (ex.Response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
         }
 
-        public Task<RkmNode?> GetRkmNodeByRegisteredIpAddressAsync(string registeredIpAddress, CancellationToken cancellationToken)
+        public async Task<RkmNode?> GetRkmNodeByRegisteredIpAddressAsync(string registeredIpAddress, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            // We can't use a field selector here, since field selectors for CRDs can't
+            // access arrays.
+            var nodesJson = await _kubernetes.CustomObjects.ListClusterCustomObjectAsync<JsonElement>(
+                "rkm.redpoint.games",
+                "v1",
+                "rkmnodes",
+                cancellationToken: cancellationToken);
+            var nodes = JsonSerializer.Deserialize(
+                (JsonElement)nodesJson,
+                KubernetesRkmJsonSerializerContext.WithStringEnum.KubernetesListRkmNode);
+            if (nodes == null)
+            {
+                return null;
+            }
+            var eligible = new List<(RkmNode? node, DateTimeOffset expiresAt)>();
+            foreach (var node in nodes)
+            {
+                var ipAddresses = node?.Status?.RegisteredIpAddresses ?? [];
+                foreach (var ipAddress in ipAddresses)
+                {
+                    if (ipAddress?.Address == registeredIpAddress &&
+                        ipAddress?.ExpiresAt > DateTimeOffset.UtcNow)
+                    {
+                        eligible.Add((node, ipAddress.ExpiresAt ?? DateTimeOffset.MaxValue));
+                        return node;
+                    }
+                }
+            }
+            return eligible
+                .OrderByDescending(x => x.expiresAt)
+                .FirstOrDefault().node;
         }
 
-        public Task UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+        public async Task UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
             string attestationIdentityKeyFingerprint,
             RkmNodeStatus status,
             CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(attestationIdentityKeyFingerprint);
+
+            await _kubernetes.CustomObjects.PatchClusterCustomObjectAsync<JsonElement>(
+                JsonSerializer.Serialize(
+                    new PatchRkmNodeFullStatus
+                    {
+                        Status = status,
+                    },
+                    KubernetesRkmJsonSerializerContext.WithStringEnum.PatchRkmNodeFullStatus),
+                "rkm.redpoint.games",
+                "v1",
+                "rkmnodes",
+                attestationIdentityKeyFingerprint.Substring(0, 8),
+                cancellationToken: cancellationToken);
         }
 
-        public Task<RkmNodeProvisioner?> GetRkmNodeProvisionerAsync(
+        public async Task<RkmNodeProvisioner?> GetRkmNodeProvisionerAsync(
             string name,
-            JsonTypeInfo<RkmNodeProvisionerSpec> jsonTypeInfoWithSerializerForSteps,
+            JsonTypeInfo<RkmNodeProvisioner> jsonTypeInfoWithSerializerForSteps,
             CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var nodeProvisioner = await _kubernetes.CustomObjects.GetClusterCustomObjectAsync<JsonElement>(
+                    "rkm.redpoint.games",
+                    "v1",
+                    "rkmnodeprovisioners",
+                    name,
+                    cancellationToken);
+                return JsonSerializer.Deserialize(
+                    (JsonElement)nodeProvisioner,
+                    jsonTypeInfoWithSerializerForSteps)!;
+            }
+            catch (HttpOperationException ex) when (ex.Response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
         }
 
         public async Task<RkmConfiguration> GetRkmConfigurationAsync(CancellationToken cancellationToken)
         {
-            var configuration = await _kubernetes.CustomObjects.GetClusterCustomObjectAsync(
-                "rkm.redpoint.games",
-                "v1",
-                "rkmconfigurations",
-                "default",
-                cancellationToken);
+            object? configuration = null;
+            try
+            {
+                configuration = await _kubernetes.CustomObjects.GetClusterCustomObjectAsync<JsonElement>(
+                    "rkm.redpoint.games",
+                    "v1",
+                    "rkmconfigurations",
+                    "default",
+                    cancellationToken);
+            }
+            catch (HttpOperationException ex) when (ex.Response.StatusCode == HttpStatusCode.NotFound)
+            {
+            }
             if (configuration == null)
             {
                 // Provide a default configuration in case one hasn't been deployed by
@@ -100,15 +273,15 @@
 
             return JsonSerializer.Deserialize(
                 (JsonElement)configuration,
-                KubernetesRkmJsonSerializerContext.Default.RkmConfiguration)!;
+                KubernetesRkmJsonSerializerContext.WithStringEnum.RkmConfiguration)!;
         }
 
         public async Task ReplaceRkmConfigurationAsync(RkmConfiguration configuration, CancellationToken cancellationToken)
         {
-            await _kubernetes.CustomObjects.ReplaceClusterCustomObjectAsync(
+            await _kubernetes.CustomObjects.ReplaceClusterCustomObjectAsync<JsonElement>(
                 JsonSerializer.SerializeToElement(
                     configuration,
-                    KubernetesRkmJsonSerializerContext.Default.RkmConfiguration),
+                    KubernetesRkmJsonSerializerContext.WithStringEnum.RkmConfiguration),
                 "rkm.redpoint.games",
                 "v1",
                 "rkmconfigurations",

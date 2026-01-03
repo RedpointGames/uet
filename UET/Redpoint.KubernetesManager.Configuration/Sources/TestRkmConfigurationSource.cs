@@ -138,21 +138,14 @@
                 value.Status = status;
             }
 
-            _logger.LogTrace(JsonSerializer.Serialize(status, new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
-            {
-                Converters =
-                {
-                    new JsonStringEnumConverter(),
-                    new KubernetesDateTimeOffsetConverter(),
-                }
-            }).RkmNodeStatus));
+            _logger.LogTrace(JsonSerializer.Serialize(status, KubernetesRkmJsonSerializerContext.WithStringEnum.RkmNodeStatus));
 
             return Task.CompletedTask;
         }
 
         public async Task<RkmNodeProvisioner?> GetRkmNodeProvisionerAsync(
             string name,
-            JsonTypeInfo<RkmNodeProvisionerSpec> jsonTypeInfoWithSerializerForSteps,
+            JsonTypeInfo<RkmNodeProvisioner> jsonTypeInfoWithSerializerForSteps,
             CancellationToken cancellationToken)
         {
             using (var stream = new FileStream("provisioner.yaml", FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -161,21 +154,10 @@
                 YamlToJsonConverter.Convert(stream, targetStream);
                 targetStream.Seek(0, SeekOrigin.Begin);
 
-                var spec = await JsonSerializer.DeserializeAsync(
+                return await JsonSerializer.DeserializeAsync(
                     targetStream,
                     jsonTypeInfoWithSerializerForSteps,
                     cancellationToken);
-
-                return new RkmNodeProvisioner
-                {
-                    ApiVersion = "rkm.redpoint.games/v1",
-                    Kind = "RkmNodeProvisioner",
-                    Metadata = new V1ObjectMeta
-                    {
-                        Name = "default",
-                    },
-                    Spec = spec,
-                };
             }
         }
 

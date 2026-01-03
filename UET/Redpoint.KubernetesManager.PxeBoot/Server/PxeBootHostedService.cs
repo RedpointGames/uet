@@ -90,15 +90,8 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
             _serviceProvider = serviceProvider;
             _provisioningSteps = provisioningSteps.ToList();
 
-            _jsonSerializerContext = new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
-            {
-                Converters =
-                {
-                    new JsonStringEnumConverter(),
-                    new RkmNodeProvisionerStepJsonConverter(provisioningSteps),
-                    new KubernetesDateTimeOffsetConverter(),
-                }
-            });
+            _jsonSerializerContext = KubernetesRkmJsonSerializerContext.CreateStringEnumWithAdditionalConverters(
+                new RkmNodeProvisionerStepJsonConverter(provisioningSteps));
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -111,11 +104,11 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
                     break;
                 case PxeBootServerSource.KubernetesDefault:
                     _rkmConfigurationSource = new KubernetesRkmConfigurationSource(
-                        new Kubernetes(KubernetesClientConfiguration.BuildDefaultConfig()));
+                        new KubernetesWithDeserializeFix(KubernetesClientConfiguration.BuildDefaultConfig()));
                     break;
                 case PxeBootServerSource.KubernetesInCluster:
                     _rkmConfigurationSource = new KubernetesRkmConfigurationSource(
-                        new Kubernetes(KubernetesClientConfiguration.InClusterConfig()));
+                        new KubernetesWithDeserializeFix(KubernetesClientConfiguration.InClusterConfig()));
                     break;
                 default:
                     _logger.LogError("Unsupported configuration source.");
@@ -387,7 +380,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
                 }
                 var provisioner = await _rkmConfigurationSource.GetRkmNodeProvisionerAsync(
                     node.Status.Provisioner.Name,
-                    _jsonSerializerContext.RkmNodeProvisionerSpec,
+                    _jsonSerializerContext.RkmNodeProvisioner,
                     cancellationToken);
                 if (provisioner == null ||
                     (provisioner.GetHash(_jsonSerializerContext.RkmNodeProvisioner) != node.Status.Provisioner.Hash && !string.IsNullOrWhiteSpace(node.Status.Provisioner.Hash)) ||
@@ -474,6 +467,47 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
             }
 
             public IPAddress RemoteIpAddress => _httpContext.Connection.RemoteIpAddress;
+        }
+
+        private void UpdateRegisteredIpAddressesForNode(
+            RkmNodeStatus nodeStatus,
+            HttpContext httpContext)
+        {
+            var threshold = DateTimeOffset.UtcNow;
+            var newExpiry = DateTimeOffset.UtcNow.AddDays(1);
+
+            var addresses = new List<IPAddress>
+            {
+                httpContext.Connection.RemoteIpAddress
+            };
+            if (httpContext.Connection.RemoteIpAddress.IsIPv4MappedToIPv6)
+            {
+                addresses.Add(httpContext.Connection.RemoteIpAddress.MapToIPv4());
+            }
+
+            nodeStatus.RegisteredIpAddresses ??= new List<RkmNodeStatusRegisteredIpAddress>();
+            nodeStatus.RegisteredIpAddresses.RemoveAll(x => !x.ExpiresAt.HasValue || x.ExpiresAt.Value < threshold);
+
+            foreach (var addressRaw in addresses)
+            {
+                var address = addressRaw.ToString();
+
+                var existingEntry = nodeStatus.RegisteredIpAddresses.FirstOrDefault(x => x.Address == address);
+                if (existingEntry != null)
+                {
+                    _logger.LogInformation($"Updating existing expiry of registered IP address '{address}' to {newExpiry}...");
+                    existingEntry.ExpiresAt = DateTimeOffset.UtcNow.AddDays(1);
+                }
+                else
+                {
+                    _logger.LogInformation($"Adding new entry for registered IP address '{address}' with expiry {newExpiry}...");
+                    nodeStatus.RegisteredIpAddresses.Add(new RkmNodeStatusRegisteredIpAddress
+                    {
+                        Address = address,
+                        ExpiresAt = DateTimeOffset.UtcNow.AddDays(1),
+                    });
+                }
+            }
         }
 
         async Task IKestrelRequestHandler.HandleRequestAsync(HttpContext httpContext)
@@ -588,6 +622,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
 
                     node.Status ??= new();
                     node.Status.BootToDisk = true;
+                    UpdateRegisteredIpAddressesForNode(node.Status, httpContext);
 
                     await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
                         fingerprint,
@@ -612,7 +647,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
 
                     var provisioner = await _rkmConfigurationSource.GetRkmNodeProvisionerAsync(
                         node.Status.Provisioner.Name,
-                        _jsonSerializerContext.RkmNodeProvisionerSpec,
+                        _jsonSerializerContext.RkmNodeProvisioner,
                         httpContext.RequestAborted);
                     if (provisioner == null ||
                         (provisioner.GetHash(_jsonSerializerContext.RkmNodeProvisioner) != node.Status.Provisioner.Hash && !string.IsNullOrWhiteSpace(node.Status.Provisioner.Hash)) ||
@@ -639,12 +674,13 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
                             _logger.LogError($"Machine should have booted from step index {(node.Status.Provisioner.RebootStepIndex ?? -1)}, but booted from {bootedFromStepIndex} instead.");
                             httpContext.Response.StatusCode = (int)HttpStatusCode.FailedDependency;
 
-                            // Rewind the provisioner state to the start so that the machine can recovery by rebooting
+                            // Rewind the provisioner state to the start so that the machine can recover by rebooting
                             // and starting the process again from the start.
                             node.Status.Provisioner.LastStepCommittedIndex = null;
                             node.Status.Provisioner.RebootStepIndex = null;
                             node.Status.Provisioner.CurrentStepIndex = 0;
                             node.Status.Provisioner.CurrentStepStarted = false;
+                            UpdateRegisteredIpAddressesForNode(node.Status, httpContext);
                             await _rkmConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
                                 fingerprint,
                                 node.Status,
@@ -664,6 +700,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
                         }
                         _logger.LogInformation($"Setting current step to {lastStepCommittedIndex + 1} during initial step fetch. Last committed step index is {lastStepCommittedIndex}, reboot step index is {rebootStepIndex}.");
                         node.Status.Provisioner.CurrentStepIndex = lastStepCommittedIndex + 1;
+                        UpdateRegisteredIpAddressesForNode(node.Status, httpContext);
                     }
 
                     var currentStep = provisioner.Spec!.Steps![node.Status.Provisioner.CurrentStepIndex!.Value];

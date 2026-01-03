@@ -6,8 +6,5 @@
     {
         [JsonPropertyName("provisioner")]
         public string? Provisioner { get; set; }
-
-        [JsonPropertyName("activeDirectory")]
-        public RkmNodeGroupActiveDirectory? ActiveDirectory { get; set; }
     }
 }

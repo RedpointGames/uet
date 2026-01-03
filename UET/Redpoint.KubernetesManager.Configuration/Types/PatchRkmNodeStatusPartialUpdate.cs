@@ -1,11 +1,9 @@
 ﻿namespace Redpoint.KubernetesManager.Configuration.Types
 {
-    using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json.Serialization;
 
-    public class RkmNodeStatus
+    public class PatchRkmNodeStatusPartialUpdate
     {
         [JsonPropertyName("roles")]
         public IList<RkmNodeRole>? Roles { get; set; }
@@ -31,18 +29,5 @@
 
         [JsonPropertyName("architecture")]
         public string? Architecture { get; set; }
-
-        [JsonPropertyName("provisioner")]
-        public RkmNodeStatusProvisioner? Provisioner { get; set; }
-
-        [JsonPropertyName("lastSuccessfulProvision")]
-        public RkmNodeStatusLastSuccessfulProvision? LastSuccessfulProvision { get; set; }
-
-        [JsonPropertyName("registeredIpAddresses")]
-        [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "We need RemoveAll on this property.")]
-        public List<RkmNodeStatusRegisteredIpAddress>? RegisteredIpAddresses { get; set; }
-
-        [JsonPropertyName("bootToDisk")]
-        public bool? BootToDisk { get; set; }
     }
 }

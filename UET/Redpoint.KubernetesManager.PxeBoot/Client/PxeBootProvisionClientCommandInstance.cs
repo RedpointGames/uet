@@ -51,15 +51,8 @@
             _options = options;
             _provisioningSteps = provisioningSteps.ToList();
 
-            _jsonSerializerContext = new KubernetesRkmJsonSerializerContext(new JsonSerializerOptions
-            {
-                Converters =
-                {
-                    new JsonStringEnumConverter(),
-                    new RkmNodeProvisionerStepJsonConverter(provisioningSteps),
-                    new KubernetesDateTimeOffsetConverter(),
-                }
-            });
+            _jsonSerializerContext = KubernetesRkmJsonSerializerContext.CreateStringEnumWithAdditionalConverters(
+                new RkmNodeProvisionerStepJsonConverter(provisioningSteps));
         }
 
         private async Task ProvisionAndMountDisksAsync(CancellationToken cancellationToken)

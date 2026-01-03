@@ -34,42 +34,9 @@
             IProvisioningStepServerContext serverContext,
             CancellationToken cancellationToken)
         {
-            var threshold = DateTimeOffset.UtcNow;
-            var newExpiry = DateTimeOffset.UtcNow.AddDays(1);
-
-            var addresses = new List<IPAddress>
-            {
-                serverContext.RemoteIpAddress
-            };
-            if (serverContext.RemoteIpAddress.IsIPv4MappedToIPv6)
-            {
-                addresses.Add(serverContext.RemoteIpAddress.MapToIPv4());
-            }
-
-            nodeStatus.RegisteredIpAddresses ??= new List<RkmNodeStatusRegisteredIpAddress>();
-            nodeStatus.RegisteredIpAddresses.RemoveAll(x => !x.ExpiresAt.HasValue || x.ExpiresAt.Value < threshold);
-
-            foreach (var addressRaw in addresses)
-            {
-                var address = addressRaw.ToString();
-
-                var existingEntry = nodeStatus.RegisteredIpAddresses.FirstOrDefault(x => x.Address == address);
-                if (existingEntry != null)
-                {
-                    _logger.LogInformation($"Updating existing expiry of registered IP address '{address}' to {newExpiry}...");
-                    existingEntry.ExpiresAt = DateTimeOffset.UtcNow.AddDays(1);
-                }
-                else
-                {
-                    _logger.LogInformation($"Adding new entry for registered IP address '{address}' with expiry {newExpiry}...");
-                    nodeStatus.RegisteredIpAddresses.Add(new RkmNodeStatusRegisteredIpAddress
-                    {
-                        Address = address,
-                        ExpiresAt = DateTimeOffset.UtcNow.AddDays(1),
-                    });
-                }
-            }
-
+            // This step is now deprecated as registered IP addresses are automatically
+            // updated whenever the node requests a reboot or calls /step with initial=true.
+            _logger.LogWarning($"The '{Type}' step is deprecated and no longer does anything. Please remove it from your provisioner steps.");
             return Task.CompletedTask;
         }
 

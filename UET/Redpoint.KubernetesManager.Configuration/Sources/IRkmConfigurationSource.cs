@@ -34,7 +34,7 @@
 
         Task<RkmNodeProvisioner?> GetRkmNodeProvisionerAsync(
             string name,
-            JsonTypeInfo<RkmNodeProvisionerSpec> jsonTypeInfoWithSerializerForSteps,
+            JsonTypeInfo<RkmNodeProvisioner> jsonTypeInfoWithSerializerForSteps,
             CancellationToken cancellationToken);
 
         Task<RkmConfiguration> GetRkmConfigurationAsync(
