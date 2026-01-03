@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_REDPOINT_PATH/package/wine64/Config.in"

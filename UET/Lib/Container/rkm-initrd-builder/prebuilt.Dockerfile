@@ -41,8 +41,11 @@ WORKDIR /build/buildroot
 COPY buildroot.config .config
 RUN mkdir output
 
+COPY br2-external /build/br2-external
 COPY kernel.config /build/kernel.config
 COPY boot-image.png /build/boot-image.png
+
+ENV BR2_EXTERNAL=/build/br2-external
 
 RUN make syncconfig
 RUN bash -c 'echo -e "\n.PHONY: redpoint-target-finalize\nredpoint-target-finalize: \$(PACKAGES) \$(TARGET_DIR) host-finalize\n"' >> Makefile
