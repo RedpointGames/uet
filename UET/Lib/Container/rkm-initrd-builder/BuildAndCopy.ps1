@@ -1,4 +1,4 @@
-param([switch] $SkipDotNet)
+param([switch] $SkipDotNet, [switch] $OnlyDotNet)
 
 if (!$SkipDotNet) {
     Push-Location $PSScriptRoot\..\..\..\uet
@@ -10,6 +10,10 @@ if (!$SkipDotNet) {
     } finally {
         Pop-Location
     }
+}
+
+if ($OnlyDotNet) {
+    exit 0
 }
 
 Push-Location $PSScriptRoot
