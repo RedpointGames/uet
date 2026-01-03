@@ -5,5 +5,5 @@ COPY setup.sh /build/setup.sh
 
 RUN make
 
-RUN cp output/images/rootfs.cpio /static/initrd && \
+RUN cp output/images/rootfs.cpio.zst /static/initrd && \
     cp output/images/bzImage /static/vmlinuz
