@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>Provides the YamlToJsonConverter API, which converts YAML to JSON in a trim-friendly way without serializing/deserializing to .NET objects.</Description>
+		<PackageTags>yaml, json, conversion</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="YamlDotNet" />
+	</ItemGroup>
+
+</Project>

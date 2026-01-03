@@ -4,6 +4,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Redpoint.RuntimeJson\Redpoint.RuntimeJson.csproj" />
+		<ProjectReference Include="..\Redpoint.YamlToJson\Redpoint.YamlToJson.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

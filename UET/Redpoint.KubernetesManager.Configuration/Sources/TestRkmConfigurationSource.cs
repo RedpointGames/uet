@@ -5,6 +5,7 @@
     using Redpoint.KubernetesManager.Configuration.Json;
     using Redpoint.KubernetesManager.Configuration.Types;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.YamlToJson;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -15,6 +16,10 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System.Xml.Linq;
+    using YamlDotNet.Core;
+    using YamlDotNet.Core.Events;
+    using YamlDotNet.RepresentationModel;
+    using YamlDotNet.Serialization;
 
     public class TestRkmConfigurationSource : IRkmConfigurationSource
     {
@@ -150,8 +155,17 @@
             JsonTypeInfo<RkmNodeProvisionerSpec> jsonTypeInfoWithSerializerForSteps,
             CancellationToken cancellationToken)
         {
-            using (var stream = new FileStream("provisioner.json", FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = new FileStream("provisioner.yaml", FileMode.Open, FileAccess.Read, FileShare.Read))
             {
+                using var targetStream = new MemoryStream();
+                YamlToJsonConverter.Convert(stream, targetStream);
+                targetStream.Seek(0, SeekOrigin.Begin);
+
+                var spec = await JsonSerializer.DeserializeAsync(
+                    targetStream,
+                    jsonTypeInfoWithSerializerForSteps,
+                    cancellationToken);
+
                 return new RkmNodeProvisioner
                 {
                     ApiVersion = "rkm.redpoint.games/v1",
@@ -160,10 +174,7 @@
                     {
                         Name = "default",
                     },
-                    Spec = await JsonSerializer.DeserializeAsync(
-                        stream,
-                        jsonTypeInfoWithSerializerForSteps,
-                        cancellationToken)
+                    Spec = spec,
                 };
             }
         }

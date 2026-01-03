@@ -394,6 +394,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Tpm", "Redpoint.Tp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Tpm.Tests", "Redpoint.Tpm.Tests\Redpoint.Tpm.Tests.csproj", "{11640620-314D-4548-929D-481E6B501DD8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.YamlToJson", "Redpoint.YamlToJson\Redpoint.YamlToJson.csproj", "{899C913B-7A34-4A03-8222-C8F3D6E81CBD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1076,6 +1078,10 @@ Global
 		{11640620-314D-4548-929D-481E6B501DD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11640620-314D-4548-929D-481E6B501DD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{11640620-314D-4548-929D-481E6B501DD8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{899C913B-7A34-4A03-8222-C8F3D6E81CBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{899C913B-7A34-4A03-8222-C8F3D6E81CBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{899C913B-7A34-4A03-8222-C8F3D6E81CBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{899C913B-7A34-4A03-8222-C8F3D6E81CBD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
