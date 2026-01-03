@@ -24,16 +24,16 @@ try {
     $ContainerId = $(docker run --rm --detach --entrypoint /bin/sleep ghcr.io/redpointgames/uet/uet-pxeboot-server:test 3600)
     $ContainerId = $ContainerId.Trim()
 
-    #docker cp "${ContainerId}:/static/vmlinuz" static/vmlinuz
-    #if ($LastExitCode -ne 0) { exit $LastExitCode }
-    #docker cp "${ContainerId}:/static/initrd" static/initrd
-    #if ($LastExitCode -ne 0) { exit $LastExitCode }
-    #docker cp "${ContainerId}:/static/ipxe.efi" static/ipxe.efi
-    #if ($LastExitCode -ne 0) { exit $LastExitCode }
-    #docker cp "${ContainerId}:/static/wimboot" static/wimboot
-    #if ($LastExitCode -ne 0) { exit $LastExitCode }
-    #docker cp "${ContainerId}:/static/background.png" static/background.png
-    #if ($LastExitCode -ne 0) { exit $LastExitCode }
+    docker cp "${ContainerId}:/static/vmlinuz" static/vmlinuz
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    docker cp "${ContainerId}:/static/initrd" static/initrd
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    docker cp "${ContainerId}:/static/ipxe.efi" static/ipxe.efi
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    docker cp "${ContainerId}:/static/wimboot" static/wimboot
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
+    docker cp "${ContainerId}:/static/background.png" static/background.png
+    if ($LastExitCode -ne 0) { exit $LastExitCode }
 
     docker stop -t 0 $ContainerId
     if ($LastExitCode -ne 0) { exit $LastExitCode }
