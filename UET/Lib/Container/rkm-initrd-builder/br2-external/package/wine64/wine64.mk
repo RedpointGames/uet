@@ -24,7 +24,7 @@ HOST_WINE64_DEPENDENCIES = host-bison host-flex
 WINE64_CONF_OPTS = \
 	--with-wine-tools=../host-wine64-$(WINE64_VERSION) \
 	--disable-tests \
-	--enable-win64 \
+	--enable-archs=i386,x86_64 \
 	--without-capi \
 	--without-coreaudio \
 	--without-gettext \

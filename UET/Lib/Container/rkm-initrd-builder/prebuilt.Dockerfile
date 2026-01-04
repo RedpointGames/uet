@@ -2,7 +2,7 @@
 FROM ubuntu:noble AS common-deps
 
 RUN apt update
-RUN apt install -y sed make binutils build-essential diffutils gcc g++ patch gzip bzip2 perl tar cpio unzip rsync file bc findutils gawk wget libncurses-dev curl git
+RUN apt install -y sed make binutils build-essential diffutils gcc g++ patch gzip bzip2 perl tar cpio unzip rsync file bc findutils gawk wget libncurses-dev curl git gcc-mingw-w64-i686-posix gcc-mingw-w64-x86-64-posix
 
 # Build iPXE, which doesn't need to change
 FROM common-deps AS build-ipxe
