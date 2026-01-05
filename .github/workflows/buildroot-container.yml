@@ -14,6 +14,18 @@ jobs:
     name: "Build Buildroot Prebuilt Container"
     runs-on: ubuntu-latest
     steps:
+    - name: Check disk space
+      run: df -h
+    - name: Free up disk space - first pass
+      run: rm -rf /opt/hostedtoolcache
+    - name: Check disk space
+      run: df -h
+    - name: Free up disk space - second pass
+      run: |
+        cd /opt
+        find . -maxdepth 1 -mindepth 1 '!' -path ./containerd '!' -path ./actionarchivecache '!' -path ./runner '!' -path ./runner-cache -exec rm -rf '{}' ';'
+    - name: Check disk space
+      run: df -h
     - name: Checkout
       uses: actions/checkout@v4
       with:
