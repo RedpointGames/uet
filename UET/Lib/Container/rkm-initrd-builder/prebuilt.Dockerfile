@@ -38,6 +38,7 @@ RUN curl -L -o buildroot.tar.xz https://buildroot.org/downloads/buildroot-2025.1
 RUN tar -xf buildroot.tar.xz && mv buildroot-2025.11 buildroot
 
 WORKDIR /build/buildroot
+COPY xserver_xorg-server.mk package/x11r7/xserver_xorg-server/xserver_xorg-server.mk
 COPY buildroot.config .config
 RUN mkdir output
 
