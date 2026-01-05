@@ -1,0 +1,11 @@
+[Unit]
+Description=RKM Rescue Shell
+
+[Service]
+Type=simple
+ExecStart=/bin/bash
+StandardInput=tty
+StandardOutput=tty
+Restart=always
+TimeoutStopSec=0
+KillSignal=SIGKILL

@@ -1,0 +1,10 @@
+[Unit]
+Description=Display Manager
+Requires=xorg.service
+After=xorg.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/evilwm --bw 5 --display :0.0
+ExecStartPost=/bin/bash -c "DISPLAY=:0.0 feh --bg-scale /usr/share/background-x11.png --no-fehbg || true"
+Restart=always
