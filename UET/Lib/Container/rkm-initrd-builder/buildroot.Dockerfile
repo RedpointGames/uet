@@ -27,9 +27,8 @@ RUN cd src && \
     mkdir -pv /static && \
     mv wimboot /static/wimboot
 
-# Prebuild buildroot so that we can quickly build the final image
-# with UET later.
-FROM common-deps
+# Build buildroot, for vmlinuz and initrd.
+FROM common-deps AS build-buildroot
 
 RUN mkdir /build
 WORKDIR /build
@@ -45,13 +44,23 @@ RUN mkdir output
 COPY br2-external /build/br2-external
 COPY kernel.config /build/kernel.config
 COPY boot-image.png /build/boot-image.png
+COPY setup.sh /build/setup.sh
+COPY files /build/files
+RUN chmod a+x /build/setup.sh
 
 ENV BR2_EXTERNAL=/build/br2-external
 
 RUN make syncconfig
-RUN bash -c 'echo -e "\n.PHONY: redpoint-target-finalize\nredpoint-target-finalize: \$(PACKAGES) \$(TARGET_DIR) host-finalize\n"' >> Makefile
-RUN make redpoint-target-finalize
+RUN make
+RUN mkdir /static
+RUN cp output/images/rootfs.cpio.zst /static/initrd && \
+    cp output/images/bzImage /static/vmlinuz
+
+# Final image just has static builds all together.
+FROM scratch
 
 COPY --from=build-ipxe /static/ipxe.efi /static/ipxe.efi
 COPY --from=build-wimboot /static/wimboot /static/wimboot
+COPY --from=build-buildroot /static/vmlinuz /static/vmlinuz
+COPY --from=build-buildroot /static/initrd /static/initrd
 COPY background.png /static/background.png

@@ -32,7 +32,7 @@ jobs:
         fetch-depth: 0
     - name: Build Container
       run: |
-        docker build UET/Lib/Container/rkm-initrd-builder -f UET/Lib/Container/rkm-initrd-builder/prebuilt.Dockerfile --tag ghcr.io/redpointgames/uet/buildroot-prebuilt-base:latest
+        docker build UET/Lib/Container/rkm-initrd-builder -f UET/Lib/Container/rkm-initrd-builder/buildroot.Dockerfile --tag ghcr.io/redpointgames/uet/buildroot-prebuilt-base:latest
     - name: Log in to the Container registry
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       if: github.ref == 'refs/heads/main'
