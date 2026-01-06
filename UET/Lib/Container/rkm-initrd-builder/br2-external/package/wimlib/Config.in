@@ -1,0 +1,4 @@
+config BR2_PACKAGE_WIMLIB
+	bool "wimlib"
+	select BR2_PACKAGE_NTFS_3G
+	select BR2_PACKAGE_LIBFUSE3

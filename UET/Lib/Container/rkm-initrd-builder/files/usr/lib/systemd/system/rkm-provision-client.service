@@ -5,8 +5,9 @@ After=display-manager.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/xterm -bg black -fg white -maximized -e /bin/bash -c '/usr/bin/uet-bootstrap internal pxeboot provision-client'
+ExecStart=/usr/bin/xterm -bg black -fg white -maximized -e /bin/bash -c '/usr/bin/uet-bootstrap internal pxeboot provision-client; systemctl reboot'
 Restart=always
+RestartSec=1s
 Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet-bundle"
 Environment="GRPC_PIPE_PATH_USER=/tmp/.grpc"
 Environment="DISPLAY=:0.0"
