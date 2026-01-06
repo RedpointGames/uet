@@ -46,6 +46,7 @@ COPY kernel.config /build/kernel.config
 COPY boot-image.png /build/boot-image.png
 COPY setup.sh /build/setup.sh
 COPY files /build/files
+RUN chmod a+x /build/setup.sh
 
 ENV BR2_EXTERNAL=/build/br2-external
 
