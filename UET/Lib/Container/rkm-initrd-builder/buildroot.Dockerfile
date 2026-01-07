@@ -38,6 +38,8 @@ RUN tar -xf buildroot.tar.xz && mv buildroot-2025.11 buildroot
 
 WORKDIR /build/buildroot
 COPY xserver_xorg-server.mk package/x11r7/xserver_xorg-server/xserver_xorg-server.mk
+RUN sed -i 's/EFIBOOTMGR_VERSION = 18/EFIBOOTMGR_VERSION = 0a85e9b/g' package/efibootmgr/efibootmgr.mk
+RUN echo 'sha256  05c621b1c08f3fdade8ddd4403240eb528705cee9e65d1bce937b0dc43c4fee9  efibootmgr-0a85e9b.tar.gz' >> package/efibootmgr/efibootmgr.hash
 COPY buildroot.config .config
 RUN mkdir output
 
