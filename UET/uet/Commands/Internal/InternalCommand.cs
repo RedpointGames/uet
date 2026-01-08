@@ -2,6 +2,7 @@
 {
     using Redpoint.CommandLine;
     using Redpoint.KubernetesManager.HostedService.Rkm;
+    using Redpoint.KubernetesManager.PxeBoot;
     using System.CommandLine;
     using UET.Commands.Internal.CIBuild;
     using UET.Commands.Internal.CMakeUbaRun;
@@ -19,6 +20,7 @@
     using UET.Commands.Internal.InstallPlatformSdk;
     using UET.Commands.Internal.ListCustomObjects;
     using UET.Commands.Internal.Patch;
+    using UET.Commands.Internal.PxeBoot;
     using UET.Commands.Internal.RegisterGitLabRunner;
     using UET.Commands.Internal.RemoteZfsServer;
     using UET.Commands.Internal.RemoteZfsTest;
@@ -94,6 +96,7 @@
                     builder.AddCommand<VerifyDllFileIntegrityCommand>();
                     builder.AddCommand<WindowsImagingCommand>();
                     builder.AddCommand<TpmCommand>();
+                    builder.AddCommandWithoutGlobalContext<PxeBootCommand>();
                     builder.AddCommand<ListCustomObjectsCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");

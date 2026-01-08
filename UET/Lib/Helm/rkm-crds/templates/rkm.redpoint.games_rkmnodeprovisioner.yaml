@@ -1,0 +1,36 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rkmnodeprovisioners.rkm.redpoint.games
+spec:
+  group: rkm.redpoint.games
+  scope: Cluster
+  names:
+    plural: rkmnodeprovisioners
+    singular: rkmnodeprovisioner
+    kind: RkmNodeProvisioner
+    shortNames:
+    - rkmprovisioner
+    - rkmprovisioners
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              parameters:
+                type: object
+                description: An arbitrary map of parameters that should be available when provisioning. Each entry here will be cause '{{`{{param:<key>}}`}}' to be substituted, and RKM_PARAM_KEY_NAME_TRANSFORMED as an environment variable. KEY_NAME_TRANSFORMED is the key transformed such that 'keyNameTransformed' is 'KEY_NAME_TRANSFORMED'. The values in this map are the default values for the parameters, which can be overridden by setting an entry inside 'provisionerArguments' on the node group.
+                x-kubernetes-preserve-unknown-fields: true
+                nullable: true
+              steps:
+                type: array
+                items:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+    selectableFields: []

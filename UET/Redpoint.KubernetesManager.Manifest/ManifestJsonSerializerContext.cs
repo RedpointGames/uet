@@ -8,9 +8,6 @@
     [JsonSerializable(typeof(PxeBootManifest))]
     [JsonSerializable(typeof(ActiveDirectoryManifest))]
     [JsonSerializable(typeof(NodeManifest))]
-    [JsonSerializable(typeof(NodeAuthorizeRequest))]
-    [JsonSerializable(typeof(NodeAuthorizeResponse))]
-    [JsonSerializable(typeof(NodeAuthorizeResponseEncryptedBundle))]
     public partial class ManifestJsonSerializerContext : JsonSerializerContext
     {
     }

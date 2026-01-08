@@ -35,6 +35,11 @@ namespace {entry.Namespace}
 {{
     partial class {entry.Class}
     {{
+        public {entry.Class}(JsonSerializerOptions options)
+            : this(new {entry.JsonSerializerContextType}(new JsonSerializerOptions(options)))
+        {{
+        }}
+
         public {entry.Class}({entry.JsonSerializerContextType} context)
         {{");
                 foreach (var type in entry.SerializableClassNames)

@@ -6,6 +6,6 @@ Type=simple
 ExecStart=/bin/bash
 StandardInput=tty
 StandardOutput=tty
-Restart=always
+RestartSec=1s
 TimeoutStopSec=0
 KillSignal=SIGKILL

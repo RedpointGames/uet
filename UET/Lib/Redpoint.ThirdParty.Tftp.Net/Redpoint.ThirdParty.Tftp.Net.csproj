@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../ThirdPartyCommon.Build.props" />
+
+	<PropertyGroup>
+		<RootNamespace>Tftp.Net</RootNamespace>
+		<Nullable>disable</Nullable>
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
+	</PropertyGroup>
+
+	<Import Project="$(MSBuildThisFileDirectory)../LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>A fork of Tftp.Net that has been updated to provide async compatible APIs.</Description>
+		<PackageId>Redpoint.ThirdParty.Tftp.Net</PackageId>
+		<PackageTags>tftp</PackageTags>
+		<PackageLicenseExpression>MS-PL</PackageLicenseExpression>
+		<Authors>June Rhodes, Callisto, linnet</Authors>
+		<Company></Company>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
+	</ItemGroup>
+
+</Project>
