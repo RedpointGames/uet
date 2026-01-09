@@ -217,11 +217,10 @@
             HttpClient client,
             CancellationToken cancellationToken = default)
         {
-            var localHash = string.Empty;
-            using (var fileReadStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                await _durableOperation.DurableOperationAsync(
-                    async cancellationToken =>
+            await _durableOperation.DurableOperationAsync(
+                async cancellationToken =>
+                {
+                    using (var fileReadStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         fileReadStream.Seek(0, SeekOrigin.Begin);
                         var localHash = $"sha256:{Hash.Sha256AsHexString(fileReadStream)}";
@@ -299,9 +298,9 @@
                                 }
                             }
                         }
-                    },
-                    cancellationToken);
-            }
+                    }
+                },
+                cancellationToken);
         }
     }
 }
