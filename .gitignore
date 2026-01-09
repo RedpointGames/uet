@@ -3,3 +3,4 @@
 TestResults/
 UET/Lib/Container/rkm-initrd-builder/static
 UET/Lib/Container/rkm-initrd-builder/storage/
+UET/Lib/Helm/values.yaml
