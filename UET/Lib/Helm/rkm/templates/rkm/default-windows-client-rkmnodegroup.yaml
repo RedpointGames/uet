@@ -1,0 +1,9 @@
+apiVersion: rkm.redpoint.games/v1
+kind: RkmNodeGroup
+metadata:
+  name: default-windows-client
+spec:
+  provisioner: windows-client
+  services:
+    keepAlive:
+    - rkm
