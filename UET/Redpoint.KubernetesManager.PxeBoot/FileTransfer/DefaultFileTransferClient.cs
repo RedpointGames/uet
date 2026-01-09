@@ -65,8 +65,6 @@
                             if (!string.IsNullOrWhiteSpace(existingHash))
                             {
                                 _logger.LogInformation($"Checking if {mapping.Value} needs to be downloaded...");
-                                using var headTimerCts = new CancellationTokenSource(5000);
-                                using var headCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, headTimerCts.Token);
                                 using (var headResponse = await client.SendAsync(
                                     new HttpRequestMessage
                                     {
@@ -74,7 +72,7 @@
                                         Method = HttpMethod.Head,
                                     },
                                     HttpCompletionOption.ResponseHeadersRead,
-                                    headCts.Token))
+                                    cancellationToken))
                                 {
                                     headResponse.EnsureSuccessStatusCode();
                                     if (headResponse.Headers.TryGetValues("Content-Hash", out var newHashes))
@@ -228,8 +226,6 @@
 
                         _logger.LogInformation($"Checking if {source} needs to be uploaded...");
                         {
-                            using var headTimerCts = new CancellationTokenSource(5000);
-                            using var headCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, headTimerCts.Token);
                             using (var headResponse = await client.SendAsync(
                                 new HttpRequestMessage
                                 {
@@ -242,7 +238,7 @@
                                     Method = HttpMethod.Head,
                                 },
                                 HttpCompletionOption.ResponseHeadersRead,
-                                headCts.Token))
+                                cancellationToken))
                             {
                                 if (headResponse.StatusCode == HttpStatusCode.NotModified)
                                 {
