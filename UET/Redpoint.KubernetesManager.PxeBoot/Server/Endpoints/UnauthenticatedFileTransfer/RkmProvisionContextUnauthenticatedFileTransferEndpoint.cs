@@ -12,6 +12,12 @@
 
         public async Task<Stream?> GetDownloadStreamAsync(UnauthenticatedFileTransferRequest request, CancellationToken cancellationToken)
         {
+            if (request.HttpContext == null)
+            {
+                // TFTP not supported.
+                return null;
+            }
+
             var node = await request.ConfigurationSource.GetRkmNodeByRegisteredIpAddressAsync(
                 request.RemoteAddress.ToString(),
                 cancellationToken);
@@ -23,7 +29,7 @@
                 stream,
                 new WindowsRkmProvisionContext
                 {
-                    ApiAddress = request.HostAddress.ToString(),
+                    ApiAddress = request.HttpContext.Connection.LocalIpAddress.ToString(),
                     BootedFromStepIndex = bootedFromStepIndex,
                     IsInRecovery = false,
                 },
