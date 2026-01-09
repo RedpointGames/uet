@@ -74,7 +74,6 @@
                                 ConfigurationSource = serverContext.ConfigurationSource,
                                 StaticFilesDirectory = serverContext.StaticFilesDirectory,
                                 StorageFilesDirectory = serverContext.StorageFilesDirectory,
-                                HostAddress = serverContext.HostAddress,
                                 HostHttpPort = serverContext.HostHttpPort,
                                 HostHttpsPort = serverContext.HostHttpsPort,
                                 JsonSerializerContext = serverContext.JsonSerializerContext,

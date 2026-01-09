@@ -12,8 +12,6 @@
 
         public required DirectoryInfo StorageFilesDirectory { get; init; }
 
-        public required IPAddress HostAddress { get; init; }
-
         public required int HostHttpPort { get; init; }
 
         public required int HostHttpsPort { get; init; }

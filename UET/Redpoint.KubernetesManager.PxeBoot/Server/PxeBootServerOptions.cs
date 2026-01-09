@@ -14,10 +14,6 @@
             () => PxeBootServerSource.Test,
             "The configuration source.");
 
-        public Option<IPAddress> HostAddress = new Option<IPAddress>(
-            "--host-address",
-            "The address that the PXE boot server is listening on; used to notify machines of the API address.");
-
         public Option<DirectoryInfo> StaticFiles = new Option<DirectoryInfo>(
             "--static-files",
             () => new DirectoryInfo("/static"),

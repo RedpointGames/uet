@@ -53,7 +53,6 @@
                             ConfigurationSource = serverContext.ConfigurationSource,
                             StaticFilesDirectory = serverContext.StaticFilesDirectory,
                             StorageFilesDirectory = serverContext.StorageFilesDirectory,
-                            HostAddress = serverContext.HostAddress,
                             HostHttpPort = serverContext.HostHttpPort,
                             HostHttpsPort = serverContext.HostHttpsPort,
                             JsonSerializerContext = serverContext.JsonSerializerContext,
@@ -121,7 +120,7 @@
                 serverContext.ConfigurationSource,
                 serverContext.JsonSerializerContext,
                 serverContext.StorageFilesDirectory,
-                serverContext.HostAddress.ToString(),
+                httpContext.Connection.LocalIpAddress.ToString(),
                 serverContext.HostHttpPort,
                 serverContext.HostHttpsPort);
 
@@ -173,7 +172,7 @@
 
         public async Task HandleRequestAsync(PxeBootServerContext serverContext, HttpContext httpContext)
         {
-            _logger.LogInformation($"HTTP: Incoming request from {httpContext.Connection.RemoteIpAddress} for '{httpContext.Request.Path}'.");
+            _logger.LogInformation($"HTTP: Incoming request on {httpContext.Connection.LocalIpAddress} from {httpContext.Connection.RemoteIpAddress} for '{httpContext.Request.Path}'.");
 
             // @note: There's some weird bug in Hyper-V where the source IP address of connections from the VM to the host
             // can appear as the host's IP address. This is only dangerous when fetching the /autoexec.ipxe file during

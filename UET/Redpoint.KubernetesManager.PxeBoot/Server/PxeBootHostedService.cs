@@ -98,7 +98,6 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
                 },
                 StaticFilesDirectory = _commandInvocationContext.ParseResult.GetValueForOption(_options.StaticFiles)!,
                 StorageFilesDirectory = _commandInvocationContext.ParseResult.GetValueForOption(_options.StorageFiles)!,
-                HostAddress = _commandInvocationContext.ParseResult.GetValueForOption(_options.HostAddress) ?? IPAddress.Parse("192.168.0.1"),
                 HostHttpPort = _httpPort,
                 HostHttpsPort = _httpsPort,
                 JsonSerializerContext = KubernetesRkmJsonSerializerContext.CreateStringEnumWithAdditionalConverters(

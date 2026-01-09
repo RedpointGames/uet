@@ -47,10 +47,10 @@
                     using (var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true))
                     {
                         writer.Write(
-                            $"""
+                            $$"""
                             #!ipxe
                             dhcp
-                            chain --replace http://{request.HostAddress}:{request.HostHttpPort}/autoexec-nodhcp.ipxe
+                            chain --replace http://${next-server}:{{request.HostHttpPort}}/autoexec-nodhcp.ipxe
                             """);
                     }
                     stream.Seek(0, SeekOrigin.Begin);
@@ -115,6 +115,11 @@
                 {
                     return defaultScript;
                 }
+                if (request.HttpContext == null)
+                {
+                    // TFTP should not be delivering an autoexec.ipxe file that does anything other than chain.
+                    throw new InvalidOperationException("TFTP attempted to deliver non-chain autoexec.ipxe file!");
+                }
                 if (string.IsNullOrWhiteSpace(node?.Status?.Provisioner?.Name) ||
                     string.IsNullOrWhiteSpace(node?.Spec?.NodeGroup))
                 {
@@ -153,7 +158,7 @@
                         RkmNode = node,
                         RkmNodeGroup = group,
                         RkmNodeProvisioner = groupProvisioner ?? provisioner,
-                        ApiHostAddress = request.HostAddress.ToString(),
+                        ApiHostAddress = request.HttpContext!.Connection.LocalIpAddress.ToString(),
                         ApiHostHttpPort = request.HostHttpPort,
                         ApiHostHttpsPort = request.HostHttpsPort,
                     });
@@ -259,7 +264,7 @@
             var replacements = new Dictionary<string, string>
             {
                 { "provision:bootedFromStepIndex", bootedFromStepIndex },
-                { "provision:apiAddressIp", request.HostAddress.ToString() },
+                { "provision:apiAddressIp", request.HttpContext!.Connection.LocalIpAddress.ToString() },
                 { "step:dhcp", !skipDhcp ? "dhcp" : string.Empty },
             };
             var selectedScript = await GetSelectedScript();
