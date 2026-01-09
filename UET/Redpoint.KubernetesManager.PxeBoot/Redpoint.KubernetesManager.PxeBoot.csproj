@@ -10,11 +10,13 @@
 		<ProjectReference Include="..\Redpoint.Kestrel\Redpoint.Kestrel.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.Configuration\Redpoint.KubernetesManager.Configuration.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService\Redpoint.KubernetesManager.HostedService.csproj" />
+		<ProjectReference Include="..\Redpoint.PackageManagement\Redpoint.PackageManagement.csproj" />
 		<ProjectReference Include="..\Redpoint.PathResolution\Redpoint.PathResolution.csproj" />
 		<ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
 		<ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
 		<ProjectReference Include="..\Redpoint.RuntimeJson\Redpoint.RuntimeJson.csproj" />
 		<ProjectReference Include="..\Redpoint.RuntimeJson.SourceGenerator\Redpoint.RuntimeJson.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Redpoint.ServiceControl\Redpoint.ServiceControl.csproj" />
 		<ProjectReference Include="..\Redpoint.Tpm\Redpoint.Tpm.csproj" />
 	</ItemGroup>
 

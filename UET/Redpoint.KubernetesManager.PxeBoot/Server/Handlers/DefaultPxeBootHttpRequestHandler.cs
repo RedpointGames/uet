@@ -179,12 +179,17 @@
             // can appear as the host's IP address. This is only dangerous when fetching the /autoexec.ipxe file during
             // boot, and can be mitigated by ensuring that the default switch network adapter is after the internal
             // network adapter. This scenario should never happen on real bare metal machines.
-            if (!httpContext.Connection.RemoteIpAddress.Equals(httpContext.Connection.LocalIpAddress))
+            if (!httpContext.Connection.RemoteIpAddress.Equals(httpContext.Connection.LocalIpAddress) ||
+                (await httpContext.Connection.GetClientCertificateAsync(httpContext.RequestAborted)) != null)
             {
                 if (await TryHandleAsUnauthenticatedFileTransfer(serverContext, httpContext))
                 {
                     return;
                 }
+            }
+            else
+            {
+                _logger.LogWarning("Non-HTTPS request from provisioner's own IP address is skipping unauthenticated file transfer handlers.");
             }
 
             if (await TryHandleAsNodeProvisioning(serverContext, httpContext))

@@ -28,6 +28,9 @@
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonPropertyName("filesystem")]
+        public string? Filesystem { get; set; }
+
         [JsonPropertyName("flags")]
         public string?[]? Flags { get; set; }
     }

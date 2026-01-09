@@ -43,6 +43,7 @@
                     services.AddSingleton<IUnauthenticatedFileTransferEndpoint, UploadedUnauthenticatedFileTransferEndpoint>();
                     services.AddSingleton<IUnauthenticatedFileTransferEndpoint, RkmProvisionContextUnauthenticatedFileTransferEndpoint>();
                     services.AddSingleton<IUnauthenticatedFileTransferEndpoint, NotifyForRebootUnauthenticatedFileTransferEndpoint>();
+                    services.AddSingleton<IUnauthenticatedFileTransferEndpoint, WinPeUnauthenticatedFileTransferEndpoint>();
 
                     services.AddSingleton<INodeProvisioningEndpoint, AuthorizeNodeProvisioningEndpoint>();
                     services.AddSingleton<INodeProvisioningEndpoint, RebootToDiskNodeProvisioningEndpoint>();
@@ -51,6 +52,7 @@
                     services.AddSingleton<INodeProvisioningEndpoint, ForceReprovisionFromRecoveryNodeProvisioningEndpoint>();
                     services.AddSingleton<INodeProvisioningEndpoint, UploadFileNodeProvisioningEndpoint>();
                     services.AddSingleton<INodeProvisioningEndpoint, SyncBootEntriesProvisioningEndpoint>();
+                    services.AddSingleton<INodeProvisioningEndpoint, QueryRebootRequiredNodeProvisioningEndpoint>();
 
                     services.AddSingleton<IProvisionerHasher, DefaultProvisionerHasher>();
                 })

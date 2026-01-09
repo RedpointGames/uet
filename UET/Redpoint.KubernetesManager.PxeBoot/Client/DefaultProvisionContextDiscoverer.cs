@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.Client
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
     using System.Globalization;
     using System.Text.Json;
     using System.Text.RegularExpressions;
@@ -22,30 +23,30 @@
             bool allowRecoveryShell = false;
 
             // Figure out the environment we're running in.
-            PlatformType platformType;
+            ProvisioningClientPlatformType platformType;
             if (OperatingSystem.IsLinux())
             {
                 if (File.Exists("/rkm-initrd"))
                 {
                     _logger.LogInformation("Running on Linux initrd platform.");
-                    platformType = PlatformType.LinuxInitrd;
+                    platformType = ProvisioningClientPlatformType.LinuxInitrd;
                     allowRecoveryShell = true;
                 }
                 else
                 {
                     _logger.LogInformation("Running on Linux platform.");
-                    platformType = PlatformType.Linux;
+                    platformType = ProvisioningClientPlatformType.Linux;
                 }
             }
             else if (OperatingSystem.IsMacOS())
             {
                 _logger.LogInformation("Running on macOS platform.");
-                platformType = PlatformType.Mac;
+                platformType = ProvisioningClientPlatformType.Mac;
             }
             else if (OperatingSystem.IsWindows())
             {
                 _logger.LogInformation("Running on Windows platform.");
-                platformType = PlatformType.Windows;
+                platformType = ProvisioningClientPlatformType.Windows;
             }
             else
             {
@@ -62,7 +63,7 @@
             }
             else
             {
-                if (platformType == PlatformType.LinuxInitrd || platformType == PlatformType.Linux)
+                if (platformType == ProvisioningClientPlatformType.LinuxInitrd || platformType == ProvisioningClientPlatformType.Linux)
                 {
                     var kernelCmdline = await File.ReadAllTextAsync("/proc/cmdline", cancellationToken);
                     var kernelCmdlineAddressRegex = new Regex("rkm-api-address=(?<address>[0-9a-f:\\.]+)");
@@ -88,7 +89,7 @@
                         bootedFromStepIndex = int.Parse(kernelCmdlineBootStepIndexRegexMatch.Groups["index"].Value, CultureInfo.InvariantCulture);
                     }
                 }
-                else if (platformType == PlatformType.Mac)
+                else if (platformType == ProvisioningClientPlatformType.Mac)
                 {
                     // @todo: Probably need to use UDP auto-discovery...
                     throw new PlatformNotSupportedException();

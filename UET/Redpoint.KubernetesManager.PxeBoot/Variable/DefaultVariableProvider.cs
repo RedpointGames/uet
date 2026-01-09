@@ -1,9 +1,11 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.Variable
 {
     using Microsoft.Extensions.Logging;
+    using Redpoint.KubernetesManager.PxeBoot.Disk;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using static System.CommandLine.Help.HelpBuilder;
 
     internal class DefaultVariableProvider : IVariableProvider
@@ -30,7 +32,7 @@
             {
                 foreach (var substitution in serverOnlySubstitutions)
                 {
-                    content = content.Replace("{{" + substitution.Key + "}}", substitution.Value, StringComparison.Ordinal);
+                    content = content.Replace("[[" + substitution.Key + "]]", substitution.Value, StringComparison.Ordinal);
                 }
                 return content;
             }
@@ -82,7 +84,9 @@
             return parameterValues;
         }
 
-        private static Dictionary<string, string> GetSubstitutions(IProvisioningStepClientContext context)
+        private static Dictionary<string, string> GetSubstitutions(
+            IProvisioningStepClientContext context,
+            Dictionary<string, string>? stepValues)
         {
             var substitutions = new Dictionary<string, string>
             {
@@ -91,6 +95,39 @@
                 { "provision:apiAddressHttp", context.ProvisioningApiEndpointHttp },
                 { "provision:aikFingerprint", context.AikFingerprint },
             };
+            if (stepValues != null)
+            {
+                foreach (var kv in stepValues)
+                {
+                    substitutions[$"step:{kv.Key}"] = kv.Value;
+                }
+            }
+            if (context.Platform == ProvisioningClientPlatformType.Linux ||
+                context.Platform == ProvisioningClientPlatformType.LinuxInitrd)
+            {
+                substitutions.Add("disk:path", context.DiskPathLinux ?? string.Empty);
+                substitutions.Add("disk:partition:boot", $"{context.DiskPathLinux}-part{PartitionConstants.BootPartitionIndex}");
+                substitutions.Add("disk:partition:provision", $"{context.DiskPathLinux}-part{PartitionConstants.ProvisionPartitionIndex}");
+                substitutions.Add("disk:partition:os", $"{context.DiskPathLinux}-part{PartitionConstants.OperatingSystemPartitionIndex}");
+                substitutions.Add("disk:partition:boot:number", PartitionConstants.BootPartitionIndex.ToString(CultureInfo.InvariantCulture));
+                substitutions.Add("disk:partition:provision:number", PartitionConstants.ProvisionPartitionIndex.ToString(CultureInfo.InvariantCulture));
+                substitutions.Add("disk:partition:os:number", PartitionConstants.OperatingSystemPartitionIndex.ToString(CultureInfo.InvariantCulture));
+                substitutions.Add("mount:boot", MountConstants.LinuxBootMountPath);
+                substitutions.Add("mount:provision", MountConstants.LinuxProvisionMountPath);
+                substitutions.Add("mount:os", MountConstants.LinuxOperatingSystemMountPath);
+                substitutions.Add("mount:ramdisk", MountConstants.LinuxRamdiskMountPath);
+            }
+            else if (context.Platform == ProvisioningClientPlatformType.Windows)
+            {
+                substitutions.Add("disk:number", "0");
+                substitutions.Add("disk:partition:boot:number", PartitionConstants.BootPartitionIndex.ToString(CultureInfo.InvariantCulture));
+                substitutions.Add("disk:partition:provision:number", PartitionConstants.ProvisionPartitionIndex.ToString(CultureInfo.InvariantCulture));
+                substitutions.Add("disk:partition:os:number", PartitionConstants.OperatingSystemPartitionIndex.ToString(CultureInfo.InvariantCulture));
+                substitutions.Add("mount:boot", MountConstants.WindowsBootDrive);
+                substitutions.Add("mount:provision", MountConstants.WindowsProvisionDrive);
+                substitutions.Add("mount:os", MountConstants.WindowsOperatingSystemDrive);
+                substitutions.Add("mount:ramdisk", MountConstants.WindowsRamdiskDrive);
+            }
             foreach (var kv in context.ParameterValues)
             {
                 substitutions.Add($"param:{kv.Key}", kv.Value);
@@ -98,11 +135,13 @@
             return substitutions;
         }
 
-        public Dictionary<string, string> GetEnvironmentVariables(IProvisioningStepClientContext context)
+        public Dictionary<string, string> GetEnvironmentVariables(
+            IProvisioningStepClientContext context,
+            Dictionary<string, string>? stepValues = null)
         {
             var environmentVariables = new Dictionary<string, string>();
 
-            foreach (var substitution in GetSubstitutions(context))
+            foreach (var substitution in GetSubstitutions(context, stepValues))
             {
                 var transformedKey = "RKM_";
                 for (int i = 0; i < substitution.Key.Length; i++)
@@ -130,11 +169,16 @@
             return environmentVariables;
         }
 
-        public string SubstituteVariables(IProvisioningStepClientContext context, string content)
+        public string SubstituteVariables(
+            IProvisioningStepClientContext context,
+            string content,
+            Dictionary<string, string>? stepValues = null)
         {
-            foreach (var substitution in GetSubstitutions(context))
+            foreach (var substitution in GetSubstitutions(context, stepValues))
             {
-                content = content.Replace("{{" + substitution.Key + "}}", substitution.Value, StringComparison.Ordinal);
+                // We intentionally use [[ instead of {{ so that .yaml files can be compatible with
+                // both kubectl (which does not apply Go templates) and Helm (which does).
+                content = content.Replace("[[" + substitution.Key + "]]", substitution.Value, StringComparison.Ordinal);
             }
 
             return content;

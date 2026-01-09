@@ -13,6 +13,7 @@
                 builder =>
                 {
                     builder.AddCommand<PxeBootProvisionClientCommand>();
+                    builder.AddCommand<PxeBootMonitorClientCommand>();
                     builder.AddCommand<PxeBootServerCommand>();
                     builder.AddCommand<PxeBootNotifyForRebootCommand>();
 

@@ -51,7 +51,7 @@
             await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
                 {
-                    FilePath = await _pathResolver.ResolveBinaryPath(OperatingSystem.IsWindows() ? "powershell.exe" : "bash"),
+                    FilePath = await _pathResolver.ResolveBinaryPath(OperatingSystem.IsWindows() ? "powershell" : "bash"),
                     Arguments = []
                 },
                 CaptureSpecification.Passthrough,
