@@ -51,3 +51,10 @@ spec:
             - server
             - --source
             - KubernetesInCluster
+          volumeMounts:
+            - name: storage
+              mountPath: /storage
+      volumes:
+        - name: storage
+          emptyDir:
+            sizeLimit: 10Gi
