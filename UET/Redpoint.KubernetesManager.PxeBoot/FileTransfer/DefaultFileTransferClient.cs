@@ -98,9 +98,10 @@
                                         responseStream,
                                         response.Content.Headers.ContentLength!.Value))
                                     {
-                                        using (var stream = new StallDetectionStream(
-                                            positionAwareStream,
-                                            TimeSpan.FromSeconds(5)))
+                                        var stream = positionAwareStream;
+                                        //using (var stream = new StallDetectionStream(
+                                        //    positionAwareStream,
+                                        //    TimeSpan.FromSeconds(5)))
                                         {
                                             var cts = new CancellationTokenSource();
                                             var progress = _progressFactory.CreateProgressForStream(stream);
@@ -257,9 +258,10 @@
                             fileReadStream,
                             fileReadStream.Length))
                         {
-                            using (var stream = new StallDetectionStream(
-                                positionAwareStream,
-                                TimeSpan.FromSeconds(5)))
+                            var stream = positionAwareStream;
+                            //using (var stream = new StallDetectionStream(
+                            //    positionAwareStream,
+                            //    TimeSpan.FromSeconds(5)))
                             {
                                 var cts = new CancellationTokenSource();
                                 var progress = _progressFactory.CreateProgressForStream(stream);
