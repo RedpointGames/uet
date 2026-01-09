@@ -12,6 +12,7 @@
     using Redpoint.KubernetesManager.PxeBoot.Disk;
     using Redpoint.KubernetesManager.PxeBoot.FileTransfer;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
@@ -40,11 +41,11 @@
         private readonly IParted _parted;
         private readonly ITpmSecuredHttp _tpmSecuredHttp;
         private readonly IEfiBootManager _efiBootManager;
-        private readonly IProgressFactory _progressFactory;
-        private readonly IMonitorFactory _monitorFactory;
         private readonly IFileTransferClient _fileTransferClient;
         private readonly IDurableOperation _durableOperation;
         private readonly IProvisionContextDiscoverer _provisionContextDiscoverer;
+        private readonly IReboot _reboot;
+        private readonly IOperatingSystemPartitionManager _operatingSystemPartitionManager;
         private readonly PxeBootProvisionClientOptions _options;
         private readonly List<IProvisioningStep> _provisioningSteps;
         private readonly KubernetesRkmJsonSerializerContext _jsonSerializerContext;
@@ -57,11 +58,11 @@
             ITpmSecuredHttp tpmSecuredHttp,
             IEnumerable<IProvisioningStep> provisioningSteps,
             IEfiBootManager efiBootManager,
-            IProgressFactory progressFactory,
-            IMonitorFactory monitorFactory,
             IFileTransferClient fileTransferClient,
             IDurableOperation durableOperation,
             IProvisionContextDiscoverer provisionContextDiscoverer,
+            IReboot reboot,
+            IOperatingSystemPartitionManager operatingSystemPartitionManager,
             PxeBootProvisionClientOptions options)
         {
             _logger = logger;
@@ -70,11 +71,11 @@
             _parted = parted;
             _tpmSecuredHttp = tpmSecuredHttp;
             _efiBootManager = efiBootManager;
-            _progressFactory = progressFactory;
-            _monitorFactory = monitorFactory;
             _fileTransferClient = fileTransferClient;
             _durableOperation = durableOperation;
             _provisionContextDiscoverer = provisionContextDiscoverer;
+            _reboot = reboot;
+            _operatingSystemPartitionManager = operatingSystemPartitionManager;
             _options = options;
             _provisioningSteps = provisioningSteps.ToList();
 
@@ -82,7 +83,7 @@
                 new RkmNodeProvisionerStepJsonConverter(provisioningSteps));
         }
 
-        private async Task ProvisionAndMountDisksAsync(
+        private async Task<string> ProvisionAndMountDisksAsync(
             string apiAddress,
             HttpClient client,
             CancellationToken cancellationToken)
@@ -123,42 +124,47 @@
                 var mkfsNtfs = await _pathResolver.ResolveBinaryPath("mkfs.ntfs");
 
                 await _parted.RunCommandAsync(diskPath, ["mkpart", "primary", "fat32", "1MiB", "2048MiB"], cancellationToken);
-                await _parted.RunCommandAsync(diskPath, ["set", "1", "esp", "on"], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["set", PartitionConstants.BootPartitionIndex.ToString(CultureInfo.InvariantCulture), "esp", "on"], cancellationToken);
                 await _parted.RunCommandAsync(diskPath, ["mkpart", "primary", "2049MiB", "2081MiB"], cancellationToken);
-                await _parted.RunCommandAsync(diskPath, ["type", "2", "e3c9e316-0b5c-4db8-817d-f92df00215ae"], cancellationToken);
-                await _parted.RunCommandAsync(diskPath, ["mkpart", "primary", "ntfs", "2082MiB", "100%"], cancellationToken);
-                await _parted.RunCommandAsync(diskPath, ["name", "3", "UetBootDisk"], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["type", PartitionConstants.MsrPartitionIndex.ToString(CultureInfo.InvariantCulture), "e3c9e316-0b5c-4db8-817d-f92df00215ae"], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["mkpart", "primary", "ntfs", "2082MiB", "34850MiB"], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["name", PartitionConstants.ProvisionPartitionIndex.ToString(CultureInfo.InvariantCulture), PartitionConstants.ProvisionPartitionLabel], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["type", PartitionConstants.ProvisionPartitionIndex.ToString(CultureInfo.InvariantCulture), "de94bba4-06d1-4d40-a16a-bfd50179d6ac"], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["mkpart", "primary", "34851MiB", "100%"], cancellationToken);
+                await _parted.RunCommandAsync(diskPath, ["name", PartitionConstants.OperatingSystemPartitionIndex.ToString(CultureInfo.InvariantCulture), PartitionConstants.OperatingSystemPartitionLabel], cancellationToken);
 
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = mkfsFat,
-                        Arguments = [$"{diskPath}-part1"]
+                        Arguments = [$"{diskPath}-part{PartitionConstants.BootPartitionIndex}"]
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken);
                 if (exitCode != 0)
                 {
-                    throw new UnableToProvisionSystemException("mkfs.fat on partition 1 failed!");
+                    throw new UnableToProvisionSystemException($"mkfs.fat on partition {PartitionConstants.BootPartitionIndex} failed!");
                 }
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = mkfsNtfs,
-                        Arguments = ["-Q", "-L", "UetBootDisk", $"{diskPath}-part3"]
+                        Arguments = ["-Q", "-L", "UetProvisioningDisk", $"{diskPath}-part{PartitionConstants.ProvisionPartitionIndex}"]
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken);
                 if (exitCode != 0)
                 {
-                    throw new UnableToProvisionSystemException("mkfs.ntfs on partition 3 failed!");
+                    throw new UnableToProvisionSystemException($"mkfs.ntfs on partition {PartitionConstants.ProvisionPartitionIndex} failed!");
                 }
             }
             else if (
                 disk.Partitions == null ||
-                disk.Partitions.Length != 3 ||
-                disk.Partitions[2] == null ||
-                disk.Partitions[2]?.Name != "UetBootDisk")
+                disk.Partitions.Length != PartitionConstants.OperatingSystemPartitionIndex ||
+                disk.Partitions[PartitionConstants.ProvisionPartitionIndex - 1] == null ||
+                disk.Partitions[PartitionConstants.ProvisionPartitionIndex - 1]?.Name != PartitionConstants.ProvisionPartitionLabel ||
+                disk.Partitions[PartitionConstants.OperatingSystemPartitionIndex - 1] == null ||
+                disk.Partitions[PartitionConstants.OperatingSystemPartitionIndex - 1]?.Name != PartitionConstants.OperatingSystemPartitionLabel)
             {
                 throw new UnableToProvisionSystemException("Disk is already initialized with partitions that are not recognised as a provisioned PXE boot setup. If you would like to provision this machine, you will need to manually remove the partitions on the disk (destroying all data) and then reboot.");
             }
@@ -167,13 +173,13 @@
                 _logger.LogInformation("Machine disks are already provisioned.");
             }
 
-            Directory.CreateDirectory("/var/mount/boot");
-            Directory.CreateDirectory("/var/mount/images");
+            Directory.CreateDirectory(MountConstants.LinuxBootMountPath);
+            Directory.CreateDirectory(MountConstants.LinuxProvisionMountPath);
 
             var mount = await _pathResolver.ResolveBinaryPath("mount");
             var mtab = File.ReadAllText("/etc/mtab");
 
-            if (!mtab.Contains("/var/mount/boot", StringComparison.Ordinal))
+            if (!mtab.Contains(MountConstants.LinuxBootMountPath, StringComparison.Ordinal))
             {
                 for (int retryAttempt = 0; retryAttempt < 30; retryAttempt++)
                 {
@@ -181,7 +187,7 @@
                         new ProcessSpecification
                         {
                             FilePath = await _pathResolver.ResolveBinaryPath("fsck.vfat"),
-                            Arguments = ["-a", $"{diskPath}-part1"],
+                            Arguments = ["-a", $"{diskPath}-part{PartitionConstants.BootPartitionIndex}"],
                         },
                         CaptureSpecification.Passthrough,
                         cancellationToken);
@@ -189,7 +195,7 @@
                         new ProcessSpecification
                         {
                             FilePath = mount,
-                            Arguments = [$"{diskPath}-part1", "/var/mount/boot"],
+                            Arguments = [$"{diskPath}-part{PartitionConstants.BootPartitionIndex}", MountConstants.LinuxBootMountPath],
                         },
                         CaptureSpecification.Passthrough,
                         cancellationToken);
@@ -197,7 +203,7 @@
                     {
                         if (retryAttempt == 29)
                         {
-                            throw new UnableToProvisionSystemException("mount partition 1 to /var/mount/boot failed!");
+                            throw new UnableToProvisionSystemException($"mount partition {PartitionConstants.BootPartitionIndex} to {MountConstants.LinuxBootMountPath} failed!");
                         }
                         else
                         {
@@ -210,33 +216,36 @@
                     }
                 }
             }
-            if (!mtab.Contains("/var/mount/images", StringComparison.Ordinal))
+            if (!mtab.Contains(MountConstants.LinuxProvisionMountPath, StringComparison.Ordinal))
             {
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = await _pathResolver.ResolveBinaryPath("ntfsfix"),
-                        Arguments = [$"{diskPath}-part3", "-d"],
+                        Arguments = [$"{diskPath}-part{PartitionConstants.ProvisionPartitionIndex}", "-d"],
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken);
                 if (exitCode != 0)
                 {
-                    throw new UnableToProvisionSystemException("fsck partition 3 failed!");
+                    throw new UnableToProvisionSystemException($"fsck partition {PartitionConstants.ProvisionPartitionIndex} failed!");
                 }
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = mount,
-                        Arguments = [$"{diskPath}-part3", "-t", "ntfs3", "/var/mount/images"],
+                        Arguments = [$"{diskPath}-part{PartitionConstants.ProvisionPartitionIndex}", "-t", "ntfs3", MountConstants.LinuxProvisionMountPath],
                     },
                     CaptureSpecification.Passthrough,
                     cancellationToken);
                 if (exitCode != 0)
                 {
-                    throw new UnableToProvisionSystemException("mount partition 3 to /var/mount/images failed!");
+                    throw new UnableToProvisionSystemException($"mount partition {PartitionConstants.ProvisionPartitionIndex} to {MountConstants.LinuxProvisionMountPath} failed!");
                 }
             }
+            await _operatingSystemPartitionManager.TryMountOperatingSystemDiskAsync(
+                diskPath,
+                cancellationToken);
 
             _logger.LogInformation("Reading EFI boot manager configuration...");
             var configuration = await _efiBootManager.GetBootManagerConfigurationAsync(
@@ -250,10 +259,10 @@
                 _logger.LogInformation($"EFI boot entry {kv.Key}, name '{kv.Value.Name}', {(kv.Value.Active ? "active" : "inactive")}, path '{kv.Value.Path}'");
             }
 
-            Directory.CreateDirectory("/var/mount/boot/EFI/RKM");
+            Directory.CreateDirectory($"{MountConstants.LinuxBootMountPath}/EFI/RKM");
             await _fileTransferClient.DownloadFilesAsync(
                 new Uri($"https://{apiAddress}:8791/static"),
-                "/var/mount/boot/EFI/RKM",
+                $"{MountConstants.LinuxBootMountPath}/EFI/RKM",
                 new Dictionary<string, string>
                 {
                     { "ipxe.efi", "ipxe.efi" },
@@ -267,7 +276,7 @@
             _logger.LogInformation($"Setting autoexec.ipxe for recovery...");
             // @note: 'dhcp' is required here, iPXE will not boot even from file without a configured net interface.
             await File.WriteAllTextAsync(
-                $"/var/mount/boot/EFI/RKM/autoexec.ipxe",
+                $"{MountConstants.LinuxBootMountPath}/EFI/RKM/autoexec.ipxe",
                 $"""
                 #!ipxe
                 dhcp
@@ -435,6 +444,8 @@
                     cancellationToken);
                 bootEntryResponse.EnsureSuccessStatusCode();
             }
+
+            return diskPath;
         }
 
         private class DefaultProvisioningStepClientContext(
@@ -445,7 +456,9 @@
             string provisioningApiAddress,
             string authorizedNodeName,
             string aikFingerprint,
-            Dictionary<string, string> parameterValues)
+            Dictionary<string, string> parameterValues,
+            string? diskPathLinux,
+            ProvisioningClientPlatformType platform)
                 : IProvisioningStepClientContext
         {
             public bool IsLocalTesting => isLocalTesting;
@@ -463,6 +476,10 @@
             public string AikFingerprint => aikFingerprint;
 
             public Dictionary<string, string> ParameterValues => parameterValues;
+
+            public string? DiskPathLinux => diskPathLinux;
+
+            public ProvisioningClientPlatformType Platform => platform;
         }
 
         public async Task<int> ExecuteAsync(ICommandInvocationContext context)
@@ -530,10 +547,11 @@
                 _logger.LogInformation($"Authorized to join the cluster with node name '{authorizeResponse.NodeName}'.");
 
                 // If we are running in the Linux initrd environment, make sure that we have provisioned the disks.
-                if (provisionContext.Platform == PlatformType.LinuxInitrd)
+                string? linuxDiskPath = null;
+                if (provisionContext.Platform == ProvisioningClientPlatformType.LinuxInitrd)
                 {
                     // This function will throw if provisioning disks fails.
-                    await ProvisionAndMountDisksAsync(
+                    linuxDiskPath = await ProvisionAndMountDisksAsync(
                         provisionContext.ApiAddress,
                         client,
                         context.GetCancellationToken());
@@ -555,14 +573,7 @@
                         forceReprovisionResponseRaw.EnsureSuccessStatusCode();
 
                         _logger.LogInformation("Rebooting from recovery...");
-                        await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = await _pathResolver.ResolveBinaryPath("systemctl"),
-                                Arguments = ["--message=\"RKM Reboot from Recovery\"", "reboot"]
-                            },
-                            CaptureSpecification.Passthrough,
-                            context.GetCancellationToken());
+                        await _reboot.RebootMachine(context.GetCancellationToken());
                         return 0;
                     }
                 }
@@ -576,7 +587,9 @@
                     provisionContext.ApiAddress,
                     authorizeResponse.NodeName,
                     authorizeResponse.AikFingerprint,
-                    authorizeResponse.ParameterValues);
+                    authorizeResponse.ParameterValues,
+                    linuxDiskPath,
+                    provisionContext.Platform);
                 var initial = true;
                 do
                 {

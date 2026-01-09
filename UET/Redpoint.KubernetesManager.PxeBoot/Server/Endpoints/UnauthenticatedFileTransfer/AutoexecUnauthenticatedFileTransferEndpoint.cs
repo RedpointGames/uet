@@ -98,8 +98,8 @@
             var defaultScript =
                 $$$"""
                 #!ipxe
-                {{dhcp}}
-                kernel static/vmlinuz rkm-api-address={{provisioner-api-address}} rkm-booted-from-step-index={{booted-from-step-index}}
+                [[step:dhcp]]
+                kernel static/vmlinuz rkm-api-address=[[provision:apiAddressIp]] rkm-booted-from-step-index=[[provision:bootedFromStepIndex]]
                 initrd static/initrd
                 initrd static/uet     /usr/bin/uet-bootstrap  mode=555
                 boot
@@ -194,14 +194,14 @@
                         return
                             $$$"""
                             #!ipxe
-                            {{dhcp}}
+                            [[step:dhcp]]
                             echo
                             echo REBOOT SCRIPT IS INVALID, PLEASE FIX YOUR PROVISIONER STEPS
                             echo
                             echo (waiting 30 seconds, then continuing with default initrd environment)
                             echo
                             sleep 30
-                            kernel static/vmlinuz rkm-api-address={{provisioner-api-address}} rkm-booted-from-step-index=-1
+                            kernel static/vmlinuz rkm-api-address=[[provision:apiAddressIp]] rkm-booted-from-step-index=-1
                             initrd static/initrd
                             initrd static/uet     /usr/bin/uet-bootstrap  mode=555
                             boot
@@ -255,16 +255,17 @@
             var bootedFromStepIndex = (node?.Status?.Provisioner?.RebootStepIndex ?? -1).ToString(CultureInfo.InvariantCulture);
             _logger.LogInformation($"Informing machine that they are booting from step index {bootedFromStepIndex}.");
 
+            // This is a very limited subset of the substitutions done by the variable provider.
             var replacements = new Dictionary<string, string>
             {
-                { "booted-from-step-index", bootedFromStepIndex },
-                { "dhcp", !skipDhcp ? "dhcp" : string.Empty },
-                { "provisioner-api-address", request.HostAddress.ToString() },
+                { "provision:bootedFromStepIndex", bootedFromStepIndex },
+                { "provision:apiAddressIp", request.HostAddress.ToString() },
+                { "step:dhcp", !skipDhcp ? "dhcp" : string.Empty },
             };
             var selectedScript = await GetSelectedScript();
             foreach (var kv in replacements)
             {
-                selectedScript = selectedScript.Replace("{{" + kv.Key + "}}", kv.Value, StringComparison.Ordinal);
+                selectedScript = selectedScript.Replace("[[" + kv.Key + "]]", kv.Value, StringComparison.Ordinal);
             }
             return selectedScript;
         }

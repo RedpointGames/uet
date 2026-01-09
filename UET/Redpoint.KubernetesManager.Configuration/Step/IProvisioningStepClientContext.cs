@@ -1,5 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step
 {
+    using Redpoint.KubernetesManager.Configuration.Types;
+
     public interface IProvisioningStepClientContext
     {
         bool IsLocalTesting { get; }
@@ -17,5 +19,9 @@
         string AikFingerprint { get; }
 
         Dictionary<string, string> ParameterValues { get; }
+
+        string? DiskPathLinux { get; }
+
+        ProvisioningClientPlatformType Platform { get; }
     }
 }

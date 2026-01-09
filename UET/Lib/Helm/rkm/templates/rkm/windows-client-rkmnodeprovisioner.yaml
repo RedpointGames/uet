@@ -7,7 +7,7 @@ spec:
     esdFileDownloadUrl: "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/009d9a0d-8e1a-45ce-9540-21377534803e/26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_en-us.esd"
     esdFileExpectedHash: "8ceab2838f8e90180ac7490e8752157fb05588cb"
     esdFileImageIndex: "9" # Matches "Windows 11 Pro" in the default ESD.
-    clusterControllerIpAddress: "{{`{{provision:apiAddressIp}}`}}"
+    clusterControllerIpAddress: "[[provision:apiAddressIp]]"
   steps:
   - type: atomicSequence
     atomicSequence:
@@ -15,40 +15,43 @@ spec:
       - type: deleteBootLoaderEntry
         deleteBootLoaderEntry:
           name: Windows Boot Manager
+      - type: initializeOsPartition
+        initializeOsPartition:
+          filesystem: Ntfs
       - type: executeProcess
         executeProcess:
           executable: bash
           arguments:
-          - "{{script-path}}"
+          - "[[step:scriptPath]]"
           script: |
             #!/bin/bash
 
             set -e
             set -x
 
-            if [ -e /var/mount/images/Windows.vhdx ]; then
+            if [ -e $RKM_MOUNT_PROVISION/Windows.vhdx ]; then
               echo "Deleting existing Windows VHDX so we have enough space to work..."
-              rm /var/mount/images/Windows.vhdx
+              rm $RKM_MOUNT_PROVISION/Windows.vhdx
             fi
-            if [ -e /var/mount/boot/EFI/Boot ]; then
+            if [ -e $RKM_MOUNT_BOOT/EFI/Boot ]; then
               echo "Cleaning up installed bootloader..."
-              rm -rf /var/mount/boot/EFI/Boot
+              rm -rf $RKM_MOUNT_BOOT/EFI/Boot
             fi
-            if [ -e /var/mount/boot/EFI/Microsoft ]; then
+            if [ -e $RKM_MOUNT_BOOT/EFI/Microsoft ]; then
               echo "Cleaning up installed Microsoft bootloader..."
-              rm -rf /var/mount/boot/EFI/Microsoft
+              rm -rf $RKM_MOUNT_BOOT/EFI/Microsoft
             fi
 
             mkdir -p /var/mount/pe
 
-            if [ -e /var/mount/images/reinitialize_wine ] || [ ! -e /var/mount/images/LinuxTmp.ext4 ]; then
+            if [ -e $RKM_MOUNT_PROVISION/reinitialize_wine ] || [ ! -e $RKM_MOUNT_PROVISION/LinuxTmp.ext4 ]; then
               echo "Initializing from start..."
-              truncate -s 8G /var/mount/images/LinuxTmp.ext4
-              mkfs.ext4 -F -F /var/mount/images/LinuxTmp.ext4
+              truncate -s 8G $RKM_MOUNT_PROVISION/LinuxTmp.ext4
+              mkfs.ext4 -F -F $RKM_MOUNT_PROVISION/LinuxTmp.ext4
             fi
 
             echo "Mounting temporary disk..."
-            mount -o loop,exec,defaults /var/mount/images/LinuxTmp.ext4 /var/mount/pe
+            mount -o loop,exec,defaults $RKM_MOUNT_PROVISION/LinuxTmp.ext4 /var/mount/pe
             if [ ! -e /var/mount/pe/adk_installed ]; then
               echo "Creating initial directories..."
               mkdir -pv /var/mount/pe/wineprefix
@@ -95,21 +98,21 @@ spec:
               echo "ADK and dependencies already set up."
             fi
 
-            if [ ! -e /var/mount/images/install-$RKM_PARAM_ESD_FILE_EXPECTED_HASH.esd ]; then
+            if [ ! -e $RKM_MOUNT_PROVISION/install-$RKM_PARAM_ESD_FILE_EXPECTED_HASH.esd ]; then
               echo "Downloading Windows 11 24H2 ESD file from Microsoft..."
-              curl --retry 10 --retry-all-errors -o /var/mount/images/install.esd.tmp "$RKM_PARAM_ESD_FILE_DOWNLOAD_URL"
+              curl --retry 10 --retry-all-errors -o $RKM_MOUNT_PROVISION/install.esd.tmp "$RKM_PARAM_ESD_FILE_DOWNLOAD_URL"
 
               echo "Hashing downloaded file to check integrity..."
-              sha1sum /var/mount/images/install.esd.tmp > /var/mount/images/install.esd.hash
-              SHA1SUM_RESULT=$(cat /var/mount/images/install.esd.hash)
+              sha1sum $RKM_MOUNT_PROVISION/install.esd.tmp > $RKM_MOUNT_PROVISION/install.esd.hash
+              SHA1SUM_RESULT=$(cat $RKM_MOUNT_PROVISION/install.esd.hash)
               DOWNLOADED_FILE_HASH=${SHA1SUM_RESULT%% *}
               if [ "$DOWNLOADED_FILE_HASH" != "$RKM_PARAM_ESD_FILE_EXPECTED_HASH" ]; then
                 echo "Error! Downloaded ESD should match hash $RKM_PARAM_ESD_FILE_EXPECTED_HASH, but was $DOWNLOADED_FILE_HASH!"
                 exit 1
               fi
 
-              mv /var/mount/images/install.esd.tmp /var/mount/images/install-$RKM_PARAM_ESD_FILE_EXPECTED_HASH.esd
-              rm /var/mount/images/install.esd.hash
+              mv $RKM_MOUNT_PROVISION/install.esd.tmp $RKM_MOUNT_PROVISION/install-$RKM_PARAM_ESD_FILE_EXPECTED_HASH.esd
+              rm $RKM_MOUNT_PROVISION/install.esd.hash
               echo "Windows 11 Pro 24H2 ESD file ready to go."
             else
               echo "Windows 11 Pro 24H2 ESD file already prepared."
@@ -120,33 +123,34 @@ spec:
             echo '"boot.bat"' >>/var/mount/pe/winpeshl.ini
             echo '@echo off' >/var/mount/pe/boot.bat
             echo 'wpeinit' >>/var/mount/pe/boot.bat
-            echo 'chkdsk /F C:' >>/var/mount/pe/boot.bat
-            echo 'rmdir /Q /S C:\WinPEStage1\mount' >>/var/mount/pe/boot.bat
-            echo 'rmdir /Q /S C:\WinPEStage1\scratch' >>/var/mount/pe/boot.bat
-            echo 'mkdir C:\WinPEStage1\mount' >>/var/mount/pe/boot.bat
-            echo 'mkdir C:\WinPEStage1\scratch' >>/var/mount/pe/boot.bat
+            echo 'call winpe.bat' >>/var/mount/pe/boot.bat
+            echo 'chkdsk /F %RKM_MOUNT_PROVISION%' >>/var/mount/pe/boot.bat
+            echo 'rmdir /Q /S %RKM_MOUNT_PROVISION%\WinPEStage1\mount' >>/var/mount/pe/boot.bat
+            echo 'rmdir /Q /S %RKM_MOUNT_PROVISION%\WinPEStage1\scratch' >>/var/mount/pe/boot.bat
+            echo 'mkdir %RKM_MOUNT_PROVISION%\WinPEStage1\mount' >>/var/mount/pe/boot.bat
+            echo 'mkdir %RKM_MOUNT_PROVISION%\WinPEStage1\scratch' >>/var/mount/pe/boot.bat
 
             echo "Copy files for WinPE Stage 1 Preparation..."
-            rm -rf /var/mount/images/WinPEStage1/data || true;
-            mkdir -p /var/mount/images/WinPEStage1/data
-            cp "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/en-us/winpe.wim" "/var/mount/images/WinPEStage1/data/winpe.wim"
-            echo 'copy /Y C:\WinPEStage1\data\winpe.wim C:\WinPEStage1\data\winpe-prep.wim' >>/var/mount/pe/boot.bat
+            rm -rf $RKM_MOUNT_PROVISION/WinPEStage1/data || true;
+            mkdir -p $RKM_MOUNT_PROVISION/WinPEStage1/data
+            cp "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/en-us/winpe.wim" "$RKM_MOUNT_PROVISION/WinPEStage1/data/winpe.wim"
+            echo 'copy /Y %RKM_MOUNT_PROVISION%\WinPEStage1\data\winpe.wim %RKM_MOUNT_PROVISION%\WinPEStage1\data\winpe-prep.wim' >>/var/mount/pe/boot.bat
             echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
-            echo 'dism /Mount-Image /ImageFile:C:\WinPEStage1\data\winpe-prep.wim /MountDir:C:\WinPEStage1\mount' >>/var/mount/pe/boot.bat
+            echo 'dism /Mount-Image /ImageFile:%RKM_MOUNT_PROVISION%\WinPEStage1\data\winpe-prep.wim /MountDir:%RKM_MOUNT_PROVISION%\WinPEStage1\mount' >>/var/mount/pe/boot.bat
             echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
             for OC in WinPE-WMI WinPE-NetFx WinPE-Scripting WinPE-PowerShell WinPE-DismCmdlets WinPE-SecureBootCmdlets WinPE-StorageWMI WinPE-Setup WinPE-Setup-Client WinPE-SecureStartup; do
               echo "  Copying $OC package..."
-              cp "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/WinPE_OCs/$OC.cab" "/var/mount/images/WinPEStage1/data/$OC.cab"
-              echo "dism /Add-Package /Image:C:\\WinPEStage1\\mount /PackagePath:C:\\WinPEStage1\\data\\$OC.cab /ScratchDir:C:\\WinPEStage1\\scratch" >>/var/mount/pe/boot.bat
+              cp "/var/mount/pe/wineprefix/drive_c/Program Files (x86)/Windows Kits/10/Assessment and Deployment Kit/Windows Preinstallation Environment/amd64/WinPE_OCs/$OC.cab" "$RKM_MOUNT_PROVISION/WinPEStage1/data/$OC.cab"
+              echo "dism /Add-Package /Image:%RKM_MOUNT_PROVISION%\\WinPEStage1\\mount /PackagePath:%RKM_MOUNT_PROVISION%\\WinPEStage1\\data\\$OC.cab /ScratchDir:%RKM_MOUNT_PROVISION%\\WinPEStage1\\scratch" >>/var/mount/pe/boot.bat
               echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
             done
 
             echo "Finalising files..."
-            echo 'copy /Y C:\WinPEStage1\mount\Windows\System32\vcruntime140_clr0400.dll C:\WinPEStage1\mount\Windows\System32\vcruntime140.dll' >>/var/mount/pe/boot.bat
+            echo 'copy /Y %RKM_MOUNT_PROVISION%\WinPEStage1\mount\Windows\System32\vcruntime140_clr0400.dll %RKM_MOUNT_PROVISION%\WinPEStage1\mount\Windows\System32\vcruntime140.dll' >>/var/mount/pe/boot.bat
             echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
-            echo 'dism /Unmount-Image /MountDir:C:\WinPEStage1\mount /Commit' >>/var/mount/pe/boot.bat
+            echo 'dism /Unmount-Image /MountDir:%RKM_MOUNT_PROVISION%\WinPEStage1\mount /Commit' >>/var/mount/pe/boot.bat
             echo 'if %errorlevel% neq 0 exit 1' >>/var/mount/pe/boot.bat
-            echo 'copy /Y C:\WinPEStage1\data\winpe-prep.wim C:\WinPEStage1\data\winpe-ready.wim' >>/var/mount/pe/boot.bat
+            echo 'copy /Y %RKM_MOUNT_PROVISION%\WinPEStage1\data\winpe-prep.wim %RKM_MOUNT_PROVISION%\WinPEStage1\data\winpe-ready.wim' >>/var/mount/pe/boot.bat
             echo "uet internal pxeboot notify-for-reboot --fingerprint $RKM_PROVISION_AIK_FINGERPRINT" >>/var/mount/pe/boot.bat
             unix2dos /var/mount/pe/winpeshl.ini
             unix2dos /var/mount/pe/boot.bat
@@ -168,7 +172,7 @@ spec:
       onceViaNotify: true
       ipxeScriptTemplate: |
         #!ipxe
-        {{dhcp}}
+        [[step:dhcp]]
         kernel static/wimboot
         imgfetch --name BCD                         uploaded/BCD                BCD
         imgfetch --name boot.sdi                    uploaded/boot.sdi           boot.sdi
@@ -176,6 +180,7 @@ spec:
         imgfetch --name winpeshl.ini                uploaded/winpeshl.ini       winpeshl.ini
         imgfetch --name boot.bat                    uploaded/boot.bat           boot.bat
         imgfetch --name uet.exe                     static/uet.exe              uet.exe
+        imgfetch --name winpe.bat                   winpe.bat                   winpe.bat
         imgfetch --name rkm-provision-context.json  rkm-provision-context.json  rkm-provision-context.json
         boot
   - type: atomicSequence
@@ -185,42 +190,43 @@ spec:
         executeProcess:
           executable: bash
           arguments:
-          - "{{script-path}}"
+          - "[[step:scriptPath]]"
           script: |
             #!/bin/bash
 
             set -e
             set -x
 
-            if [ ! -e /var/mount/images/WinPEStage1/data/winpe-ready.wim ]; then
+            if [ ! -e $RKM_MOUNT_PROVISION/WinPEStage1/data/winpe-ready.wim ]; then
               echo "WinPE Stage 0 failed to produce winpe-ready.wim!"
               exit 1
             fi
 
             echo "Setting up boot files for WinPE Stage 1..."
-            echo '[LaunchApps]' >/var/mount/images/WinPEStage1/data/winpeshl.ini
-            echo '"boot.bat"' >>/var/mount/images/WinPEStage1/data/winpeshl.ini
-            echo '@echo off' >/var/mount/images/WinPEStage1/data/boot.bat
-            echo 'wpeinit' >>/var/mount/images/WinPEStage1/data/boot.bat
-            echo 'chkdsk /F C:' >>/var/mount/images/WinPEStage1/data/boot.bat
-            echo 'uet internal pxeboot provision-client' >>/var/mount/images/WinPEStage1/data/boot.bat
-            echo 'cmd' >>/var/mount/images/WinPEStage1/data/boot.bat
-            unix2dos /var/mount/images/WinPEStage1/data/winpeshl.ini
-            unix2dos /var/mount/images/WinPEStage1/data/boot.bat
+            echo '[LaunchApps]' >$RKM_MOUNT_PROVISION/WinPEStage1/data/winpeshl.ini
+            echo '"boot.bat"' >>$RKM_MOUNT_PROVISION/WinPEStage1/data/winpeshl.ini
+            echo '@echo off' >$RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
+            echo 'wpeinit' >>$RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
+            echo 'call winpe.bat' >>$RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
+            echo 'chkdsk /F %RKM_MOUNT_PROVISION%' >>$RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
+            echo 'uet internal pxeboot provision-client' >>$RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
+            echo 'cmd' >>$RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
+            unix2dos $RKM_MOUNT_PROVISION/WinPEStage1/data/winpeshl.ini
+            unix2dos $RKM_MOUNT_PROVISION/WinPEStage1/data/boot.bat
       - type: uploadFiles
         uploadFiles:
           files:
-          - source: "/var/mount/images/WinPEStage1/data/winpe-ready.wim"
+          - source: "[[mount:provision]]/WinPEStage1/data/winpe-ready.wim"
             target: winpe.wim
-          - source: "/var/mount/images/WinPEStage1/data/winpeshl.ini"
+          - source: "[[mount:provision]]/WinPEStage1/data/winpeshl.ini"
             target: winpeshl.ini
-          - source: "/var/mount/images/WinPEStage1/data/boot.bat"
+          - source: "[[mount:provision]]/WinPEStage1/data/boot.bat"
             target: boot.bat
   - type: reboot
     reboot:
       ipxeScriptTemplate: |
         #!ipxe
-        {{dhcp}}
+        [[step:dhcp]]
         kernel static/wimboot
         imgfetch --name BCD                         uploaded/BCD                BCD
         imgfetch --name boot.sdi                    uploaded/boot.sdi           boot.sdi
@@ -229,6 +235,7 @@ spec:
         imgfetch --name boot.bat                    uploaded/boot.bat           boot.bat
         imgfetch --name uet.ppkg                    uploaded/uet.ppkg           uet.ppkg
         imgfetch --name uet.exe                     static/uet.exe              uet.exe
+        imgfetch --name winpe.bat                   winpe.bat                   winpe.bat
         imgfetch --name rkm-provision-context.json  rkm-provision-context.json  rkm-provision-context.json
         boot
   - type: atomicSequence
@@ -240,58 +247,36 @@ spec:
           arguments:
           - "-ExecutionPolicy"
           - "Bypass"
-          - "{{script-path}}"
+          - "[[step:scriptPath]]"
           script: |
             param()
 
             $ErrorActionPreference = 'Stop'
 
-            if (Test-Path C:\Windows.vhdx) {
-              Write-Host "Deleting existing Windows installation..."
-              Remove-Item C:\Windows.vhdx
-            }
-
-            Write-Host "Creating new virtual disk for Windows..."
-            $TargetSize = [Math]::Round(((Get-Volume -DriveLetter C).SizeRemaining / 1024 / 1024) - (10 * 1024))
-            $Script = @"
-            create vdisk file="C:\Windows.vhdx" type=fixed maximum=$TargetSize
-            attach vdisk
-            clean
-            create partition primary
-            format quick fs=ntfs
-            assign letter=w
-            exit
-            "@
-            Set-Content -Path "$env:TEMP\vdisksetup.txt" -Value $Script
-            diskpart /s "$env:TEMP\vdisksetup.txt"
-            if ($LastExitCode -ne 0) {
-                exit 1
-            }
-
-            Write-Host "Applying image to virtual disk..."
-            dism /Apply-Image /ImageFile:C:\install-${env:RKM_PARAM_ESD_FILE_EXPECTED_HASH}.esd /Index:${env:RKM_PARAM_ESD_FILE_IMAGE_INDEX} /ApplyDir:W:\
+            Write-Host "Applying image to disk..."
+            dism /Apply-Image /ImageFile:${env:RKM_MOUNT_PROVISION}\install-${env:RKM_PARAM_ESD_FILE_EXPECTED_HASH}.esd /Index:${env:RKM_PARAM_ESD_FILE_IMAGE_INDEX} /ApplyDir:${env:RKM_MOUNT_OS}\
 
             Write-Host "Enabling Hyper-V and Containers features..."
-            dism /Image:W:\ /Enable-Feature /FeatureName:Containers /FeatureName:Microsoft-Hyper-V /All /ScratchDir:C:\
+            dism /Image:${env:RKM_MOUNT_OS}\ /Enable-Feature /FeatureName:Containers /FeatureName:Microsoft-Hyper-V /All /ScratchDir:${env:RKM_MOUNT_PROVISION}\
 
             Write-Host "Install the bootloader from template..."
-            bcdboot W:\Windows /addlast /p
+            bcdboot ${env:RKM_MOUNT_OS}\Windows /addlast /p
             bcdedit /set "{fwbootmgr}" displayorder "{bootmgr}" /addlast
 
             Write-Host "Copying UET to installed version of Windows..."
-            New-Item -ItemType Directory -Path W:\ProgramData\UET\RKM-Provisioned
-            Copy-Item -Force X:\Windows\System32\uet.exe W:\ProgramData\UET\RKM-Provisioned\uet.exe
+            New-Item -ItemType Directory -Path ${env:RKM_MOUNT_OS}\ProgramData\UET\RKM-Provisioned -ErrorAction SilentlyContinue
+            Copy-Item -Force ${env:RKM_MOUNT_RAMDISK}\Windows\System32\uet.exe ${env:RKM_MOUNT_OS}\ProgramData\UET\RKM-Provisioned\uet.exe
       - type: modifyFiles
         modifyFiles:
           files:
-          - path: "W:\\Windows\\Panther\\unattend.xml"
+          - path: "[[mount:os]]\\Windows\\Panther\\unattend.xml"
             enableReplacements: true
             content: |
               <?xml version="1.0" encoding="utf-8"?>
               <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
                 <settings pass="specialize">
                   <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
-                    <ComputerName>{{provision:nodeName}}</ComputerName>
+                    <ComputerName>[[provision:nodeName]]</ComputerName>
                   </component>
                   <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
                     <RunSynchronous>
@@ -359,7 +344,7 @@ spec:
                   </component>
                 </settings>
               </unattend>
-          - path: "W:\\Windows\\Setup\\Scripts\\RemovePackages.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\RemovePackages.ps1"
             content: |
               $selectors = @(
                 'Microsoft.Microsoft3DViewer';
@@ -442,7 +427,7 @@ spec:
                   $result | ConvertTo-Json -Depth 3 -Compress;
                 }
               } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
-          - path: "W:\\Windows\\Setup\\Scripts\\RemoveCapabilities.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\RemoveCapabilities.ps1"
             content: |
               $selectors = @(
                 'Print.Fax.Scan';
@@ -499,7 +484,7 @@ spec:
                   $result | ConvertTo-Json -Depth 3 -Compress;
                 }
               } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
-          - path: "W:\\Windows\\Setup\\Scripts\\RemoveFeatures.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\RemoveFeatures.ps1"
             content: |
               $selectors = @(
                 'MediaPlayback';
@@ -547,7 +532,7 @@ spec:
                   $result | ConvertTo-Json -Depth 3 -Compress;
                 }
               } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
-          - path: "W:\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.ps1"
             content: |
               $formatter = {
                 $args[0].ToString( "yyyy'-'MM'-'dd'T'HH':'mm':'ssK" );
@@ -568,7 +553,7 @@ spec:
               Set-ItemProperty @params -Name 'PauseQualityUpdatesEndTime' -Value $end;
               Set-ItemProperty @params -Name 'PauseUpdatesStartTime' -Value $start;
               Set-ItemProperty @params -Name 'PauseUpdatesExpiryTime' -Value $end;
-          - path: "W:\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.xml"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.xml"
             content: |
               <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
                 <Triggers>
@@ -612,7 +597,7 @@ spec:
                   </Exec>
                 </Actions>
               </Task>
-          - path: "W:\\Windows\\Setup\\Scripts\\MoveActiveHours.vbs"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\MoveActiveHours.vbs"
             content: |
               HKLM = &H80000002
               key = "SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
@@ -621,7 +606,7 @@ spec:
               reg.SetDWORDValue HKLM, key, "ActiveHoursStart", ( current + 23 ) Mod 24
               reg.SetDWORDValue HKLM, key, "ActiveHoursEnd", ( current + 11 ) Mod 24
               reg.SetDWORDValue HKLM, key, "SmartActiveHoursState", 2
-          - path: "W:\\Windows\\Setup\\Scripts\\MoveActiveHours.xml"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\MoveActiveHours.xml"
             content: |
               <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
                 <Triggers>
@@ -672,7 +657,7 @@ spec:
                   </Exec>
                 </Actions>
               </Task>
-          - path: "W:\\Windows\\Setup\\Scripts\\SetStartPins.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\SetStartPins.ps1"
             content: |
               $json = '{"pinnedList":[]}';
               if( [System.Environment]::OSVersion.Version.Build -lt 20000 ) {
@@ -681,9 +666,22 @@ spec:
               $key = 'Registry::HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start';
               New-Item -Path $key -ItemType 'Directory' -ErrorAction 'SilentlyContinue';
               Set-ItemProperty -LiteralPath $key -Name 'ConfigureStartPins' -Value $json -Type 'String';
-          - path: "W:\\Windows\\Setup\\Scripts\\Specialize.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\Specialize.ps1"
+            enableReplacements: true
             content: |
               $scripts = @(
+                {
+                  Write-Host "Installing VC redist..."
+                  $OldProgressPreference = $ProgressPreference
+                  $ProgressPreference = 'SilentlyContinue';
+                  Invoke-WebRequest -UseBasicParsing -Uri https://aka.ms/vc14/vc_redist.x64.exe -OutFile C:\ProgramData\UET\RKM-Provisioned\vc_redist.x64.exe;
+                  $ProgressPreference = $OldProgressPreference;
+                  Start-Process -Wait -FilePath "C:\ProgramData\UET\RKM-Provisioned\vc_redist.x64.exe" -ArgumentList @("/install", "/quiet", "/norestart", "/log", "C:\ProgramData\UET\RKM-Provisioned\VcTemp.log");
+                };
+                {
+                  Write-Host "Registering monitoring client..."
+                  & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' internal pxeboot monitor-client --install --provisioner-api-address "[[provision:apiAddressIp]]";
+                };
                 {
                   Remove-Item -LiteralPath 'C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk', 'C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe' -ErrorAction 'Continue';
                 };
@@ -757,7 +755,7 @@ spec:
                   $complete += $increment;
                 }
               } *>&1 | Out-String -Width 1KB -Stream >> "C:\Windows\Setup\Scripts\Specialize.log";
-          - path: "W:\\Windows\\Setup\\Scripts\\UserOnce.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\UserOnce.ps1"
             content: |
               $scripts = @(
                 {
@@ -794,7 +792,7 @@ spec:
                   $complete += $increment;
                 }
               } *>&1 | Out-String -Width 1KB -Stream >> "$env:TEMP\UserOnce.log";
-          - path: "W:\\Windows\\Setup\\Scripts\\DefaultUser.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\DefaultUser.ps1"
             content: |
               $scripts = @(
                 {
@@ -860,18 +858,19 @@ spec:
                   $complete += $increment;
                 }
               } *>&1 | Out-String -Width 1KB -Stream >> "C:\Windows\Setup\Scripts\DefaultUser.log";
-          - path: "W:\\Windows\\Setup\\Scripts\\FirstLogon.ps1"
+          - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\FirstLogon.ps1"
             enableReplacements: true
             content: |
               $scripts = @(
                 {
-                  Set-ItemProperty -LiteralPath 'Registry::HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'AutoLogonCount' -Type 'DWord' -Force -Value 0;
+                  Set-ItemProperty -LiteralPath 'Registry::HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'AutoLogonCount' -Type 'DWord' -Force -Value 99;
                 };
                 {
                   Disable-ComputerRestore -Drive 'C:\';
                 };
                 {
-                  & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' cluster start --no-stream-logs --node "{{param:clusterControllerIpAddress}}"
+                  Write-Host "Starting RKM to join cluster..."
+                  & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' cluster start --no-stream-logs --node "[[param:clusterControllerIpAddress]]"
                 };
                 {
                   Remove-Item -LiteralPath @(
@@ -910,7 +909,7 @@ spec:
     executeProcess:
       executable: bash
       arguments:
-      - "{{script-path}}"
+      - "[[step:scriptPath]]"
       script: |
         #!/bin/bash
 
@@ -918,7 +917,7 @@ spec:
         set -x
 
         echo "Tidying up files we no longer need..."
-        rm -rf /var/mount/images/WinPEStage1 || true;
+        rm -rf $RKM_MOUNT_PROVISION/WinPEStage1 || true;
 
         # note: we keep LinuxTmp.ext4 and install.esd as these take a long to prepare
   - type: test

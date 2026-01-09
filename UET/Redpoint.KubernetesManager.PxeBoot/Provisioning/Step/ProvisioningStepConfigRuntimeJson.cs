@@ -4,6 +4,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step
 {
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.DeleteBootLoaderEntry;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.ExecuteProcess;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.InitializeOsPartition;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Sequence;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetFileContent;
@@ -21,6 +22,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step
     [JsonSerializable(typeof(UploadFilesProvisioningStepConfig))]
     [JsonSerializable(typeof(ModifyFilesProvisioningStepConfig))]
     [JsonSerializable(typeof(DeleteBootLoaderEntryProvisioningStepConfig))]
+    [JsonSerializable(typeof(InitializeOsPartitionProvisioningStepConfig))]
     internal partial class ProvisioningStepConfigRuntimeJson
     {
     }

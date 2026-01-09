@@ -19,7 +19,6 @@
             .WithRuntimeServices(
                 (_, services, _) =>
                 {
-                    services.AddSingleton<IParted, DefaultParted>();
                     services.AddSingleton<IEfiBootManagerParser, DefaultEfiBootManagerParser>();
                     services.AddSingleton<IEfiBootManager, DefaultEfiBootManager>();
                     services.AddPxeBootProvisioning();

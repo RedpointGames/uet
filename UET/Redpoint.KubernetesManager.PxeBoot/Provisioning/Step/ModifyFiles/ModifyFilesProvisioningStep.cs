@@ -44,32 +44,34 @@
         {
             foreach (var file in config.Files)
             {
-                if (string.IsNullOrWhiteSpace(file.Path) ||
-                    !Path.IsPathFullyQualified(file.Path))
+                var transformedPath = _variableProvider.SubstituteVariables(context, file.Path);
+
+                if (string.IsNullOrWhiteSpace(transformedPath) ||
+                    !Path.IsPathFullyQualified(transformedPath))
                 {
-                    throw new UnableToProvisionSystemException($"Path '{file.Path}' is not fully qualified. Refusing to set file content.");
+                    throw new UnableToProvisionSystemException($"Path '{transformedPath}' is not fully qualified. Refusing to set file content.");
                 }
 
-                _logger.LogInformation($"Applying action '{file.Action}' to '{file.Path}'...");
+                _logger.LogInformation($"Applying action '{file.Action}' to '{transformedPath}'...");
 
                 switch (file.Action)
                 {
                     case ModifyFilesProvisioningStepConfigFileAction.CreateDirectory:
-                        Directory.CreateDirectory(file.Path);
+                        Directory.CreateDirectory(transformedPath);
                         break;
                     case ModifyFilesProvisioningStepConfigFileAction.Delete:
-                        if (Directory.Exists(file.Path))
+                        if (Directory.Exists(transformedPath))
                         {
-                            await DirectoryAsync.DeleteAsync(file.Path, true);
+                            await DirectoryAsync.DeleteAsync(transformedPath, true);
                         }
                         else
                         {
-                            File.Delete(file.Path);
+                            File.Delete(transformedPath);
                         }
                         break;
                     case ModifyFilesProvisioningStepConfigFileAction.SetContents:
                         {
-                            var directoryName = Path.GetDirectoryName(file.Path);
+                            var directoryName = Path.GetDirectoryName(transformedPath);
                             if (!string.IsNullOrWhiteSpace(directoryName))
                             {
                                 Directory.CreateDirectory(directoryName);
@@ -84,7 +86,7 @@
                             }
 
                             await File.WriteAllTextAsync(
-                                file.Path,
+                                transformedPath,
                                 content,
                                 cancellationToken);
                             break;

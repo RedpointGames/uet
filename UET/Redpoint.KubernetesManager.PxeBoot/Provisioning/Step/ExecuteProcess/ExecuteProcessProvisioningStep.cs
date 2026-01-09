@@ -54,8 +54,22 @@
 
         private async Task<int> ExecuteProcessAsync(
             ExecuteProcessProvisioningStepConfig config,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken)
         {
+            var stepValues = new Dictionary<string, string>();
+            string? scriptPath = null;
+            if (config.Script != null)
+            {
+                scriptPath = Path.GetTempFileName() + (OperatingSystem.IsWindows() ? ".ps1" : string.Empty);
+                stepValues.Add("scriptPath", scriptPath);
+            }
+
+            foreach (var kv in _variableProvider.GetEnvironmentVariables(context, stepValues))
+            {
+                config.EnvironmentVariables[kv.Key] = kv.Value;
+            }
+
             var envVars = new Dictionary<string, string>();
             if (config.InheritEnvironmentVariables)
             {
@@ -76,15 +90,13 @@
             }
 
             IEnumerable<string> arguments = config.Arguments;
-            string? scriptPath = null;
-            if (config.Script != null)
+            if (config.Script != null && scriptPath != null)
             {
-                scriptPath = Path.GetTempFileName() + (OperatingSystem.IsWindows() ? ".ps1" : string.Empty);
                 await File.WriteAllTextAsync(
                     scriptPath,
                     config.Script.Trim(),
                     cancellationToken);
-                arguments = config.Arguments.Select(x => x.Replace("{{script-path}}", scriptPath, StringComparison.Ordinal));
+                arguments = config.Arguments.Select(x => _variableProvider.SubstituteVariables(context, x, stepValues));
                 _logger.LogInformation($"Wrote temporary script to '{scriptPath}'.");
             }
 
@@ -119,11 +131,12 @@
 
         private async Task<int> ExecuteProcessWithLogMonitoringAsync(
             ExecuteProcessProvisioningStepConfig config,
+            IProvisioningStepClientContext context,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(config.MonitorLogDirectory))
             {
-                return await ExecuteProcessAsync(config, cancellationToken);
+                return await ExecuteProcessAsync(config, context, cancellationToken);
             }
 
             Directory.CreateDirectory(config.MonitorLogDirectory);
@@ -183,7 +196,7 @@
 
             try
             {
-                return await ExecuteProcessAsync(config, cancellationToken);
+                return await ExecuteProcessAsync(config, context, cancellationToken);
             }
             finally
             {
@@ -203,13 +216,9 @@
 
         public async Task ExecuteOnClientAsync(ExecuteProcessProvisioningStepConfig config, IProvisioningStepClientContext context, CancellationToken cancellationToken)
         {
-            foreach (var kv in _variableProvider.GetEnvironmentVariables(context))
-            {
-                config.EnvironmentVariables[kv.Key] = kv.Value;
-            }
-
             await ExecuteProcessWithLogMonitoringAsync(
                 config,
+                context,
                 cancellationToken);
         }
 

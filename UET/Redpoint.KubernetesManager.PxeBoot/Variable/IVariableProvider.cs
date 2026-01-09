@@ -13,10 +13,12 @@
     {
         string SubstituteVariables(
             IProvisioningStepClientContext context,
-            string content);
+            string content,
+            Dictionary<string, string>? stepValues = null);
 
         Dictionary<string, string> GetEnvironmentVariables(
-            IProvisioningStepClientContext context);
+            IProvisioningStepClientContext context,
+            Dictionary<string, string>? stepValues = null);
 
         Dictionary<string, string> ComputeParameterValuesNodeProvisioningEndpoint(ServerSideVariableContext context);
     }
