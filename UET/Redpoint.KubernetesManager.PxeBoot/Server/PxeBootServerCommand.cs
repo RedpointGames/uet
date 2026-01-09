@@ -53,6 +53,7 @@
                     services.AddSingleton<INodeProvisioningEndpoint, UploadFileNodeProvisioningEndpoint>();
                     services.AddSingleton<INodeProvisioningEndpoint, SyncBootEntriesProvisioningEndpoint>();
                     services.AddSingleton<INodeProvisioningEndpoint, QueryRebootRequiredNodeProvisioningEndpoint>();
+                    services.AddSingleton<INodeProvisioningEndpoint, QueryServicesNodeProvisioningEndpoint>();
 
                     services.AddSingleton<IProvisionerHasher, DefaultProvisionerHasher>();
                 })

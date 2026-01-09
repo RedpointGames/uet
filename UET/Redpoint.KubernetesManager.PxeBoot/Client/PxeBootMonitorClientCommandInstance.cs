@@ -16,20 +16,17 @@
         private readonly PxeBootMonitorClientOptions _options;
         private readonly IHostedServiceFromExecutable _hostedServiceFromExecutable;
         private readonly IServiceControl _serviceControl;
-        private readonly IPackageManager _packageManager;
         private readonly ILogger<PxeBootMonitorClientCommandInstance> _logger;
 
         public PxeBootMonitorClientCommandInstance(
             PxeBootMonitorClientOptions options,
             IHostedServiceFromExecutable hostedServiceFromExecutable,
             IServiceControl serviceControl,
-            IPackageManager packageManager,
             ILogger<PxeBootMonitorClientCommandInstance> logger)
         {
             _options = options;
             _hostedServiceFromExecutable = hostedServiceFromExecutable;
             _serviceControl = serviceControl;
-            _packageManager = packageManager;
             _logger = logger;
         }
 
@@ -56,30 +53,32 @@
             }
         }
 
+        private const string _serviceName = "rkm-monitor";
+
         public async Task<int> ExecuteAsync(ICommandInvocationContext context)
         {
             if (context.ParseResult.GetValueForOption(_options.Install))
             {
-                if (await _serviceControl.IsServiceInstalled("rkm-monitor"))
+                if (await _serviceControl.IsServiceInstalled(_serviceName))
                 {
-                    if (await _serviceControl.IsServiceRunning("rkm-monitor", context.GetCancellationToken()))
+                    if (await _serviceControl.IsServiceRunning(_serviceName, context.GetCancellationToken()))
                     {
                         await _serviceControl.StopService(
-                            "rkm-monitor",
+                            _serviceName,
                             context.GetCancellationToken());
                     }
 
                     await _serviceControl.UninstallService(
-                        "rkm-monitor");
+                        _serviceName);
                 }
 
                 await _serviceControl.InstallService(
-                    "rkm-monitor",
-                    "rkm-monitor",
+                    _serviceName,
+                    "RKM - Provisioning Monitor",
                     $"{GetSelfLocation()} internal pxeboot monitor-client --provisioner-api-address {context.ParseResult.GetValueForOption(_options.ProvisionerApiAddress)}");
 
                 await _serviceControl.StartService(
-                    "rkm-monitor",
+                    _serviceName,
                     context.GetCancellationToken());
             }
             else

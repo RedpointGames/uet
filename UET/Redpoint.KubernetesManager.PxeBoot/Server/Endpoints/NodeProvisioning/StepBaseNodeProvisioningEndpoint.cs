@@ -34,6 +34,8 @@
 
         public bool RequireNodeObjects => true;
 
+        public virtual bool CanClearForceReprovisionFlag => true;
+
         private bool ShouldResetProvisionState(INodeProvisioningEndpointContext context)
         {
             if (context.RkmNode!.Spec?.ForceReprovision ?? false)
@@ -133,7 +135,8 @@
                 };
                 context.RkmNodeProvisioner = context.RkmNodeGroupProvisioner;
             }
-            if (context.RkmNode.Spec.ForceReprovision)
+            if (context.RkmNode.Spec.ForceReprovision &&
+                CanClearForceReprovisionFlag)
             {
                 _logger.LogInformation("Turning off 'force provision' flag...");
                 context.RkmNode.Spec.ForceReprovision = false;

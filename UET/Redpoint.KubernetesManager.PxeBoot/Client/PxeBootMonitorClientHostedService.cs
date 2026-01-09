@@ -3,12 +3,15 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.Configuration.Sources;
     using Redpoint.KubernetesManager.PxeBoot.FileTransfer;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
+    using Redpoint.ServiceControl;
     using Redpoint.Tpm;
     using System;
     using System.Linq;
     using System.Net;
+    using System.Net.Http.Json;
     using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
@@ -21,6 +24,7 @@
         private readonly ITpmSecuredHttp _tpmSecuredHttp;
         private readonly ICommandInvocationContext _commandInvocationContext;
         private readonly IReboot _reboot;
+        private readonly IServiceControl _serviceControl;
         private readonly PxeBootMonitorClientOptions _options;
 
         private CancellationTokenSource? _cancellationTokenSource;
@@ -33,6 +37,7 @@
             ITpmSecuredHttp tpmSecuredHttp,
             ICommandInvocationContext commandInvocationContext,
             IReboot reboot,
+            IServiceControl serviceControl,
             PxeBootMonitorClientOptions options)
         {
             _logger = logger;
@@ -41,6 +46,7 @@
             _tpmSecuredHttp = tpmSecuredHttp;
             _commandInvocationContext = commandInvocationContext;
             _reboot = reboot;
+            _serviceControl = serviceControl;
             _options = options;
         }
 
@@ -72,6 +78,56 @@
                 {
                     while (!cancellationToken.IsCancellationRequested)
                     {
+                        try
+                        {
+                            _logger.LogInformation("Checking what services we should ensure are always running on this machine...");
+                            var servicesResponse = await _durableOperation.DurableOperationAsync(
+                                async cancellationToken =>
+                                {
+                                    return await client.GetAsync(
+                                        new Uri($"https://{_commandInvocationContext.ParseResult.GetValueForOption(_options.ProvisionerApiAddress)}:8791/api/node-provisioning/query-services"),
+                                        cancellationToken);
+                                },
+                                cancellationToken);
+                            if (servicesResponse.IsSuccessStatusCode)
+                            {
+                                var services = await servicesResponse.Content.ReadFromJsonAsync(
+                                    KubernetesRkmJsonSerializerContext.Default.RkmNodeGroupSpecServices,
+                                    cancellationToken);
+                                if (services != null)
+                                {
+                                    foreach (var keepAlive in services?.KeepAlive ?? [])
+                                    {
+                                        if (string.IsNullOrWhiteSpace(keepAlive))
+                                        {
+                                            continue;
+                                        }
+
+                                        if (await _serviceControl.IsServiceInstalled(keepAlive))
+                                        {
+                                            if (!(await _serviceControl.IsServiceRunning(keepAlive, cancellationToken)))
+                                            {
+                                                _logger.LogWarning($"Service marked for keep alive is not currently running; it will be started: {keepAlive}");
+                                                try
+                                                {
+                                                    await _serviceControl.StartService(keepAlive, cancellationToken);
+                                                    _logger.LogInformation("Request to start the service succeeded.");
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    _logger.LogWarning(ex, $"Failed to request the service to start: {ex.Message}");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, ex.Message);
+                        }
+
                         try
                         {
                             var rebootResponse = await _durableOperation.DurableOperationAsync(
