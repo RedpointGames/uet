@@ -957,7 +957,7 @@ jobs:
       - cf-linux-tests
     strategy:
       matrix:
-        variant: [linux, linux-wine, windows-ltsc2022, windows-ltsc2025, windows-hostprocess]
+        variant: [linux, linux-wine, linux-pxeboot-server, windows-ltsc2022, windows-ltsc2025, windows-hostprocess]
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
       UET_CONTAINER_VARIANT: ${{ matrix.variant }}
@@ -993,6 +993,9 @@ jobs:
         PLATFORM="linux/amd64"
         if [ "$UET_CONTAINER_VARIANT" == "linux-wine" ]; then
           TAG_SUFFIX="-wine"
+        fi
+        if [ "$UET_CONTAINER_VARIANT" == "linux-pxeboot-server" ]; then
+          TAG_SUFFIX="-pxeboot-server"
         fi
         if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2022" ]; then
           TAG_SUFFIX="-ltsc2022"
