@@ -10,7 +10,7 @@
         [JsonPropertyName("provisionerArguments")]
         public Dictionary<string, string?>? ProvisionerArguments { get; set; }
 
-        [JsonPropertyName("clusterControllerIpAddress")]
-        public string? ClusterControllerIpAddress { get; set; }
+        [JsonPropertyName("services")]
+        public RkmNodeGroupSpecServices? Services { get; set; }
     }
 }

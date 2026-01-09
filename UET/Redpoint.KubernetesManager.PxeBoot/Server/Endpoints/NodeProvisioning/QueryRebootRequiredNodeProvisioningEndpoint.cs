@@ -19,6 +19,8 @@
 
         public override string Path => "/query-reboot-required";
 
+        public override bool CanClearForceReprovisionFlag => false;
+
         protected override async Task HandleStepRequestAsync(
             INodeProvisioningEndpointContext context,
             IProvisioningStepServerContext serverContext,

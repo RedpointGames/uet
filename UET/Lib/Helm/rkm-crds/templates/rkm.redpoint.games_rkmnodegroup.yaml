@@ -29,10 +29,15 @@ spec:
                 description: An arbitrary map of parameter values that should be available when provisioning. These will override the default parameter values that the provisioner has set. Each entry here will be cause '{{`{{param:<key>}}`}}' to be substituted, and RKM_PARAM_KEY_NAME_TRANSFORMED as an environment variable. KEY_NAME_TRANSFORMED is the key transformed such that 'keyNameTransformed' is 'KEY_NAME_TRANSFORMED'.
                 x-kubernetes-preserve-unknown-fields: true
                 nullable: true
-              clusterControllerIpAddress:
-                type: string
-                nullable: true
-                description: If set, overrides the Kubernetes controller IP address that provisioned machines should join.
+              services:
+                type: object
+                description: Controls how services on machines in this group run.
+                properties:
+                  keepAlive:
+                    type: array
+                    description: A list of service names that should be kept running on machines in this group.
+                    items:
+                      type: string
     selectableFields: []
     additionalPrinterColumns:
     - jsonPath: .spec.provisioner
