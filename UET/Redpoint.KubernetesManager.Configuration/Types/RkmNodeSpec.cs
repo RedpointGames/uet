@@ -20,5 +20,8 @@
         [JsonPropertyName("inactiveBootEntries")]
         [SuppressMessage("Design", "CA1819", Justification = "Used for JSON serialization.")]
         public string?[]? InactiveBootEntries { get; set; }
+
+        [JsonPropertyName("bootFromNetworkAdapter")]
+        public string? BootFromNetworkAdapter { get; set; }
     }
 }

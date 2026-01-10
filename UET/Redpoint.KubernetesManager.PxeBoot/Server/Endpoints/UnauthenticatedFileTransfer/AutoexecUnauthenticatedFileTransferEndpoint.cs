@@ -42,6 +42,16 @@
             {
                 if (request.PathPrefix == "/autoexec.ipxe")
                 {
+                    // Try to find a node associated with the IP address in case we can use a faster DHCP command.
+                    var dhcpCommand = "ifconf -c dhcp";
+                    var node = await request.ConfigurationSource.GetRkmNodeByRegisteredIpAddressAsync(
+                        request.RemoteAddress.ToString(),
+                        cancellationToken);
+                    if (!string.IsNullOrWhiteSpace(node?.Spec?.BootFromNetworkAdapter))
+                    {
+                        dhcpCommand = $"ifconf -c dhcp {node?.Spec?.BootFromNetworkAdapter}";
+                    }
+
                     // Chain the client into HTTP so that we have faster file transfers.
                     var stream = new MemoryStream();
                     using (var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true))
@@ -49,7 +59,7 @@
                         writer.Write(
                             $$"""
                             #!ipxe
-                            dhcp
+                            {{dhcpCommand}}
                             chain --replace http://${next-server}:{{request.HostHttpPort}}/autoexec-nodhcp.ipxe
                             """);
                     }
@@ -104,10 +114,15 @@
                 initrd static/uet     /usr/bin/uet-bootstrap  mode=555
                 boot
                 """;
+            var dhcpCommand = "ifconf -c dhcp";
 
             var node = await request.ConfigurationSource.GetRkmNodeByRegisteredIpAddressAsync(
                 request.RemoteAddress.ToString(),
                 cancellationToken);
+            if (!string.IsNullOrWhiteSpace(node?.Spec?.BootFromNetworkAdapter))
+            {
+                dhcpCommand = $"ifconf -c dhcp {node?.Spec?.BootFromNetworkAdapter}";
+            }
 
             async Task<string> GetSelectedScript()
             {
@@ -265,7 +280,7 @@
             {
                 { "provision:bootedFromStepIndex", bootedFromStepIndex },
                 { "provision:apiAddressIp", request.HttpContext!.Connection.LocalIpAddress.ToString() },
-                { "step:dhcp", !skipDhcp ? "dhcp" : string.Empty },
+                { "step:dhcp", !skipDhcp ? dhcpCommand : string.Empty },
             };
             var selectedScript = await GetSelectedScript();
             foreach (var kv in replacements)
