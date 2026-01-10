@@ -68,7 +68,7 @@
                         await _fileTransferClient.UploadFileAsync(
                             source,
                             new Uri($"{context.ProvisioningApiEndpointHttps}/api/node-provisioning/upload-file?name={HttpUtility.UrlEncode(target)}"),
-                            context.ProvisioningApiClient,
+                            context.ProvisioningApiClientNoTimeout,
                             cancellationToken);
                     },
                     cancellationToken);

@@ -33,6 +33,8 @@
             _monitorFactory = monitorFactory;
         }
 
+        internal Func<Stream, Stream> _wrapReadStream = stream => stream;
+
         public async Task DownloadFilesAsync(
             Dictionary<Uri, string> sourceToTargetMappings,
             HttpClient? client = null,
@@ -65,6 +67,8 @@
                             if (!string.IsNullOrWhiteSpace(existingHash))
                             {
                                 _logger.LogInformation($"Checking if {mapping.Value} needs to be downloaded...");
+                                using var headTimerCts = new CancellationTokenSource(5000);
+                                using var headCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, headTimerCts.Token);
                                 using (var headResponse = await client.SendAsync(
                                     new HttpRequestMessage
                                     {
@@ -72,7 +76,7 @@
                                         Method = HttpMethod.Head,
                                     },
                                     HttpCompletionOption.ResponseHeadersRead,
-                                    cancellationToken))
+                                    headCts.Token))
                                 {
                                     headResponse.EnsureSuccessStatusCode();
                                     if (headResponse.Headers.TryGetValues("Content-Hash", out var newHashes))
@@ -93,13 +97,12 @@
                                         cancellationToken);
                                     var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
                                     using (var positionAwareStream = new PositionAwareStream(
-                                        responseStream,
+                                        _wrapReadStream(responseStream),
                                         response.Content.Headers.ContentLength!.Value))
                                     {
-                                        var stream = positionAwareStream;
-                                        //using (var stream = new StallDetectionStream(
-                                        //    positionAwareStream,
-                                        //    TimeSpan.FromSeconds(5)))
+                                        using (var stream = new StallDetectionStream(
+                                            positionAwareStream,
+                                            TimeSpan.FromSeconds(5)))
                                         {
                                             var cts = new CancellationTokenSource();
                                             var progress = _progressFactory.CreateProgressForStream(stream);
@@ -226,6 +229,8 @@
 
                         _logger.LogInformation($"Checking if {source} needs to be uploaded...");
                         {
+                            using var headTimerCts = new CancellationTokenSource(5000);
+                            using var headCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, headTimerCts.Token);
                             using (var headResponse = await client.SendAsync(
                                 new HttpRequestMessage
                                 {
@@ -238,7 +243,7 @@
                                     Method = HttpMethod.Head,
                                 },
                                 HttpCompletionOption.ResponseHeadersRead,
-                                cancellationToken))
+                                headCts.Token))
                             {
                                 if (headResponse.StatusCode == HttpStatusCode.NotModified)
                                 {
@@ -251,13 +256,12 @@
                         fileReadStream.Seek(0, SeekOrigin.Begin);
 
                         using (var positionAwareStream = new PositionAwareStream(
-                            fileReadStream,
+                            _wrapReadStream(fileReadStream),
                             fileReadStream.Length))
                         {
-                            var stream = positionAwareStream;
-                            //using (var stream = new StallDetectionStream(
-                            //    positionAwareStream,
-                            //    TimeSpan.FromSeconds(5)))
+                            using (var stream = new StallDetectionStream(
+                                positionAwareStream,
+                                TimeSpan.FromSeconds(5)))
                             {
                                 var cts = new CancellationTokenSource();
                                 var progress = _progressFactory.CreateProgressForStream(stream);

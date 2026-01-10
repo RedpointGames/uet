@@ -99,9 +99,10 @@
                 TestContext.Current.CancellationToken);
             try
             {
-                var client = await tpmSecuredHttpService.CreateHttpClientAsync(
+                var clientFactory = await tpmSecuredHttpService.CreateHttpClientFactoryAsync(
                     new Uri("http://127.0.0.1:8790/negotiate"),
                     TestContext.Current.CancellationToken);
+                using var client = clientFactory.Create();
 
                 var reflectedPem = await client.GetStringAsync(
                     new Uri("https://127.0.0.1:8791/test"),
