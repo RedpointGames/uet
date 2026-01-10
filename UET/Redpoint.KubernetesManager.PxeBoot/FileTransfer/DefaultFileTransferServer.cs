@@ -18,6 +18,8 @@
             _logger = logger;
         }
 
+        internal Func<Stream, Stream> _wrapReadStream = stream => stream;
+
         public async Task HandleDownloadFileAsync(
             HttpContext httpContext,
             Stream contentStream,
@@ -49,7 +51,7 @@
                 {
                     if (streamToDispose != null)
                     {
-                        await contentStream.CopyToAsync(
+                        await _wrapReadStream(contentStream).CopyToAsync(
                             streamToDispose,
                             httpContext.RequestAborted);
                         streamToDispose.Seek(0, SeekOrigin.Begin);
@@ -142,7 +144,7 @@
                 FileAccess.Write,
                 FileShare.None))
             {
-                await httpContext.Request.Body.CopyToAsync(
+                await _wrapReadStream(httpContext.Request.Body).CopyToAsync(
                     fileStream,
                     httpContext.RequestAborted);
             }

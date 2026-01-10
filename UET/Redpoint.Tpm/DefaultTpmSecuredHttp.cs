@@ -61,7 +61,7 @@
             return (request, rsa);
         }
 
-        public async Task<HttpClient> CreateHttpClientAsync(
+        public async Task<ITpmSecuredHttpClientFactory> CreateHttpClientFactoryAsync(
             Uri negotiateUrl,
             CancellationToken cancellationToken)
         {
@@ -118,29 +118,10 @@
             // @note: If we wanted to validate the received certificate authority against an
             // external source, this is where it needs to happen.
 
-            var handler = new HttpClientHandler();
-            handler.ClientCertificates.Add(ReexportForWindows(clientCertificate));
-            handler.ServerCertificateCustomValidationCallback = (request, serverCertificate, _, policyErrors) =>
-            {
-                if (serverCertificate == null)
-                {
-                    return false;
-                }
-
-                using var chain = new X509Chain();
-                chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-                chain.ChainPolicy.CustomTrustStore.Add(certificateAuthority);
-                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                return chain.Build(serverCertificate);
-            };
-            handler.CheckCertificateRevocationList = true;
-
-            var client = new HttpClient(handler);
-            client.DefaultRequestHeaders.Add(
-                "RKM-AIK-PEM",
-                aikPublicPem.Replace('\n', '|'));
-
-            return client;
+            return new DefaultTpmSecuredHttpClientFactory(
+                certificateAuthority,
+                clientCertificate,
+                aikPublicPem);
         }
     }
 }

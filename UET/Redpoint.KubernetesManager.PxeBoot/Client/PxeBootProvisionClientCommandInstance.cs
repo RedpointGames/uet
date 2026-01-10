@@ -86,6 +86,7 @@
         private async Task<string> ProvisionAndMountDisksAsync(
             string apiAddress,
             HttpClient client,
+            ITpmSecuredHttpClientFactory clientFactory,
             CancellationToken cancellationToken)
         {
             var diskPaths = await _parted.GetDiskPathsAsync(cancellationToken);
@@ -260,18 +261,22 @@
             }
 
             Directory.CreateDirectory($"{MountConstants.LinuxBootMountPath}/EFI/RKM");
-            await _fileTransferClient.DownloadFilesAsync(
-                new Uri($"https://{apiAddress}:8791/static"),
-                $"{MountConstants.LinuxBootMountPath}/EFI/RKM",
-                new Dictionary<string, string>
-                {
-                    { "ipxe.efi", "ipxe.efi" },
-                    { "vmlinuz", "vmlinuz" },
-                    { "initrd", "initrd" },
-                    { "uet", "uet" },
-                },
-                client: client,
-                cancellationToken: cancellationToken);
+            using (var clientNoTimeout = clientFactory.Create())
+            {
+                clientNoTimeout.Timeout = TimeSpan.FromHours(1);
+                await _fileTransferClient.DownloadFilesAsync(
+                    new Uri($"https://{apiAddress}:8791/static"),
+                    $"{MountConstants.LinuxBootMountPath}/EFI/RKM",
+                    new Dictionary<string, string>
+                    {
+                        { "ipxe.efi", "ipxe.efi" },
+                        { "vmlinuz", "vmlinuz" },
+                        { "initrd", "initrd" },
+                        { "uet", "uet" },
+                    },
+                    client: clientNoTimeout,
+                    cancellationToken: cancellationToken);
+            }
 
             _logger.LogInformation($"Setting autoexec.ipxe for recovery...");
             // @note: 'dhcp' is required here, iPXE will not boot even from file without a configured net interface.
@@ -451,6 +456,7 @@
         private class DefaultProvisioningStepClientContext(
             bool isLocalTesting,
             HttpClient provisioningApiClient,
+            HttpClient provisioningApiClientNoTimeout,
             string provisioningApiEndpointHttps,
             string provisioningApiEndpointHttp,
             string provisioningApiAddress,
@@ -464,6 +470,8 @@
             public bool IsLocalTesting => isLocalTesting;
 
             public HttpClient ProvisioningApiClient => provisioningApiClient;
+
+            public HttpClient ProvisioningApiClientNoTimeout => provisioningApiClientNoTimeout;
 
             public string ProvisioningApiEndpointHttps => provisioningApiEndpointHttps;
 
@@ -494,16 +502,18 @@
                 allowRecoveryShell = provisionContext.AllowRecoveryShell;
 
                 // Create our TPM-secured HTTP client, and negotiate the client certificate.
-                using var client = await _durableOperation.DurableOperationAsync(
+                var clientFactory = await _durableOperation.DurableOperationAsync(
                     async cancellationToken =>
                     {
-                        var client = await _tpmSecuredHttp.CreateHttpClientAsync(
+                        return await _tpmSecuredHttp.CreateHttpClientFactoryAsync(
                             new Uri($"http://{provisionContext.ApiAddress}:8790/api/node-provisioning/negotiate-certificate"),
                             cancellationToken);
-                        client.Timeout = TimeSpan.FromSeconds(5);
-                        return client;
                     },
                     context.GetCancellationToken());
+                using var client = clientFactory.Create();
+                using var clientNoTimeout = clientFactory.Create();
+                client.Timeout = TimeSpan.FromSeconds(5);
+                clientNoTimeout.Timeout = TimeSpan.FromHours(1);
 
                 // Attempt to authorize ourselves with the cluster.
                 var authorizeRequest = new AuthorizeNodeRequest
@@ -554,6 +564,7 @@
                     linuxDiskPath = await ProvisionAndMountDisksAsync(
                         provisionContext.ApiAddress,
                         client,
+                        clientFactory,
                         context.GetCancellationToken());
 
                     // If we are in recovery, we need to tell the cluster to forcibly reprovision us and then reboot.
@@ -582,6 +593,7 @@
                 var clientContext = new DefaultProvisioningStepClientContext(
                     context.ParseResult.GetValueForOption(_options.Local),
                     client,
+                    clientNoTimeout,
                     $"https://{provisionContext.ApiAddress}:8791",
                     $"http://{provisionContext.ApiAddress}:8790",
                     provisionContext.ApiAddress,

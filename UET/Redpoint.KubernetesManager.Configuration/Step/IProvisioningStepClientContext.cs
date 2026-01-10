@@ -8,6 +8,8 @@
 
         HttpClient ProvisioningApiClient { get; }
 
+        HttpClient ProvisioningApiClientNoTimeout { get; }
+
         string ProvisioningApiEndpointHttps { get; }
 
         string ProvisioningApiEndpointHttp { get; }

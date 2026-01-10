@@ -18,12 +18,12 @@
             X509Certificate2 certificateAuthority);
 
         /// <summary>
-        /// Construct a <see cref="HttpClient"/> that can be used to call endpoints secured with a <see cref="ITpmSecuredHttpServer"/>. The server will be able to verify the identity of this machine using the attestation identity key in the local machine's TPM.
+        /// Returns a function that constructs <see cref="HttpClient"/> that can be used to call endpoints secured with a <see cref="ITpmSecuredHttpServer"/>. The server will be able to verify the identity of this machine using the attestation identity key in the local machine's TPM.
         /// </summary>
         /// <param name="negotiateUrl">The URL which implements the call to <see cref="ITpmSecuredHttpServer.HandleNegotiationRequestAsync(Microsoft.AspNetCore.Http.HttpContext)"/>. This can be a HTTP or HTTPS endpoint.</param>
         /// <param name="cancellationToken">The cancellation token to cancel negotiation of a client certificate.</param>
         /// <returns>The new <see cref="HttpClient"/>.</returns>
-        Task<HttpClient> CreateHttpClientAsync(
+        Task<ITpmSecuredHttpClientFactory> CreateHttpClientFactoryAsync(
             Uri negotiateUrl,
             CancellationToken cancellationToken);
     }

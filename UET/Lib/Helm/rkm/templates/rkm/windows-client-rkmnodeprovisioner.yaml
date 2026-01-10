@@ -233,7 +233,6 @@ spec:
         imgfetch --name boot.wim                    uploaded/winpe.wim          boot.wim
         imgfetch --name winpeshl.ini                uploaded/winpeshl.ini       winpeshl.ini
         imgfetch --name boot.bat                    uploaded/boot.bat           boot.bat
-        imgfetch --name uet.ppkg                    uploaded/uet.ppkg           uet.ppkg
         imgfetch --name uet.exe                     static/uet.exe              uet.exe
         imgfetch --name winpe.bat                   winpe.bat                   winpe.bat
         imgfetch --name rkm-provision-context.json  rkm-provision-context.json  rkm-provision-context.json

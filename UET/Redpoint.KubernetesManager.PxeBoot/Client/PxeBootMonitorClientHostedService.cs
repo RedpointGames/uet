@@ -64,16 +64,16 @@
         {
             try
             {
-                var client = await _durableOperation.DurableOperationAsync(
+                var clientFactory = await _durableOperation.DurableOperationAsync(
                     async cancellationToken =>
                     {
-                        var client = await _tpmSecuredHttp.CreateHttpClientAsync(
+                        return await _tpmSecuredHttp.CreateHttpClientFactoryAsync(
                             new Uri($"http://{_commandInvocationContext.ParseResult.GetValueForOption(_options.ProvisionerApiAddress)}:8790/api/node-provisioning/negotiate-certificate"),
                             cancellationToken);
-                        client.Timeout = TimeSpan.FromSeconds(5);
-                        return client;
                     },
                     cancellationToken);
+                var client = clientFactory.Create();
+                client.Timeout = TimeSpan.FromSeconds(5);
                 try
                 {
                     while (!cancellationToken.IsCancellationRequested)
@@ -173,16 +173,16 @@
                         {
                             // This will happen if the provisioner API restarts and generates a new certificate authority.
                             client.Dispose();
-                            client = await _durableOperation.DurableOperationAsync(
+                            clientFactory = await _durableOperation.DurableOperationAsync(
                                 async cancellationToken =>
                                 {
-                                    var client = await _tpmSecuredHttp.CreateHttpClientAsync(
+                                    return await _tpmSecuredHttp.CreateHttpClientFactoryAsync(
                                         new Uri($"http://{_commandInvocationContext.ParseResult.GetValueForOption(_options.ProvisionerApiAddress)}:8790/api/node-provisioning/negotiate-certificate"),
                                         cancellationToken);
-                                    client.Timeout = TimeSpan.FromSeconds(5);
-                                    return client;
                                 },
                                 cancellationToken);
+                            client = clientFactory.Create();
+                            client.Timeout = TimeSpan.FromSeconds(5);
                             continue;
                         }
                     }
