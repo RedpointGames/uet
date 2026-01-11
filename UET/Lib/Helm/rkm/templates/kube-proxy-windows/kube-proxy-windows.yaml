@@ -91,7 +91,8 @@ spec:
             - .\pwsh\pwsh.exe
             - -ExecutionPolicy
             - Bypass
-            - .\scripts\kube_proxy.ps1
+            - -Command
+            - .\scripts\kube_proxy.ps1 2>&1 | Tee-Object -FilePath C:\RKM\kube-proxy.log
           volumeMounts:
             - mountPath: /scripts
               name: scripts
