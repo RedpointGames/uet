@@ -210,7 +210,7 @@
 
             var provisioningState = await _provisioningStateManager.UpdateStateAsync(
                 nodeProvisioningContext,
-                true);
+                false);
 
             switch (provisioningState)
             {
