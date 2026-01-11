@@ -100,12 +100,6 @@ spec:
           env:
             - name: UET_KUBERNETES_VERSION
               value: {{ $kubernetesVersion | quote }}
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 10256
-            initialDelaySeconds: 90
-            periodSeconds: 5
       volumes:
         - name: scripts
           configMap:
