@@ -7,6 +7,7 @@
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.InitializeOsPartition;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Sequence;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetEfiBootPath;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetFileContent;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.UploadFiles;
@@ -23,6 +24,7 @@
     [JsonSerializable(typeof(ModifyFilesProvisioningStepConfig))]
     [JsonSerializable(typeof(DeleteBootLoaderEntryProvisioningStepConfig))]
     [JsonSerializable(typeof(InitializeOsPartitionProvisioningStepConfig))]
+    [JsonSerializable(typeof(SetEfiBootPathProvisioningStepConfig))]
     internal partial class ProvisioningStepConfigJsonSerializerContext : JsonSerializerContext
     {
     }

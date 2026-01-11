@@ -11,6 +11,11 @@
 
     public interface IRkmConfigurationSource
     {
+        Task CreateProvisioningEventForRkmNodeAsync(
+            string attestationIdentityKeyFingerprint,
+            string message,
+            CancellationToken cancellationToken);
+
         Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
             RkmNodeRole[] roles,

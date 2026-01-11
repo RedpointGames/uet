@@ -48,6 +48,12 @@
             if (node?.Status?.Provisioner != null)
             {
                 _logger.LogInformation("Node has notified that it has completed a once-only reboot.");
+
+                await request.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                    node.Status.AttestationIdentityKeyFingerprint!,
+                    $"Node has notified that it has completed a once-only reboot",
+                    cancellationToken);
+
                 node.Status.Provisioner.RebootNotificationForOnceViaNotifyOccurred = true;
                 await request.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
                     node.Status.AttestationIdentityKeyFingerprint!,

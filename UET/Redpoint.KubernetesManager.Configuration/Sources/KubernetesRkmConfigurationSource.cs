@@ -26,6 +26,39 @@
             _kubernetes = kubernetes;
         }
 
+        public async Task CreateProvisioningEventForRkmNodeAsync(
+            string attestationIdentityKeyFingerprint,
+            string message,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(attestationIdentityKeyFingerprint);
+
+            await _kubernetes.EventsV1.CreateNamespacedEventAsync(
+                new Eventsv1Event
+                {
+                    Metadata = new V1ObjectMeta
+                    {
+                        GenerateName = $"pxeboot-server-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+                        NamespaceProperty = "kube-system",
+                    },
+                    Regarding = new V1ObjectReference
+                    {
+                        ApiVersion = "rkm.redpoint.games/v1",
+                        Kind = "RkmNode",
+                        Name = attestationIdentityKeyFingerprint.Substring(0, 8)
+                    },
+                    ReportingInstance = "pxeboot-server",
+                    ReportingController = "rkm.redpoint.games/pxeboot-server",
+                    Type = "Normal",
+                    EventTime = DateTime.UtcNow,
+                    Reason = "Provisioning",
+                    Note = message,
+                    Action = "Provisioning",
+                },
+                "kube-system",
+                cancellationToken: cancellationToken);
+        }
+
         public async Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
             RkmNodeRole[] roles,

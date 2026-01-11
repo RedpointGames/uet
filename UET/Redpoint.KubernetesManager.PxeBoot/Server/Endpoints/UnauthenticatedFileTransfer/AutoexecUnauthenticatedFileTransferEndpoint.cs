@@ -135,6 +135,42 @@
                     // TFTP should not be delivering an autoexec.ipxe file that does anything other than chain.
                     throw new InvalidOperationException("TFTP attempted to deliver non-chain autoexec.ipxe file!");
                 }
+                if ((node.Status?.BootToDisk ?? false) &&
+                    !string.IsNullOrWhiteSpace(node.Status?.BootEfiPath))
+                {
+                    _logger.LogInformation($"Requesting node boot to EFI path: {node.Status.BootEfiPath}");
+
+                    await request.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                        node.Status.AttestationIdentityKeyFingerprint!,
+                        $"Booting to disk",
+                        cancellationToken);
+
+                    node.Status.BootToDisk = false;
+                    await request.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+                        node.Status.AttestationIdentityKeyFingerprint!,
+                        node.Status,
+                        cancellationToken);
+
+                    return
+                        $"""
+                        #!ipxe
+                        [[step:dhcp]]
+
+                        sanboot --drive 0 --extra {node.Status.BootEfiPath}
+                        
+                        echo
+                        echo FAILED TO BOOT TO EFI IMAGE {node.Status.BootEfiPath} ON DISK
+                        echo
+                        echo (waiting 30 seconds, then reprovisioning this machine)
+                        echo
+                        sleep 30
+                        
+                        kernel static/vmlinuz rkm-api-address=[[provision:apiAddressIp]] rkm-in-recovery
+                        initrd static/initrd
+                        initrd static/uet     /usr/bin/uet-bootstrap  mode=555
+                        boot
+                        """;
+                }
                 if (string.IsNullOrWhiteSpace(node?.Status?.Provisioner?.Name) ||
                     string.IsNullOrWhiteSpace(node?.Spec?.NodeGroup))
                 {
@@ -227,6 +263,11 @@
                             boot
                             """;
                     }
+
+                    await request.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                        node.Status.AttestationIdentityKeyFingerprint!,
+                        $"Booting to next iPXE script on reboot step {rebootStepIndex}",
+                        cancellationToken);
                 }
 
                 if (provisioningRebootStep.Flags.HasFlag(ProvisioningStepFlags.AssumeCompleteWhenIpxeScriptFetched) &&
@@ -267,6 +308,11 @@
                         node.Status.AttestationIdentityKeyFingerprint!,
                         node.Status,
                         cancellationToken);
+
+                    await request.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                        node.Status.AttestationIdentityKeyFingerprint!,
+                        $"Completed provisioning step '{rebootStep!.Type}' at index {rebootStepIndex}",
+                        cancellationToken);
                 }
 
                 return overrideScript ?? defaultScript;
@@ -283,6 +329,14 @@
                 { "step:dhcp", !skipDhcp ? dhcpCommand : string.Empty },
             };
             var selectedScript = await GetSelectedScript();
+            if (selectedScript == defaultScript &&
+                !string.IsNullOrWhiteSpace(node?.Status?.AttestationIdentityKeyFingerprint))
+            {
+                await request.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                    node.Status.AttestationIdentityKeyFingerprint,
+                    $"Booting to provisioning environment",
+                    cancellationToken);
+            }
             foreach (var kv in replacements)
             {
                 selectedScript = selectedScript.Replace("[[" + kv.Key + "]]", kv.Value, StringComparison.Ordinal);

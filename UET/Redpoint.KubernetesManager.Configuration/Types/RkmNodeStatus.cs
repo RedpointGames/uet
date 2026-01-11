@@ -48,5 +48,8 @@
         [JsonPropertyName("bootEntries")]
         [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "We need RemoveAll on this property.")]
         public List<RkmNodeStatusBootEntry>? BootEntries { get; set; }
+
+        [JsonPropertyName("bootEfiPath")]
+        public string? BootEfiPath { get; set; }
     }
 }

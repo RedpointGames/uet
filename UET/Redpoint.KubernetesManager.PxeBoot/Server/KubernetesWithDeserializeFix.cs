@@ -2,6 +2,7 @@
 {
     using k8s;
     using k8s.Autorest;
+    using k8s.Models;
     using Microsoft.AspNetCore.Http;
     using System;
     using System.Collections.Generic;
@@ -20,7 +21,7 @@
 
         protected override Task<HttpResponseMessage> SendRequest<T>(string relativeUri, HttpMethod method, IReadOnlyDictionary<string, IReadOnlyList<string>> customHeaders, T body, CancellationToken cancellationToken)
         {
-            if (body == null)
+            if (body == null || body is Eventsv1Event)
             {
                 return base.SendRequest<T>(relativeUri, method, customHeaders, body, cancellationToken);
             }
@@ -81,6 +82,11 @@
 
         protected override async Task<HttpOperationResponse<T>> CreateResultAsync<T>(HttpRequestMessage httpRequest, HttpResponseMessage httpResponse, bool? watch, CancellationToken cancellationToken)
         {
+            if (typeof(T) == typeof(Eventsv1Event))
+            {
+                return (HttpOperationResponse<T>)(object)(await base.CreateResultAsync<Eventsv1Event>(httpRequest, httpResponse, watch, cancellationToken));
+            }
+
             if (typeof(T) != typeof(JsonElement))
             {
                 throw new NotSupportedException($"Type {typeof(T).FullName} used for CreateResultAsync, but this Kubernetes implementation expects all calls to use JsonElement as the type.");
