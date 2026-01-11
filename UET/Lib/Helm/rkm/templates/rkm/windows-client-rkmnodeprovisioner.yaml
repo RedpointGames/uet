@@ -12,9 +12,6 @@ spec:
   - type: atomicSequence
     atomicSequence:
       steps:
-      - type: deleteBootLoaderEntry
-        deleteBootLoaderEntry:
-          name: Windows Boot Manager
       - type: initializeOsPartition
         initializeOsPartition:
           filesystem: Ntfs
@@ -259,8 +256,7 @@ spec:
             dism /Image:${env:RKM_MOUNT_OS}\ /Enable-Feature /FeatureName:Containers /FeatureName:Microsoft-Hyper-V /All /ScratchDir:${env:RKM_MOUNT_PROVISION}\
 
             Write-Host "Install the bootloader from template..."
-            bcdboot ${env:RKM_MOUNT_OS}\Windows /addlast /p
-            bcdedit /set "{fwbootmgr}" displayorder "{bootmgr}" /addlast
+            bcdboot ${env:RKM_MOUNT_OS}\Windows /addlast /p /nofirmwaresync
 
             Write-Host "Copying UET to installed version of Windows..."
             New-Item -ItemType Directory -Path ${env:RKM_MOUNT_OS}\ProgramData\UET\RKM-Provisioned -ErrorAction SilentlyContinue
@@ -904,6 +900,12 @@ spec:
   - type: reboot
     reboot:
       defaultInitrd: true
+  - type: deleteBootLoaderEntry
+    deleteBootLoaderEntry:
+      name: Windows Boot Manager
+  - type: setEfiBootPath
+    setEfiBootPath:
+      path: '\\EFI\\Microsoft\\Boot\\bootmgfw.efi'
   - type: executeProcess
     executeProcess:
       executable: bash
@@ -919,6 +921,3 @@ spec:
         rm -rf $RKM_MOUNT_PROVISION/WinPEStage1 || true;
 
         # note: we keep LinuxTmp.ext4 and install.esd as these take a long to prepare
-  - type: test
-    test:
-      value: Running in Linux initrd once more to fix up boot manager order, and then we're done.

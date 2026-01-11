@@ -10,8 +10,8 @@
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.InitializeOsPartition;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RecoveryShell;
-    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RegisterRemoteIp;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Sequence;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetEfiBootPath;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetFileContent;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Test;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.UploadFiles;
@@ -25,7 +25,6 @@
             services.AddTpm();
 
             services.AddSingleton<IProvisioningStep, TestProvisioningStep>();
-            services.AddSingleton<IProvisioningStep, RegisterRemoteIpProvisioningStep>();
             services.AddSingleton<IProvisioningStep, RebootProvisioningStep>();
             services.AddSingleton<IProvisioningStep, RecoveryShellProvisioningStep>();
             services.AddSingleton<IProvisioningStep, ExecuteProcessProvisioningStep>();
@@ -34,6 +33,7 @@
             services.AddSingleton<IProvisioningStep, ModifyFilesProvisioningStep>();
             services.AddSingleton<IProvisioningStep, DeleteBootLoaderEntryProvisioningStep>();
             services.AddSingleton<IProvisioningStep, InitializeOsPartitionProvisioningStep>();
+            services.AddSingleton<IProvisioningStep, SetEfiBootPathProvisioningStep>();
 
             services.AddSingleton<IDurableOperation, DefaultDurableOperation>();
             services.AddSingleton<IFileTransferClient, DefaultFileTransferClient>();

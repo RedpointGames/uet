@@ -63,6 +63,12 @@
                 {
                     throw new UnableToProvisionSystemException($"Step inside atomic sequence with type '{currentStep.Type}' is not known.");
                 }
+
+                if (provisioningStep.Flags.HasFlag(ProvisioningStepFlags.DisallowInAtomicSequence))
+                {
+                    throw new UnableToProvisionSystemException($"Step with type '{currentStep.Type}' is not permitted in atomic sequence, because it requires server events to execute which do not occur for steps in an atomic sequence.");
+                }
+
                 await provisioningStep.ExecuteOnClientUncastedAsync(
                     currentStep?.DynamicSettings,
                     context,

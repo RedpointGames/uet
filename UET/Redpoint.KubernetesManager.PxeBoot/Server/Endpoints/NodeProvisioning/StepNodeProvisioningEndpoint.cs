@@ -60,6 +60,11 @@
                     context.AikFingerprint,
                     context.RkmNode.Status,
                     context.CancellationToken);
+
+                await context.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                    context.RkmNode.Status.AttestationIdentityKeyFingerprint!,
+                    $"Starting provisioning step '{currentStep.Type}' at index {context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value}",
+                    context.CancellationToken);
             }
 
             // Serialize the current step to the client.

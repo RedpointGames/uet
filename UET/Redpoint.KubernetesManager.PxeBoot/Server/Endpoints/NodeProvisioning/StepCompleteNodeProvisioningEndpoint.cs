@@ -7,7 +7,9 @@
     using System.Collections.Generic;
     using System.Net;
     using System.Text.Json;
+    using System.Threading;
     using System.Threading.Tasks;
+    using System.Xml.Linq;
 
     internal class StepCompleteNodeProvisioningEndpoint : StepBaseNodeProvisioningEndpoint
     {
@@ -47,6 +49,7 @@
                 context.RkmNode.Status,
                 serverContext,
                 context.CancellationToken);
+            var currentStepIndex = context.RkmNode.Status.Provisioner.CurrentStepIndex;
 
             // Increment current step index and then update node status.
             if (!context.RkmNode.Status.Provisioner.CurrentStepIndex.HasValue)
@@ -66,6 +69,11 @@
             {
                 context.RkmNode.Status.Provisioner.CurrentStepStarted = !provisioningStep.Flags.HasFlag(ProvisioningStepFlags.DoNotStartAutomaticallyNextStepOnCompletion);
             }
+
+            await context.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                context.RkmNode.Status.AttestationIdentityKeyFingerprint!,
+                $"Completed provisioning step '{currentStep!.Type}' at index {currentStepIndex}",
+                context.CancellationToken);
 
             // If we completed the last step, return 204. Otherwise, serialize the 
             // next step as if /step had been called.
@@ -114,7 +122,13 @@
                 {
                     await writer.WriteAsync(nextStepSerialized);
                 }
+
+                await context.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
+                    context.RkmNode.Status.AttestationIdentityKeyFingerprint!,
+                    $"Starting provisioning step '{nextStep!.Type}' at index {context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value}",
+                    context.CancellationToken);
             }
+
             return;
         }
     }

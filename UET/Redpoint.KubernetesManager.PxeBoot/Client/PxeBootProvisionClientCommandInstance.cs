@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.CommandLine;
     using Redpoint.Hashing;
+    using Redpoint.IO;
     using Redpoint.KubernetesManager.Configuration.Json;
     using Redpoint.KubernetesManager.Configuration.Sources;
     using Redpoint.KubernetesManager.Configuration.Types;
@@ -260,45 +261,19 @@
                 _logger.LogInformation($"EFI boot entry {kv.Key}, name '{kv.Value.Name}', {(kv.Value.Active ? "active" : "inactive")}, path '{kv.Value.Path}'");
             }
 
-            Directory.CreateDirectory($"{MountConstants.LinuxBootMountPath}/EFI/RKM");
-            using (var clientNoTimeout = clientFactory.Create())
+            if (Directory.Exists($"{MountConstants.LinuxBootMountPath}/EFI/RKM"))
             {
-                clientNoTimeout.Timeout = TimeSpan.FromHours(1);
-                await _fileTransferClient.DownloadFilesAsync(
-                    new Uri($"https://{apiAddress}:8791/static"),
-                    $"{MountConstants.LinuxBootMountPath}/EFI/RKM",
-                    new Dictionary<string, string>
-                    {
-                        { "ipxe.efi", "ipxe.efi" },
-                        { "vmlinuz", "vmlinuz" },
-                        { "initrd", "initrd" },
-                        { "uet", "uet" },
-                    },
-                    client: clientNoTimeout,
-                    cancellationToken: cancellationToken);
+                await DirectoryAsync.DeleteAsync($"{MountConstants.LinuxBootMountPath}/EFI/RKM", true);
             }
 
-            _logger.LogInformation($"Setting autoexec.ipxe for recovery...");
-            // @note: 'dhcp' is required here, iPXE will not boot even from file without a configured net interface.
-            await File.WriteAllTextAsync(
-                $"{MountConstants.LinuxBootMountPath}/EFI/RKM/autoexec.ipxe",
-                $"""
-                #!ipxe
-                dhcp
-                kernel file:/EFI/RKM/vmlinuz rkm-api-address={apiAddress} rkm-in-recovery
-                initrd file:/EFI/RKM/initrd
-                initrd file:/EFI/RKM/uet     /usr/bin/uet-bootstrap  mode=555
-                boot
-                """,
-                CancellationToken.None);
-
             var entriesToRemove = configuration.BootEntries
-                .Where(x => x.Value.Name == "RKM Recovery")
+                .Where(kv => !kv.Value.Path.Contains("/MAC(", StringComparison.Ordinal) &&
+                             !kv.Value.Path.Contains(",DHCP,", StringComparison.Ordinal))
                 .Select(k => k.Key)
                 .ToList();
             if (entriesToRemove.Count > 0)
             {
-                _logger.LogInformation("Removing existing EFI recovery entries...");
+                _logger.LogInformation("Removing existing EFI non-network entries...");
                 foreach (var entry in entriesToRemove)
                 {
                     await _efiBootManager.RemoveBootManagerEntryAsync(
@@ -306,14 +281,6 @@
                         CancellationToken.None);
                 }
             }
-
-            _logger.LogInformation("Adding EFI boot entry for recovery...");
-            await _efiBootManager.AddBootManagerDiskEntryAsync(
-                diskPath,
-                1,
-                "RKM Recovery",
-                @"\EFI\RKM\ipxe.efi",
-                CancellationToken.None);
 
             _logger.LogInformation("Reading EFI boot manager configuration...");
             configuration = await _efiBootManager.GetBootManagerConfigurationAsync(
@@ -336,11 +303,6 @@
                         {
                             // Always network boot first.
                             return 10;
-                        }
-                        else if (kv.Name == "RKM Recovery")
-                        {
-                            // Recovery should always be last.
-                            return -10;
                         }
                         else if (
                             kv.Name == "FrontPage" ||
@@ -397,11 +359,7 @@
             {
                 _logger.LogInformation($"Checking 'Boot{bootKv.Key:X4}'...");
 
-                // Make sure our recovery entry is always active, even if the provisioner things it should not be. This prevents
-                // unrecoverable boot states.
-                var isRecoveryEntry = bootKv.Value.Name == "RKM Recovery";
-
-                if (bootKv.Value.Active && inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal) && !isRecoveryEntry)
+                if (bootKv.Value.Active && inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal))
                 {
                     _logger.LogInformation($"Need to mark boot entry {bootKv.Key} as inactive...");
                     await _efiBootManager.SetBootManagerEntryActiveAsync(
@@ -410,7 +368,7 @@
                         cancellationToken);
                     anyBootActiveChanges = true;
                 }
-                else if (!bootKv.Value.Active && (!inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal) || isRecoveryEntry))
+                else if (!bootKv.Value.Active && (!inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal)))
                 {
                     _logger.LogInformation($"Need to mark boot entry {bootKv.Key} as active...");
                     await _efiBootManager.SetBootManagerEntryActiveAsync(

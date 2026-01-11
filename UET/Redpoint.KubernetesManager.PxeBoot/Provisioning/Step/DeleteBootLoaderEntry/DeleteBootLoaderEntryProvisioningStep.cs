@@ -33,7 +33,7 @@
             return new ProvisioningStepConfigRuntimeJson(options).DeleteBootLoaderEntryProvisioningStepConfig;
         }
 
-        public ProvisioningStepFlags Flags => throw new NotImplementedException();
+        public ProvisioningStepFlags Flags => ProvisioningStepFlags.None;
 
         public Task ExecuteOnServerBeforeAsync(DeleteBootLoaderEntryProvisioningStepConfig config, RkmNodeStatus nodeStatus, IProvisioningStepServerContext serverContext, CancellationToken cancellationToken)
         {

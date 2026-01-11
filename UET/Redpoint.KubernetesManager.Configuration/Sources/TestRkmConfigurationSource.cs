@@ -32,6 +32,14 @@
             _logger = logger;
         }
 
+        public Task CreateProvisioningEventForRkmNodeAsync(
+            string attestationIdentityKeyFingerprint,
+            string message,
+            CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<RkmNode> CreateOrUpdateRkmNodeByAttestationIdentityKeyPemAsync(
             string attestationIdentityKeyPem,
             RkmNodeRole[] roles,

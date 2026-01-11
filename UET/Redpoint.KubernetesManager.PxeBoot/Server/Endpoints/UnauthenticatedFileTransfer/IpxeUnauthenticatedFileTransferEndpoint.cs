@@ -27,18 +27,6 @@
                 request.RemoteAddress.ToString(),
                 CancellationToken.None);
 
-            if (node != null && (node.Status?.BootToDisk ?? false))
-            {
-                _logger.LogInformation("Denying transfer of ipxe.efi because this machine should boot to disk.");
-                node.Status.BootToDisk = false;
-                await request.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
-                    node.Status.AttestationIdentityKeyFingerprint!,
-                    node.Status,
-                    CancellationToken.None);
-
-                throw new DenyUnauthenticatedFileTransferException();
-            }
-
             return new FileStream(
                 Path.Combine(request.StaticFilesDirectory.FullName, "ipxe.efi"),
                 FileMode.Open,

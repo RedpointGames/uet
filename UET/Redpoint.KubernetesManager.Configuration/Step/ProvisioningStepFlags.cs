@@ -16,5 +16,7 @@
         CommitOnCompletion = 0x4,
 
         SetAsRebootStepIndex = 0x8,
+
+        DisallowInAtomicSequence = 0x10,
     }
 }

@@ -137,6 +137,9 @@ spec:
                     active:
                       type: boolean
                       description: If the entry was active last time the initrd environment ran.
+              bootEfiPath:
+                type: string
+                nullable: true
     selectableFields:
     - jsonPath: .spec.nodeName
     - jsonPath: .spec.nodeGroup

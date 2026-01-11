@@ -6,7 +6,7 @@ After=xorg.service display-manager.service
 [Service]
 Type=simple
 ExecStartPre=/bin/timeout 1s /bin/xset q
-ExecStart=/usr/bin/xterm -bg black -fg white -maximized -e /bin/bash -c '/usr/bin/uet-bootstrap internal pxeboot provision-client'
+ExecStart=/usr/bin/xterm -bg black -fg white -maximized -e /bin/bash -c '/usr/bin/uet-bootstrap internal pxeboot provision-client; sleep 30'
 RestartSec=1s
 Environment="DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet-bundle"
 Environment="GRPC_PIPE_PATH_USER=/tmp/.grpc"
