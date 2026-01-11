@@ -21,6 +21,7 @@
         private readonly ILogger _logger;
         private readonly Dictionary<string, IProvisioningStep> _provisioningSteps;
         private readonly IProvisionerHasher _provisionerHasher;
+        private readonly IProvisioningStateManager _provisioningStateManager;
 
         public StepBaseNodeProvisioningEndpoint(
             IServiceProvider serviceProvider)
@@ -28,6 +29,7 @@
             _logger = serviceProvider.GetRequiredService<ILogger<StepBaseNodeProvisioningEndpoint>>();
             _provisioningSteps = serviceProvider.GetServices<IProvisioningStep>().ToDictionary(k => k.Type, v => v);
             _provisionerHasher = serviceProvider.GetRequiredService<IProvisionerHasher>();
+            _provisioningStateManager = serviceProvider.GetRequiredService<IProvisioningStateManager>();
         }
 
         public abstract string Path { get; }
@@ -35,62 +37,6 @@
         public bool RequireNodeObjects => true;
 
         public virtual bool CanClearForceReprovisionFlag => true;
-
-        private bool ShouldResetProvisionState(INodeProvisioningEndpointContext context)
-        {
-            if (context.RkmNode!.Spec?.ForceReprovision ?? false)
-            {
-                _logger.LogInformation($"{context.RkmNode.Metadata.Name} has force reprovision requested.");
-                return true;
-            }
-
-            if (context.RkmNode!.Status?.LastSuccessfulProvision == null &&
-                context.RkmNode!.Status?.Provisioner == null)
-            {
-                _logger.LogInformation($"{context.RkmNode.Metadata.Name} has no last successful provision.");
-                return true;
-            }
-
-            if (context.RkmNodeGroup != null &&
-                context.RkmNodeGroupProvisioner != null &&
-                context.RkmNodeProvisioner != null)
-            {
-                if (context.RkmNodeGroupProvisioner.Metadata.Name != context.RkmNodeProvisioner.Metadata.Name)
-                {
-                    _logger.LogInformation($"{context.RkmNode.Metadata.Name} group changed from provisioner '{context.RkmNodeProvisioner.Metadata.Name}' to provisioner '{context.RkmNodeGroupProvisioner.Metadata.Name}' during provision.");
-                    return true;
-                }
-
-                var groupProvisionerStepsHash = _provisionerHasher.GetProvisionerHash(
-                    ServerSideVariableContext.FromNodeGroupProvisioner(context));
-                if (groupProvisionerStepsHash != context.RkmNode.Status.Provisioner?.Hash)
-                {
-                    _logger.LogInformation($"{context.RkmNode.Metadata.Name} group assigned provisioner '{context.RkmNodeGroupProvisioner.Metadata.Name}' now has hash '{groupProvisionerStepsHash}', changed from hash '{context.RkmNode.Status.Provisioner?.Hash}' during provision.");
-                    return true;
-                }
-            }
-
-            if (context.RkmNodeGroup != null &&
-                context.RkmNodeGroupProvisioner != null &&
-                context.RkmNode.Status.LastSuccessfulProvision != null)
-            {
-                if (context.RkmNodeGroupProvisioner.Metadata.Name != context.RkmNode.Status.LastSuccessfulProvision.Name)
-                {
-                    _logger.LogInformation($"{context.RkmNode.Metadata.Name} group changed from provisioner '{context.RkmNode.Status.LastSuccessfulProvision.Name}' to provisioner '{context.RkmNodeGroupProvisioner.Metadata.Name}' since last successful provision.");
-                    return true;
-                }
-
-                var groupProvisionerStepsHash = _provisionerHasher.GetProvisionerHash(
-                    ServerSideVariableContext.FromNodeGroupProvisioner(context));
-                if (groupProvisionerStepsHash != context.RkmNode.Status.LastSuccessfulProvision.Hash)
-                {
-                    _logger.LogInformation($"{context.RkmNode.Metadata.Name} group assigned provisioner '{context.RkmNodeGroupProvisioner.Metadata.Name}' now has hash '{groupProvisionerStepsHash}', changed from hash '{context.RkmNode.Status.LastSuccessfulProvision.Hash}' since last successful provision.");
-                    return true;
-                }
-            }
-
-            return false;
-        }
 
         private static async Task RespondWithRebootAsync(INodeProvisioningEndpointContext context)
         {
@@ -112,107 +58,20 @@
             return Task.CompletedTask;
         }
 
-        private async Task<bool> ResetProvisioningStateAndReturnTrueIfRebootRequiredAsync(INodeProvisioningEndpointContext context, bool forceReboot)
-        {
-            _logger.LogInformation($"Provisioning state is resetting for node {context.RkmNode!.Metadata.Name}.");
-            context.RkmNode.Status ??= new();
-            context.RkmNode.Status.BootToDisk = false;
-            context.RkmNode.Status.LastSuccessfulProvision = null;
-            context.RkmNode.Spec ??= new();
-            var requireReboot = context.RkmNode.Status.Provisioner != null;
-            if (context.RkmNodeGroupProvisioner != null && context.RkmNodeGroup != null)
-            {
-                context.RkmNode.Status.Provisioner = new RkmNodeStatusProvisioner
-                {
-                    Name = context.RkmNodeGroupProvisioner.Metadata.Name,
-                    Hash = _provisionerHasher.GetProvisionerHash(
-                        ServerSideVariableContext.FromNodeGroupProvisioner(context)),
-                    CurrentStepIndex = null,
-                    CurrentStepStarted = false,
-                    LastStepCommittedIndex = null,
-                    RebootStepIndex = null,
-                    RebootNotificationForOnceViaNotifyOccurred = null,
-                };
-                context.RkmNodeProvisioner = context.RkmNodeGroupProvisioner;
-            }
-            if (context.RkmNode.Spec.ForceReprovision &&
-                CanClearForceReprovisionFlag)
-            {
-                _logger.LogInformation("Turning off 'force provision' flag...");
-                context.RkmNode.Spec.ForceReprovision = false;
-                await context.ConfigurationSource.UpdateRkmNodeForceReprovisionByAttestationIdentityKeyFingerprintAsync(
-                    context.AikFingerprint,
-                    context.RkmNode.Spec.ForceReprovision,
-                    context.CancellationToken);
-            }
-
-            // If the node is in an unknown state (i.e. it hasn't just booted into the default initrd environment), then
-            // it's possible we're hitting this state mid-provision or while the node is in a different environment. Update
-            // the node state in configuration, and then tell the node it needs to immediately reboot.
-            if (requireReboot || forceReboot)
-            {
-                _logger.LogWarning($"Provisioning state changed while provisioning was already happening for {context.RkmNode!.Metadata.Name}. Telling the node it needs to reboot!");
-                context.UpdateRegisteredIpAddressesForNode();
-                await context.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
-                    context.AikFingerprint,
-                    context.RkmNode.Status,
-                    context.CancellationToken);
-                await RespondWithRebootAsync(context);
-                return true;
-            }
-
-            return false;
-        }
-
         public async Task HandleRequestAsync(INodeProvisioningEndpointContext context)
         {
-            // Check if we should restart provisioning.
-            if (ShouldResetProvisionState(context))
+            // Update the state of provisioning for the node.
+            switch (await _provisioningStateManager.UpdateStateAsync(context, CanClearForceReprovisionFlag))
             {
-                if (context.RkmNodeGroup == null)
-                {
-                    _logger.LogError($"Provisioning state needs to reset for node {context.RkmNode!.Metadata.Name}, but this node has no valid node group assigned!");
+                case ProvisioningResponse.Misconfigured:
                     await RespondWithMisconfiguredAsync(context);
                     return;
-                }
-
-                if (context.RkmNodeGroupProvisioner == null)
-                {
-                    _logger.LogError($"Provisioning state needs to reset for node {context.RkmNode!.Metadata.Name}, but this node's group has no valid provisioner assigned!");
-                    await RespondWithMisconfiguredAsync(context);
+                case ProvisioningResponse.Complete:
+                    await RespondWithProvisionCompleteAsync(context);
                     return;
-                }
-
-                if (await ResetProvisioningStateAndReturnTrueIfRebootRequiredAsync(context, false))
-                {
+                case ProvisioningResponse.Reboot:
+                    await RespondWithRebootAsync(context);
                     return;
-                }
-            }
-
-            // Check if there is nothing to provision.
-            if (string.IsNullOrWhiteSpace(context.RkmNode!.Status?.Provisioner?.Name) ||
-                context.RkmNodeProvisioner == null)
-            {
-                await RespondWithProvisionCompleteAsync(context);
-                return;
-            }
-
-            // Check if we've completed provisioning.
-            var currentProvisionerStepCount = context.RkmNodeProvisioner.Spec?.Steps?.Count ?? 0;
-            var currentStepIndex = context.RkmNode.Status.Provisioner.CurrentStepIndex ?? 0;
-            if (currentProvisionerStepCount <= currentStepIndex)
-            {
-                _logger.LogInformation($"Node {context.RkmNode!.Metadata.Name} completed provisioning.");
-
-                context.MarkProvisioningCompleteForNode();
-
-                await context.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
-                    context.AikFingerprint,
-                    context.RkmNode.Status,
-                    context.CancellationToken);
-
-                await RespondWithProvisionCompleteAsync(context);
-                return;
             }
 
             // If this is the initial request after boot, check that the node booted into the correct environment.
@@ -221,7 +80,7 @@
             {
                 if (!context.Request.Query.TryGetValue("bootedFromStepIndex", out var bootedFromStepIndex) ||
                     string.IsNullOrWhiteSpace(bootedFromStepIndex) ||
-                    int.Parse(bootedFromStepIndex!, CultureInfo.InvariantCulture) != (context.RkmNode.Status.Provisioner.RebootStepIndex ?? -1))
+                    int.Parse(bootedFromStepIndex!, CultureInfo.InvariantCulture) != (context.RkmNode!.Status!.Provisioner!.RebootStepIndex ?? -1))
                 {
                     // The machine didn't boot with the expected autoexec.ipxe script, usually because
                     // the IP address of the machine during PXE boot and the IP address of the machine
@@ -230,8 +89,11 @@
                     // running in the complete wrong environment).
                     //
                     // In this case, reset provisioning and force the machine to reboot.
-                    _logger.LogError($"Machine should have booted from step index {(context.RkmNode.Status.Provisioner.RebootStepIndex ?? -1)}, but booted from {bootedFromStepIndex} instead.");
-                    await ResetProvisioningStateAndReturnTrueIfRebootRequiredAsync(context, true);
+                    _logger.LogError($"Machine should have booted from step index {(context.RkmNode!.Status!.Provisioner!.RebootStepIndex ?? -1)}, but booted from {bootedFromStepIndex} instead.");
+                    if (await _provisioningStateManager.ResetProvisioningStateAndReturnTrueIfRebootRequiredAsync(context, true, CanClearForceReprovisionFlag))
+                    {
+                        await RespondWithRebootAsync(context);
+                    }
                     return;
                 }
 
@@ -246,10 +108,11 @@
                 }
                 _logger.LogInformation($"Setting current step to {lastStepCommittedIndex + 1} during initial step fetch. Last committed step index is {lastStepCommittedIndex}, reboot step index is {rebootStepIndex}.");
                 context.RkmNode.Status.Provisioner.CurrentStepIndex = lastStepCommittedIndex + 1;
-                context.UpdateRegisteredIpAddressesForNode();
+                _provisioningStateManager.UpdateRegisteredIpAddressesForNode(context);
             }
 
-            var currentStep = context.RkmNodeProvisioner.Spec!.Steps![currentStepIndex];
+            var currentStepIndex = context.RkmNode!.Status!.Provisioner!.CurrentStepIndex ?? 0;
+            var currentStep = context.RkmNodeProvisioner!.Spec!.Steps![currentStepIndex];
             var provisioningStepImpl = _provisioningSteps[currentStep!.Type];
 
             var serverContext = new HttpContextProvisioningStepServerContext(context.HttpContext);

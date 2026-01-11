@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Configuration.Types;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step;
     using Redpoint.KubernetesManager.PxeBoot.Variable;
     using System.Collections.Generic;
@@ -14,15 +15,18 @@
     internal class StepCompleteNodeProvisioningEndpoint : StepBaseNodeProvisioningEndpoint
     {
         private readonly ILogger<StepCompleteNodeProvisioningEndpoint> _logger;
+        private readonly IProvisioningStateManager _provisioningStateManager;
         private readonly Dictionary<string, IProvisioningStep> _provisioningSteps;
 
         public StepCompleteNodeProvisioningEndpoint(
             ILogger<StepCompleteNodeProvisioningEndpoint> logger,
             IServiceProvider serviceProvider,
-            IEnumerable<IProvisioningStep> provisioningSteps)
+            IEnumerable<IProvisioningStep> provisioningSteps,
+            IProvisioningStateManager provisioningStateManager)
                 : base(serviceProvider)
         {
             _logger = logger;
+            _provisioningStateManager = provisioningStateManager;
             _provisioningSteps = provisioningSteps.ToDictionary(k => k.Type, v => v);
         }
 
@@ -63,7 +67,7 @@
             context.RkmNode.Status.Provisioner.CurrentStepIndex += 1;
             if (context.RkmNode.Status.Provisioner.CurrentStepIndex >= context.RkmNodeProvisioner!.Spec!.Steps!.Count)
             {
-                context.MarkProvisioningCompleteForNode();
+                _provisioningStateManager.MarkProvisioningCompleteForNode(context);
             }
             else
             {

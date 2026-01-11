@@ -56,6 +56,8 @@
                     services.AddSingleton<INodeProvisioningEndpoint, QueryServicesNodeProvisioningEndpoint>();
 
                     services.AddSingleton<IProvisionerHasher, DefaultProvisionerHasher>();
+                    services.AddSingleton<IProvisioningStateManager, DefaultProvisioningStateManager>();
+                    services.AddSingleton<IRelatedObjectLoader, DefaultRelatedObjectLoader>();
                 })
             .Build();
     }

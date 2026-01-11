@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Configuration.Sources;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -12,11 +13,14 @@
     internal class RebootToDiskNodeProvisioningEndpoint : INodeProvisioningEndpoint
     {
         private readonly ILogger<RebootToDiskNodeProvisioningEndpoint> _logger;
+        private readonly IProvisioningStateManager _provisioningStateManager;
 
         public RebootToDiskNodeProvisioningEndpoint(
-            ILogger<RebootToDiskNodeProvisioningEndpoint> logger)
+            ILogger<RebootToDiskNodeProvisioningEndpoint> logger,
+            IProvisioningStateManager provisioningStateManager)
         {
             _logger = logger;
+            _provisioningStateManager = provisioningStateManager;
         }
 
         public string Path => "/reboot-to-disk";
@@ -54,7 +58,7 @@
                     context.CancellationToken);
             }
 
-            context.UpdateRegisteredIpAddressesForNode();
+            _provisioningStateManager.UpdateRegisteredIpAddressesForNode(context);
 
             await context.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
                 context.AikFingerprint,

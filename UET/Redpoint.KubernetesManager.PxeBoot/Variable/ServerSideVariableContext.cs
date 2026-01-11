@@ -18,7 +18,7 @@
         public required int ApiHostHttpsPort { get; init; }
 
         public static ServerSideVariableContext FromNodeGroupProvisioner(
-            INodeProvisioningEndpointContext context)
+            INodeProvisioningContext context)
         {
             return new ServerSideVariableContext
             {

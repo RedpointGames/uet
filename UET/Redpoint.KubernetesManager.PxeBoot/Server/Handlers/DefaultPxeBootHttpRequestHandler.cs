@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Configuration.Types;
     using Redpoint.KubernetesManager.PxeBoot.FileTransfer;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning;
     using Redpoint.KubernetesManager.PxeBoot.Server.Endpoints.NodeProvisioning;
     using Redpoint.KubernetesManager.PxeBoot.Server.Endpoints.UnauthenticatedFileTransfer;
     using System;
@@ -17,6 +18,7 @@
     {
         private readonly ILogger<DefaultPxeBootHttpRequestHandler> _logger;
         private readonly IFileTransferServer _fileTransferServer;
+        private readonly IRelatedObjectLoader _relatedObjectLoader;
         private readonly List<IUnauthenticatedFileTransferEndpoint> _unauthenticatedFileTransferEndpoints;
         private readonly List<INodeProvisioningEndpoint> _nodeProvisioningEndpoints;
 
@@ -24,10 +26,12 @@
             ILogger<DefaultPxeBootHttpRequestHandler> logger,
             IFileTransferServer fileTransferServer,
             IEnumerable<IUnauthenticatedFileTransferEndpoint> unauthenticatedFileTransferEndpoints,
-            IEnumerable<INodeProvisioningEndpoint> nodeProvisioningEndpoints)
+            IEnumerable<INodeProvisioningEndpoint> nodeProvisioningEndpoints,
+            IRelatedObjectLoader relatedObjectLoader)
         {
             _logger = logger;
             _fileTransferServer = fileTransferServer;
+            _relatedObjectLoader = relatedObjectLoader;
             _unauthenticatedFileTransferEndpoints = unauthenticatedFileTransferEndpoints.ToList();
             _nodeProvisioningEndpoints = nodeProvisioningEndpoints.ToList();
         }
@@ -113,7 +117,6 @@
             }
 
             var endpointContext = new DefaultNodeProvisioningEndpointContext(
-                _logger,
                 httpContext,
                 pem,
                 fingerprint,
@@ -136,34 +139,14 @@
                     return true;
                 }
 
-                if (!string.IsNullOrWhiteSpace(endpointContext.RkmNode?.Spec?.NodeGroup))
-                {
-                    endpointContext.RkmNodeGroup = await serverContext.ConfigurationSource.GetRkmNodeGroupAsync(
-                        endpointContext.RkmNode.Spec.NodeGroup,
-                        httpContext.RequestAborted);
-                }
-                if (!string.IsNullOrWhiteSpace(endpointContext.RkmNodeGroup?.Spec?.Provisioner))
-                {
-                    endpointContext.RkmNodeGroupProvisioner = await serverContext.ConfigurationSource.GetRkmNodeProvisionerAsync(
-                        endpointContext.RkmNodeGroup.Spec.Provisioner,
-                        serverContext.JsonSerializerContext.RkmNodeProvisioner,
-                        httpContext.RequestAborted);
-                }
-                if (!string.IsNullOrWhiteSpace(endpointContext.RkmNode?.Status?.Provisioner?.Name))
-                {
-                    if (endpointContext.RkmNodeGroupProvisioner != null &&
-                        endpointContext.RkmNode.Status.Provisioner.Name == endpointContext.RkmNodeGroupProvisioner.Metadata.Name)
-                    {
-                        endpointContext.RkmNodeProvisioner = endpointContext.RkmNodeGroupProvisioner;
-                    }
-                    else
-                    {
-                        endpointContext.RkmNodeProvisioner = await serverContext.ConfigurationSource.GetRkmNodeProvisionerAsync(
-                            endpointContext.RkmNode.Status.Provisioner.Name,
-                            serverContext.JsonSerializerContext.RkmNodeProvisioner,
-                            httpContext.RequestAborted);
-                    }
-                }
+                var relatedObjects = await _relatedObjectLoader.LoadRelatedObjectsAsync(
+                    serverContext.ConfigurationSource,
+                    endpointContext.RkmNode!,
+                    serverContext.JsonSerializerContext,
+                    httpContext.RequestAborted);
+                endpointContext.RkmNodeGroup = relatedObjects.RkmNodeGroup;
+                endpointContext.RkmNodeGroupProvisioner = relatedObjects.RkmNodeGroupProvisioner;
+                endpointContext.RkmNodeProvisioner = relatedObjects.RkmNodeProvisioner;
             }
 
             await nodeProvisioningEndpoint.HandleRequestAsync(endpointContext);
