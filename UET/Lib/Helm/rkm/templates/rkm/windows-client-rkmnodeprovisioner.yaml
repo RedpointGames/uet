@@ -327,8 +327,8 @@ spec:
                     <OOBE>
                       <ProtectYourPC>3</ProtectYourPC>
                       <HideEULAPage>true</HideEULAPage>
-                      <HideWirelessSetupInOOBE>false</HideWirelessSetupInOOBE>
-                      <HideOnlineAccountScreens>false</HideOnlineAccountScreens>
+                      <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                      <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
                     </OOBE>
                     <FirstLogonCommands>
                       <SynchronousCommand wcm:action="add">
