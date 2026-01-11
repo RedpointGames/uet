@@ -10,15 +10,14 @@
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
 
     internal class DefaultNodeProvisioningEndpointContext : INodeProvisioningEndpointContext
     {
-        private readonly ILogger _logger;
         private readonly DirectoryInfo _storageDirectoryForAllNodes;
 
         public DefaultNodeProvisioningEndpointContext(
-            ILogger logger,
             HttpContext httpContext,
             string aikPem,
             string aikFingerprint,
@@ -29,7 +28,6 @@
             int hostHttpPort,
             int hostHttpsPort)
         {
-            _logger = logger;
             HttpContext = httpContext;
             AikPem = aikPem;
             AikFingerprint = aikFingerprint;
@@ -78,63 +76,8 @@
 
         public int HostHttpsPort { get; }
 
-        public void MarkProvisioningCompleteForNode()
-        {
-            if (RkmNode?.Status?.Provisioner == null)
-            {
-                return;
-            }
+        public CancellationToken CancellationToken => HttpContext.RequestAborted;
 
-            RkmNode.Status.LastSuccessfulProvision = new RkmNodeStatusLastSuccessfulProvision
-            {
-                Name = RkmNode.Status.Provisioner.Name,
-                Hash = RkmNode.Status.Provisioner.Hash,
-            };
-            RkmNode.Status.Provisioner = null;
-        }
-
-        public void UpdateRegisteredIpAddressesForNode()
-        {
-            if (RkmNode?.Status == null)
-            {
-                return;
-            }
-
-            var threshold = DateTimeOffset.UtcNow;
-            var newExpiry = DateTimeOffset.UtcNow.AddDays(1);
-
-            var addresses = new List<IPAddress>
-            {
-                HttpContext.Connection.RemoteIpAddress
-            };
-            if (HttpContext.Connection.RemoteIpAddress.IsIPv4MappedToIPv6)
-            {
-                addresses.Add(HttpContext.Connection.RemoteIpAddress.MapToIPv4());
-            }
-
-            RkmNode.Status.RegisteredIpAddresses ??= new List<RkmNodeStatusRegisteredIpAddress>();
-            RkmNode.Status.RegisteredIpAddresses.RemoveAll(x => !x.ExpiresAt.HasValue || x.ExpiresAt.Value < threshold);
-
-            foreach (var addressRaw in addresses)
-            {
-                var address = addressRaw.ToString();
-
-                var existingEntry = RkmNode.Status.RegisteredIpAddresses.FirstOrDefault(x => x.Address == address);
-                if (existingEntry != null)
-                {
-                    _logger.LogInformation($"Updating existing expiry of registered IP address '{address}' to {newExpiry}...");
-                    existingEntry.ExpiresAt = DateTimeOffset.UtcNow.AddDays(1);
-                }
-                else
-                {
-                    _logger.LogInformation($"Adding new entry for registered IP address '{address}' with expiry {newExpiry}...");
-                    RkmNode.Status.RegisteredIpAddresses.Add(new RkmNodeStatusRegisteredIpAddress
-                    {
-                        Address = address,
-                        ExpiresAt = DateTimeOffset.UtcNow.AddDays(1),
-                    });
-                }
-            }
-        }
+        public IPAddress RemoteIpAddress => HttpContext.Connection.RemoteIpAddress;
     }
 }
