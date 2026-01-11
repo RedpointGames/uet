@@ -678,6 +678,25 @@ spec:
                   & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' internal pxeboot monitor-client --install --provisioner-api-address "[[provision:apiAddressIp]]";
                 };
                 {
+                  Set-TimeZone -Id UTC
+                };
+                {
+                  $HighPerf = powercfg -l | ForEach-Object { if ($_.contains("High performance")) { $_.split()[3] } }
+                  if ($null -ne $HighPerf) {
+                    $CurrPlan = $(powercfg -getactivescheme).split()[3]
+                    if ($CurrPlan -ne $HighPerf) { powercfg -setactive $HighPerf }
+                  }
+                  powercfg.exe -x disk-timeout-ac 0;
+                  powercfg.exe -x disk-timeout-dc 0;
+                  powercfg.exe -x standby-timeout-ac 0;
+                  powercfg.exe -x standby-timeout-dc 0;
+                  powercfg.exe -x hibernate-timeout-ac 0;
+                  powercfg.exe -x hibernate-timeout-dc 0;
+                  powercfg.exe -x monitor-timeout-ac 0;
+                  powercfg.exe -x monitor-timeout-dc 0;
+                  powercfg.exe -h off;
+                };
+                {
                   Remove-Item -LiteralPath 'C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk', 'C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe' -ErrorAction 'Continue';
                 };
                 {
