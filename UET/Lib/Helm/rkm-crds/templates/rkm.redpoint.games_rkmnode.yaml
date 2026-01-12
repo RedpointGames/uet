@@ -43,6 +43,11 @@ spec:
                 type: string
                 nullable: true
                 description: Can be a network adapter name like 'net2'. If set, iPXE will only configure DHCP on this interface. If a machine has multiple physical network adapters, and some of them are not connected, specifying a network adapter name here can improve iPXE boot times by skipping network adapters that will never connect.
+              provisionerArguments:
+                type: object
+                description: An arbitrary map of parameter values that should be available when provisioning. These will override the default parameter values that the provisioner has set. Each entry here will be cause '[[param:<key>]]' to be substituted, and RKM_PARAM_KEY_NAME_TRANSFORMED as an environment variable. KEY_NAME_TRANSFORMED is the key transformed such that 'keyNameTransformed' is 'KEY_NAME_TRANSFORMED'.
+                x-kubernetes-preserve-unknown-fields: true
+                nullable: true
           status:
             type: object
             properties:

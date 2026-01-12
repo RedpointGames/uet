@@ -64,7 +64,9 @@
             string executableAndArguments,
             string? stdoutLogPath,
             string? stderrLogPath,
-            bool manualStart)
+            bool manualStart,
+            string? username,
+            string? password)
         {
             await File.WriteAllTextAsync($"/etc/systemd/system/{name}.service", @$"
 [Unit]

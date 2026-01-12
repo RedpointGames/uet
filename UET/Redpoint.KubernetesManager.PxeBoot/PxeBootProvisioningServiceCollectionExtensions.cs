@@ -10,6 +10,7 @@
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.InitializeOsPartition;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RecoveryShell;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RequestAdJoinFile;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Sequence;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetEfiBootPath;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetFileContent;
@@ -34,6 +35,7 @@
             services.AddSingleton<IProvisioningStep, DeleteBootLoaderEntryProvisioningStep>();
             services.AddSingleton<IProvisioningStep, InitializeOsPartitionProvisioningStep>();
             services.AddSingleton<IProvisioningStep, SetEfiBootPathProvisioningStep>();
+            services.AddSingleton<IProvisioningStep, RequestAdJoinFileProvisioningStep>();
 
             services.AddSingleton<IDurableOperation, DefaultDurableOperation>();
             services.AddSingleton<IFileTransferClient, DefaultFileTransferClient>();

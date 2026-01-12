@@ -172,7 +172,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
             // @todo: Source certificate authority from somewhere rather than generating it here.
             using var certificateAuthorityPrivateKey = RSA.Create();
             var certificateAuthorityCertificateRequest = new CertificateRequest(
-                "CN=Test Issuing Authority",
+                "CN=RKM PXE Boot Provisioner Certificate Authority",
                 certificateAuthorityPrivateKey,
                 HashAlgorithmName.SHA256,
                 RSASignaturePadding.Pkcs1);
@@ -184,7 +184,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Server
                     critical: true));
             var certificateAuthority = certificateAuthorityCertificateRequest.CreateSelfSigned(
                 DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddDays(1));
+                DateTimeOffset.UtcNow.AddDays(3650));
 
             // @todo: If the certificate authority doesn't change, this also doesn't need to be recreated.
             _tpmSecuredHttpServer = _tpmSecuredHttp.CreateHttpServer(certificateAuthority);

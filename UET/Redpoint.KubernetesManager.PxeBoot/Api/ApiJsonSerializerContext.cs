@@ -7,6 +7,10 @@
     [JsonSerializable(typeof(AuthorizeNodeResponse))]
     [JsonSerializable(typeof(ForceReprovisionNodeRequest))]
     [JsonSerializable(typeof(ForceReprovisionNodeResponse))]
+    [JsonSerializable(typeof(GetActiveDirectoryJoinBlobRequest))]
+    [JsonSerializable(typeof(GetActiveDirectoryJoinBlobResponse))]
+    [JsonSerializable(typeof(CheckNodeAuthorizedRequest))]
+    [JsonSerializable(typeof(CheckNodeAuthorizedResponse))]
     internal partial class ApiJsonSerializerContext : JsonSerializerContext
     {
         public static ApiJsonSerializerContext WithStringEnum = new ApiJsonSerializerContext(new JsonSerializerOptions

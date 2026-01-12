@@ -26,7 +26,7 @@ spec:
                 description: Specifies the provisioner to use to provision this machine.
               provisionerArguments:
                 type: object
-                description: An arbitrary map of parameter values that should be available when provisioning. These will override the default parameter values that the provisioner has set. Each entry here will be cause '{{`{{param:<key>}}`}}' to be substituted, and RKM_PARAM_KEY_NAME_TRANSFORMED as an environment variable. KEY_NAME_TRANSFORMED is the key transformed such that 'keyNameTransformed' is 'KEY_NAME_TRANSFORMED'.
+                description: An arbitrary map of parameter values that should be available when provisioning. These will override the default parameter values that the provisioner has set. Each entry here will be cause '[[param:<key>]]' to be substituted, and RKM_PARAM_KEY_NAME_TRANSFORMED as an environment variable. KEY_NAME_TRANSFORMED is the key transformed such that 'keyNameTransformed' is 'KEY_NAME_TRANSFORMED'.
                 x-kubernetes-preserve-unknown-fields: true
                 nullable: true
               services:
