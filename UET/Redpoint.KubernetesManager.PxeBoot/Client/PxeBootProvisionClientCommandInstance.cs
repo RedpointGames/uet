@@ -33,6 +33,7 @@
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Tpm2Lib;
 
     internal class PxeBootProvisionClientCommandInstance : ICommandInstance
     {
@@ -458,6 +459,51 @@
                     context.ParseResult.GetValueForOption(_options.Local),
                     context.GetCancellationToken());
                 allowRecoveryShell = provisionContext.AllowRecoveryShell;
+
+                // If we are running on Linux in the initrd environment, check that our TPM has been initialized.
+                // Unlike Windows, Linux will not automatically initialize the EK after a TPM clear, and this
+                // can cause the TPM-secured HTTP client to fail to connect.
+                if (provisionContext.Platform == ProvisioningClientPlatformType.LinuxInitrd)
+                {
+                    bool shouldCreateEk = false;
+                    {
+                        _logger.LogWarning("Checking that the TPM has a usable public EK...");
+                        using Tpm2Device tpmDevice = new LinuxTpmDevice();
+                        tpmDevice.Connect();
+                        using var tpm = new Tpm2(tpmDevice);
+                        var ekHandle = new TpmHandle(0x81010001);
+                        var ekPublicKey = tpm._AllowErrors().ReadPublic(ekHandle, out var ekName, out var ekQName);
+                        shouldCreateEk = !tpm._LastCommandSucceeded();
+                    }
+                    if (shouldCreateEk)
+                    {
+                        _logger.LogWarning("Unable to obtain public EK from TPM. Assuming the TPM hasn't been initialized yet, and creating a new EK using tpm2_createek...");
+                        var createEkPath = await _pathResolver.ResolveBinaryPath("tpm2_createek");
+                        var createEkExitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = createEkPath,
+                                Arguments = ["-G", "rsa", "-c", "0x81010001"]
+                            },
+                            CaptureSpecification.Passthrough,
+                            CancellationToken.None);
+
+                        _logger.LogWarning("Checking that the public EK is now available...");
+                        using Tpm2Device tpmDevice = new LinuxTpmDevice();
+                        tpmDevice.Connect();
+                        using var tpm = new Tpm2(tpmDevice);
+                        var ekHandle = new TpmHandle(0x81010001);
+                        var ekPublicKey = tpm._AllowErrors().ReadPublic(ekHandle, out var ekName, out var ekQName);
+                        if (!tpm._LastCommandSucceeded())
+                        {
+                            _logger.LogError("Failed to initialize the EK in the TPM. Future operations will most likely fail!");
+                        }
+                        else
+                        {
+                            _logger.LogInformation("The EK in the TPM was successfully created.");
+                        }
+                    }
+                }
 
                 // Create our TPM-secured HTTP client, and negotiate the client certificate.
                 var clientFactory = await _durableOperation.DurableOperationAsync(
