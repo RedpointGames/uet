@@ -15,5 +15,7 @@ namespace UET.Commands.Cluster
         public Option<bool> NoStreamLogs = new Option<bool>("--no-stream-logs", "Do not stream logs after the cluster service starts, instead exit.");
 
         public Option<bool> WaitForSysprep = new Option<bool>("--wait-for-sysprep", "If set, the service will not initialize the node until sysprep has finished. This is detected by checking if 'C:\\Windows\\Panther\\UnattendGC\\setupact.log' contains the line 'OOBE completion WNF notification is already published'. This is necessary if sysprep will change the computer name.");
+
+        public Option<bool> SkipStart = new Option<bool>("--skip-start", "If set, the service will not be started immediately, and instead be started the next time the machine boots.");
     }
 }

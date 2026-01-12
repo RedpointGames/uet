@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Configuration.Types;
+    using Redpoint.KubernetesManager.PxeBoot.Api;
     using Redpoint.KubernetesManager.PxeBoot.FileTransfer;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning;
     using Redpoint.KubernetesManager.PxeBoot.Server.Endpoints.NodeProvisioning;
@@ -12,6 +13,7 @@
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Text.Json;
     using System.Threading.Tasks;
 
     internal class DefaultPxeBootHttpRequestHandler : IPxeBootHttpRequestHandler
@@ -176,6 +178,49 @@
 
             if (await TryHandleAsNodeProvisioning(serverContext, httpContext))
             {
+                return;
+            }
+
+            if (httpContext.Request.Path == "/api/check-node-authorized")
+            {
+                _logger.LogInformation($"HTTP: Responding to '{httpContext.Request.Path}'.");
+
+                var request = (await JsonSerializer.DeserializeAsync(
+                    httpContext.Request.Body,
+                    ApiJsonSerializerContext.Default.CheckNodeAuthorizedRequest,
+                    httpContext.RequestAborted))!;
+
+                var node = await serverContext.ConfigurationSource.GetRkmNodeByAttestationIdentityKeyFingerprintAsync(
+                    request.AikFingerprint,
+                    httpContext.RequestAborted);
+
+                httpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+
+                if (node == null ||
+                    !(node.Spec?.Authorized ?? false) ||
+                    node.Spec?.NodeName != request.NodeName ||
+                    node.Status?.AttestationIdentityKeyFingerprint != request.AikFingerprint)
+                {
+                    await JsonSerializer.SerializeAsync(
+                        httpContext.Response.Body,
+                        new CheckNodeAuthorizedResponse
+                        {
+                            Authorized = false
+                        },
+                        ApiJsonSerializerContext.Default.CheckNodeAuthorizedResponse,
+                        httpContext.RequestAborted);
+                }
+                else
+                {
+                    await JsonSerializer.SerializeAsync(
+                        httpContext.Response.Body,
+                        new CheckNodeAuthorizedResponse
+                        {
+                            Authorized = true
+                        },
+                        ApiJsonSerializerContext.Default.CheckNodeAuthorizedResponse,
+                        httpContext.RequestAborted);
+                }
                 return;
             }
 

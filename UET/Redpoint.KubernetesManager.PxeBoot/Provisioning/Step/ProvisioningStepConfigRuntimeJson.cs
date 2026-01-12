@@ -6,6 +6,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.ExecuteProcess;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.InitializeOsPartition;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Reboot;
+    using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.RequestAdJoinFile;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.Sequence;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetEfiBootPath;
     using Redpoint.KubernetesManager.PxeBoot.Provisioning.Step.SetFileContent;
@@ -25,6 +26,7 @@ namespace Redpoint.KubernetesManager.PxeBoot.Provisioning.Step
     [JsonSerializable(typeof(DeleteBootLoaderEntryProvisioningStepConfig))]
     [JsonSerializable(typeof(InitializeOsPartitionProvisioningStepConfig))]
     [JsonSerializable(typeof(SetEfiBootPathProvisioningStepConfig))]
+    [JsonSerializable(typeof(RequestAdJoinFileProvisioningStepConfig))]
     internal partial class ProvisioningStepConfigRuntimeJson
     {
     }

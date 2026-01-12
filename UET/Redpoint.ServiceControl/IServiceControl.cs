@@ -47,6 +47,8 @@
         /// <param name="stdoutLogPath">On macOS, sets the path to the standard output log file.</param>
         /// <param name="stderrLogPath">On macOS, sets the path to the standard error log file.</param>
         /// <param name="manualStart">If true, the service won't be automatically started at computer startup.</param>
+        /// <param name="username">On Windows, sets the username to run the service as. If not provided, defaults to 'LocalSystem'.</param>
+        /// <param name="password">On Windows, sets the password of the user that this service is running as.</param>
         /// <returns>The awaitable task.</returns>
         Task InstallService(
             string name,
@@ -54,7 +56,9 @@
             string executableAndArguments,
             string? stdoutLogPath = null,
             string? stderrLogPath = null,
-            bool manualStart = false);
+            bool manualStart = false,
+            string? username = null,
+            string? password = null);
 
         /// <summary>
         /// Uninstalls the service.

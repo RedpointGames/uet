@@ -94,7 +94,9 @@
             string executableAndArguments,
             string? stdoutLogPath,
             string? stderrLogPath,
-            bool manualStart)
+            bool manualStart,
+            string? username,
+            string? password)
         {
             using (var writer = XmlWriter.Create(
                 $"/Library/LaunchDaemons/{name}.plist",

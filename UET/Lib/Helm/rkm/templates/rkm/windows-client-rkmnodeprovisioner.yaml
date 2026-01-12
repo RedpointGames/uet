@@ -8,6 +8,7 @@ spec:
     esdFileExpectedHash: "8ceab2838f8e90180ac7490e8752157fb05588cb"
     esdFileImageIndex: "9" # Matches "Windows 11 Pro" in the default ESD.
     clusterControllerIpAddress: "[[provision:apiAddressIp]]"
+    activeDirectoryIssuerAddress: ""
   steps:
   - type: atomicSequence
     atomicSequence:
@@ -237,6 +238,10 @@ spec:
   - type: atomicSequence
     atomicSequence:
       steps:
+      - type: requestAdJoinFile
+        requestAdJoinFile:
+          activeDirectoryIssuerAddress: "[[param:activeDirectoryIssuerAddress]]"
+          outputPath: "[[mount:ramdisk]]\\AdJoinUnattend.xml"
       - type: executeProcess
         executeProcess:
           executable: powershell
@@ -249,16 +254,23 @@ spec:
 
             $ErrorActionPreference = 'Stop'
 
-            Write-Host "Applying image to disk..."
+            Write-Output "Applying image to disk..."
             dism /Apply-Image /ImageFile:${env:RKM_MOUNT_PROVISION}\install-${env:RKM_PARAM_ESD_FILE_EXPECTED_HASH}.esd /Index:${env:RKM_PARAM_ESD_FILE_IMAGE_INDEX} /ApplyDir:${env:RKM_MOUNT_OS}\
 
-            Write-Host "Enabling Hyper-V and Containers features..."
+            if (Test-Path "${env:RKM_MOUNT_RAMDISK}\AdJoinUnattend.xml") {
+              Write-Output "Joining Active Directory..."
+              dism /Image:${env:RKM_MOUNT_OS}\ /Apply-Unattend:${env:RKM_MOUNT_RAMDISK}\AdJoinUnattend.xml
+            } else {
+              Write-Output "Skipping Active Directory join, 'activeDirectoryIssuerAddress' parameter not set."
+            }
+
+            Write-Output "Enabling Hyper-V and Containers features..."
             dism /Image:${env:RKM_MOUNT_OS}\ /Enable-Feature /FeatureName:Containers /FeatureName:Microsoft-Hyper-V /All /ScratchDir:${env:RKM_MOUNT_PROVISION}\
 
-            Write-Host "Install the bootloader from template..."
+            Write-Output "Install the bootloader from template..."
             bcdboot ${env:RKM_MOUNT_OS}\Windows /addlast /p /nofirmwaresync
 
-            Write-Host "Copying UET to installed version of Windows..."
+            Write-Output "Copying UET to installed version of Windows..."
             New-Item -ItemType Directory -Path ${env:RKM_MOUNT_OS}\ProgramData\UET\RKM-Provisioned -ErrorAction SilentlyContinue
             Copy-Item -Force ${env:RKM_MOUNT_RAMDISK}\Windows\System32\uet.exe ${env:RKM_MOUNT_OS}\ProgramData\UET\RKM-Provisioned\uet.exe
       - type: modifyFiles
@@ -305,22 +317,22 @@ spec:
                     <UserAccounts>
                       <LocalAccounts>
                         <LocalAccount wcm:action="add">
-                          <Name>kubernetes</Name>
-                          <DisplayName></DisplayName>
+                          <Name>Provisioning</Name>
+                          <DisplayName>RKM First Boot Provisioning</DisplayName>
                           <Group>Administrators</Group>
                           <Password>
-                            <Value>kubernetes</Value>
+                            <Value>[[boot:generatedPassword]]</Value>
                             <PlainText>true</PlainText>
                           </Password>
                         </LocalAccount>
                       </LocalAccounts>
                     </UserAccounts>
                     <AutoLogon>
-                      <Username>kubernetes</Username>
+                      <Username>Provisioning</Username>
                       <Enabled>true</Enabled>
                       <LogonCount>1</LogonCount>
                       <Password>
-                        <Value>kubernetes</Value>
+                        <Value>[[boot:generatedPassword]]</Value>
                         <PlainText>true</PlainText>
                       </Password>
                     </AutoLogon>
@@ -334,6 +346,7 @@ spec:
                       <SynchronousCommand wcm:action="add">
                         <Order>1</Order>
                         <CommandLine>powershell.exe -WindowStyle "Normal" -ExecutionPolicy "Unrestricted" -NoProfile -File "C:\Windows\Setup\Scripts\FirstLogon.ps1"</CommandLine>
+                        <RequiresUserInput>true</RequiresUserInput>
                       </SynchronousCommand>
                     </FirstLogonCommands>
                   </component>
@@ -341,6 +354,7 @@ spec:
               </unattend>
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\RemovePackages.ps1"
             content: |
+              Write-Output "RemovePackages running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $selectors = @(
                 'Microsoft.Microsoft3DViewer';
                 'Microsoft.BingSearch';
@@ -424,6 +438,7 @@ spec:
               } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\RemoveCapabilities.ps1"
             content: |
+              Write-Output "RemoveCapabilities running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $selectors = @(
                 'Print.Fax.Scan';
                 'Language.Handwriting';
@@ -481,6 +496,7 @@ spec:
               } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\RemoveFeatures.ps1"
             content: |
+              Write-Output "RemoveFeatures running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $selectors = @(
                 'MediaPlayback';
                 'Recall';
@@ -529,6 +545,7 @@ spec:
               } *>&1 | Out-String -Width 1KB -Stream >> $logfile;
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\PauseWindowsUpdate.ps1"
             content: |
+              Write-Output "PauseWindowsUpdate running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $formatter = {
                 $args[0].ToString( "yyyy'-'MM'-'dd'T'HH':'mm':'ssK" );
               };
@@ -654,6 +671,7 @@ spec:
               </Task>
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\SetStartPins.ps1"
             content: |
+              Write-Output "SetStartPins running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $json = '{"pinnedList":[]}';
               if( [System.Environment]::OSVersion.Version.Build -lt 20000 ) {
                 return;
@@ -664,9 +682,10 @@ spec:
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\Specialize.ps1"
             enableReplacements: true
             content: |
+              Write-Output "Specialize running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $scripts = @(
                 {
-                  Write-Host "Installing VC redist..."
+                  Write-Output "Installing VC redist..."
                   $OldProgressPreference = $ProgressPreference
                   $ProgressPreference = 'SilentlyContinue';
                   Invoke-WebRequest -UseBasicParsing -Uri https://aka.ms/vc14/vc_redist.x64.exe -OutFile C:\ProgramData\UET\RKM-Provisioned\vc_redist.x64.exe;
@@ -674,7 +693,7 @@ spec:
                   Start-Process -Wait -FilePath "C:\ProgramData\UET\RKM-Provisioned\vc_redist.x64.exe" -ArgumentList @("/install", "/quiet", "/norestart", "/log", "C:\ProgramData\UET\RKM-Provisioned\VcTemp.log");
                 };
                 {
-                  Write-Host "Registering monitoring client..."
+                  Write-Output "Registering monitoring client..."
                   & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' internal pxeboot monitor-client --install --provisioner-api-address "[[provision:apiAddressIp]]";
                 };
                 {
@@ -771,6 +790,7 @@ spec:
               } *>&1 | Out-String -Width 1KB -Stream >> "C:\Windows\Setup\Scripts\Specialize.log";
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\UserOnce.ps1"
             content: |
+              Write-Output "UserOnce running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $scripts = @(
                 {
                   Get-AppxPackage -Name 'Microsoft.Windows.Ai.Copilot.Provider' | Remove-AppxPackage;
@@ -808,6 +828,7 @@ spec:
               } *>&1 | Out-String -Width 1KB -Stream >> "$env:TEMP\UserOnce.log";
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\DefaultUser.ps1"
             content: |
+              Write-Output "DefaultUser running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $scripts = @(
                 {
                   reg.exe add "HKU\DefaultUser\Software\Policies\Microsoft\Windows\WindowsCopilot" /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f;
@@ -875,23 +896,47 @@ spec:
           - path: "[[mount:os]]\\Windows\\Setup\\Scripts\\FirstLogon.ps1"
             enableReplacements: true
             content: |
+              Write-Output "FirstLogon running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
+              if ($env:USERNAME -ne "Provisioning") {
+                Write-Output "FirstLogon skipped because username is not Provisioning at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
+                exit 0
+              }
+
               $scripts = @(
                 {
-                  Set-ItemProperty -LiteralPath 'Registry::HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'AutoLogonCount' -Type 'DWord' -Force -Value 99;
-                };
-                {
+                  Write-Output "Disabling computer restore for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
                   Disable-ComputerRestore -Drive 'C:\';
                 };
                 {
-                  Write-Host "Starting RKM to join cluster..."
-                  & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' cluster start --no-stream-logs --node "[[param:clusterControllerIpAddress]]"
+                  Write-Output "Installing RKM for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
+                  Write-Output "Starting RKM to join cluster..."
+                  & 'C:\ProgramData\UET\RKM-Provisioned\uet.exe' cluster start --no-stream-logs --node "[[param:clusterControllerIpAddress]]" --skip-start
                 };
                 {
+                  Write-Output "Removing old files for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
                   Remove-Item -LiteralPath @(
                     'C:\Windows\Panther\unattend.xml';
                     'C:\Windows\Panther\unattend-original.xml';
                     'C:\Windows\Setup\Scripts\Wifi.xml';
                   ) -Force -ErrorAction 'SilentlyContinue' -Verbose;
+                };
+                {
+                  Write-Output "Finalising account access and performing reboot for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
+
+                  if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain) {
+                    # When we are joined to a domain, disable the Provisioning account we've been using.
+                    Disable-LocalUser -Name Provisioning
+                  } else {
+                    # When we are not joined to a domain, set the local Provisioning password to "kubernetes" so that someone can
+                    # actually sign into the machine.
+                    Set-LocalUser -Name Provisioning -Password (ConvertTo-SecureString "kubernetes" -AsPlainText -Force) -PasswordNeverExpires $true
+                  }
+                
+                  # Turn off auto logon.
+                  Set-ItemProperty -LiteralPath 'Registry::HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'AutoLogonCount' -Type 'DWord' -Force -Value 0;
+                
+                  # Restart the computer to get back to the logon screen.
+                  Restart-Computer -Force -Delay 60
                 };
               );
 

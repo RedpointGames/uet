@@ -23,5 +23,8 @@
 
         [JsonPropertyName("bootFromNetworkAdapter")]
         public string? BootFromNetworkAdapter { get; set; }
+
+        [JsonPropertyName("provisionerArguments")]
+        public Dictionary<string, string?>? ProvisionerArguments { get; set; }
     }
 }

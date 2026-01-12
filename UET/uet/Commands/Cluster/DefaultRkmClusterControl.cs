@@ -41,6 +41,7 @@ namespace UET.Commands.Cluster
             var autoUpgrade = context.ParseResult.GetValueForOption(options.AutoUpgrade);
             var noAutoUpgrade = context.ParseResult.GetValueForOption(options.NoAutoUpgrade);
             var waitForSysprep = context.ParseResult.GetValueForOption(options.WaitForSysprep);
+            var skipStart = context.ParseResult.GetValueForOption(options.SkipStart);
             var args = new List<string>();
             if (controller)
             {
@@ -128,23 +129,30 @@ namespace UET.Commands.Cluster
                         executablePathAndArguments);
                 }
             }
-            var isServiceStarted = await _serviceControl.IsServiceRunning("rkm");
-            if (!isServiceStarted)
+            if (!skipStart)
             {
-                if (!_serviceControl.HasPermissionToStart)
+                var isServiceStarted = await _serviceControl.IsServiceRunning("rkm");
+                if (!isServiceStarted)
                 {
-                    _logger.LogError("You must be an Administrator/root to start the RKM service.");
-                    return 1;
+                    if (!_serviceControl.HasPermissionToStart)
+                    {
+                        _logger.LogError("You must be an Administrator/root to start the RKM service.");
+                        return 1;
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Starting service...");
+                        await _serviceControl.StartService("rkm");
+                    }
                 }
                 else
                 {
-                    _logger.LogInformation("Starting service...");
-                    await _serviceControl.StartService("rkm");
+                    _logger.LogInformation("RKM is already running, waiting for further service logs to arrive...");
                 }
             }
             else
             {
-                _logger.LogInformation("RKM is already running, waiting for further service logs to arrive...");
+                _logger.LogInformation("Service is not being started right now due to --skip-start being passed.");
             }
 
             return 0;

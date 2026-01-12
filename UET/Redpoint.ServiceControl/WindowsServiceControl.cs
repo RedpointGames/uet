@@ -118,23 +118,42 @@
             string executableAndArguments,
             string? stdoutLogPath,
             string? stderrLogPath,
-            bool manualStart)
+            bool manualStart,
+            string? username,
+            string? password)
         {
-            var process = Process.Start(new ProcessStartInfo
+            var argumentList = new List<string>
+            {
+                "create",
+                name,
+                $"binpath={executableAndArguments}"
+            };
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                argumentList.Add("obj=LocalSystem");
+            }
+            else
+            {
+                argumentList.Add($"obj={username}");
+                argumentList.Add($"password={password}");
+            }
+            argumentList.AddRange([
+                $"start={(manualStart ? "demand" : "auto")}",
+                $"DisplayName={displayName}"
+            ]);
+
+            var processStartInfo = new ProcessStartInfo
             {
                 FileName = Path.Combine(Environment.GetEnvironmentVariable("SYSTEMROOT")!, "system32", "sc.exe"),
-                ArgumentList =
-                    {
-                        "create",
-                        name,
-                        $"binpath={executableAndArguments}",
-                        "obj=LocalSystem",
-                        $"start={(manualStart ? "demand" : "auto")}",
-                        $"DisplayName={displayName}"
-                    },
                 CreateNoWindow = true,
                 UseShellExecute = false,
-            });
+            };
+            foreach (var argument in argumentList)
+            {
+                processStartInfo.ArgumentList.Add(argument);
+            }
+
+            var process = Process.Start(processStartInfo);
             await process!.WaitForExitAsync().ConfigureAwait(false);
             if (process.ExitCode != 0)
             {

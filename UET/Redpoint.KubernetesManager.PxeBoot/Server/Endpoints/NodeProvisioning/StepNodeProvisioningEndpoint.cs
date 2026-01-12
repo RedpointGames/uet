@@ -66,6 +66,10 @@
                     $"Starting provisioning step '{currentStep.Type}' at index {context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value}",
                     context.CancellationToken);
             }
+            else
+            {
+                _logger.LogInformation($"Provisioning: '{context.AikFingerprintShort}' is has already started step '{currentStep!.Type}' at index {context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value}.");
+            }
 
             // Serialize the current step to the client.
             // @todo: Replace variables in step config...

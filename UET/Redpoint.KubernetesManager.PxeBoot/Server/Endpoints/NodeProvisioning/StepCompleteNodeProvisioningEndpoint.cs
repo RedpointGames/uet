@@ -40,9 +40,10 @@
         {
             if (!(context.RkmNode!.Status!.Provisioner!.CurrentStepStarted ?? false))
             {
-                // The /step endpoint must be called first because this step hasn't started.
-                _logger.LogInformation($"Step {context.RkmNode.Status.Provisioner.CurrentStepIndex} can't be completed, because it hasn't been started yet.");
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                // @note: This can occur when the client is retrying /step-complete because it missed the result
+                // from the first call while the server successfully processed it. Therefore, this is no longer
+                // an error.
+                context.Response.StatusCode = (int)HttpStatusCode.OK;
                 return;
             }
 
@@ -71,7 +72,7 @@
             }
             else
             {
-                context.RkmNode.Status.Provisioner.CurrentStepStarted = !provisioningStep.Flags.HasFlag(ProvisioningStepFlags.DoNotStartAutomaticallyNextStepOnCompletion);
+                context.RkmNode.Status.Provisioner.CurrentStepStarted = false;
             }
 
             await context.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
@@ -79,60 +80,18 @@
                 $"Completed provisioning step '{currentStep!.Type}' at index {currentStepIndex}",
                 context.CancellationToken);
 
-            // If we completed the last step, return 204. Otherwise, serialize the 
-            // next step as if /step had been called.
-            if (context.RkmNode.Status.Provisioner == null || provisioningStep.Flags.HasFlag(ProvisioningStepFlags.DoNotStartAutomaticallyNextStepOnCompletion))
-            {
-                await context.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
-                    context.AikFingerprint,
-                    context.RkmNode.Status,
-                    context.CancellationToken);
+            // @note: We previously allowed this endpoint to return the next step and implicitly start it. However, if the client
+            // times out on this call and retries, it can cause the client to skip steps because the server does not know the client
+            // missed the first /step-complete result.
+            //
+            // We could avoid this by having the client send some kind of idempotency key or tell the server what step it thinks
+            // it is finishing... or we could just always return 204 and make clients call /step to start the next step.
 
-                // Client needs to call /step to get content.
-                context.Response.StatusCode = (int)HttpStatusCode.PartialContent;
-            }
-            else
-            {
-                var nextStep = context.RkmNodeProvisioner.Spec!.Steps[context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value];
-
-                var nextProvisioningStep = _provisioningSteps[nextStep!.Type];
-
-                _logger.LogInformation($"Provisioning: '{context.AikFingerprintShort}' is starting step '{nextStep!.Type}' at index {context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value}.");
-
-                await nextProvisioningStep.ExecuteOnServerUncastedBeforeAsync(
-                    nextStep!.DynamicSettings,
-                    context.RkmNode.Status,
-                    serverContext,
-                    context.CancellationToken);
-
-                if (nextProvisioningStep.Flags.HasFlag(ProvisioningStepFlags.SetAsRebootStepIndex))
-                {
-                    // Set the reboot step index if this is a reboot step. This must be done when a reboot step is
-                    // started as part of /step-complete's next handling, since the reboot steps don't "complete" like other steps.
-                    _logger.LogInformation($"Setting reboot step index to {context.RkmNode.Status.Provisioner.CurrentStepIndex}.");
-                    context.RkmNode.Status.Provisioner.RebootStepIndex = context.RkmNode.Status.Provisioner.CurrentStepIndex;
-                    context.RkmNode.Status.Provisioner.RebootNotificationForOnceViaNotifyOccurred = null;
-                }
-
-                await context.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
-                    context.AikFingerprint,
-                    context.RkmNode.Status,
-                    context.CancellationToken);
-
-                var nextStepSerialized = JsonSerializer.Serialize(nextStep, context.JsonSerializerContext.RkmNodeProvisionerStep);
-                context.Response.StatusCode = (int)HttpStatusCode.OK;
-                context.Response.Headers.Add("Content-Type", "application/json");
-                using (var writer = new StreamWriter(context.Response.Body))
-                {
-                    await writer.WriteAsync(nextStepSerialized);
-                }
-
-                await context.ConfigurationSource.CreateProvisioningEventForRkmNodeAsync(
-                    context.RkmNode.Status.AttestationIdentityKeyFingerprint!,
-                    $"Starting provisioning step '{nextStep!.Type}' at index {context.RkmNode.Status.Provisioner!.CurrentStepIndex!.Value}",
-                    context.CancellationToken);
-            }
-
+            await context.ConfigurationSource.UpdateRkmNodeStatusByAttestationIdentityKeyFingerprintAsync(
+                context.AikFingerprint,
+                context.RkmNode.Status,
+                context.CancellationToken);
+            context.Response.StatusCode = (int)HttpStatusCode.OK;
             return;
         }
     }

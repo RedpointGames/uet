@@ -6,11 +6,19 @@
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Security.Cryptography;
     using static System.CommandLine.Help.HelpBuilder;
 
     internal class DefaultVariableProvider : IVariableProvider
     {
         private readonly ILogger<DefaultVariableProvider> _logger;
+
+        /// <remarks>
+        /// This provides a randomly generated 24 character string that is suitable for temporary passwords.
+        /// It is randomly generated on each client boot and is not available on the server. It is provided
+        /// as a substitution so that it can be used in 'modifyFiles' steps.
+        /// </remarks>
+        private static string _generatedPasswordPerBoot = RandomNumberGenerator.GetString("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 24);
 
         public DefaultVariableProvider(
             ILogger<DefaultVariableProvider> logger)
@@ -75,10 +83,33 @@
                     }
                 }
             }
+            if (context.RkmNode.Spec?.ProvisionerArguments != null)
+            {
+                foreach (var kv in context.RkmNode.Spec.ProvisionerArguments)
+                {
+                    // @note: You can only provide arguments for parameters that are actually defined.
+                    // Parameters can have an empty string as a default value though.
+                    if (parameterValues.ContainsKey(kv.Key))
+                    {
+                        if (kv.Value != null)
+                        {
+                            parameterValues[kv.Key] = PerformServerSideSubstitutions(kv.Value);
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Provisioner argument '{kv.Key}' is being ignored because it's value is null.");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Provisioner argument '{kv.Key}' is being ignored because the provisioner does not define it as a parameter.");
+                    }
+                }
+            }
 
             foreach (var parameterKv in parameterValues)
             {
-                _logger.LogInformation($"Node '{context.RkmNode.Spec?.NodeName}' provisioner parameter '{parameterKv.Key}' evaluated as '{parameterKv.Value}'.");
+                _logger.LogTrace($"Node '{context.RkmNode.Spec?.NodeName}' provisioner parameter '{parameterKv.Key}' evaluated as '{parameterKv.Value}'.");
             }
 
             return parameterValues;
@@ -94,6 +125,7 @@
                 { "provision:apiAddressIp", context.ProvisioningApiAddress },
                 { "provision:apiAddressHttp", context.ProvisioningApiEndpointHttp },
                 { "provision:aikFingerprint", context.AikFingerprint },
+                { "boot:generatedPassword", _generatedPasswordPerBoot },
             };
             if (stepValues != null)
             {

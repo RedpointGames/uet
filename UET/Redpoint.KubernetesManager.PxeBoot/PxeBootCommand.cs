@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.KubernetesManager.PxeBoot
 {
     using Redpoint.CommandLine;
+    using Redpoint.KubernetesManager.PxeBoot.ActiveDirectory;
     using Redpoint.KubernetesManager.PxeBoot.Client;
     using Redpoint.KubernetesManager.PxeBoot.NotifyForReboot;
     using Redpoint.KubernetesManager.PxeBoot.Server;
@@ -16,6 +17,7 @@
                     builder.AddCommand<PxeBootMonitorClientCommand>();
                     builder.AddCommand<PxeBootServerCommand>();
                     builder.AddCommand<PxeBootNotifyForRebootCommand>();
+                    builder.AddCommand<PxeBootActiveDirectoryIssuerCommand>();
 
                     return new Command("pxeboot", "Internal commands for PXE Boot.");
                 })

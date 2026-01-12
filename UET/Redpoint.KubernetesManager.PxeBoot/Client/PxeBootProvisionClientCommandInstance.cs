@@ -599,7 +599,6 @@
 
                     initial = false;
 
-                immediatelyStartNextStep:
                     _logger.LogInformation($"Now executing step '{currentStep?.Type}'...");
                     await provisioningStep.ExecuteOnClientUncastedAsync(
                         currentStep?.DynamicSettings,
@@ -630,23 +629,7 @@
                         {
                             return 0;
                         }
-                        else if (stepCompleteResponseRaw.StatusCode == HttpStatusCode.PartialContent)
-                        {
-                            // We didn't implicitly get the next step (there might be none). Loop
-                            // again and exit if /step also returns 204 No Content.
-                            continue;
-                        }
                         stepCompleteResponseRaw.EnsureSuccessStatusCode();
-
-                        currentStep = await stepCompleteResponseRaw.Content.ReadFromJsonAsync(
-                            _jsonSerializerContext.RkmNodeProvisionerStep,
-                            context.GetCancellationToken());
-                        provisioningStep = _provisioningSteps.FirstOrDefault(x => string.Equals(x.Type, currentStep?.Type, StringComparison.OrdinalIgnoreCase));
-                        if (provisioningStep == null)
-                        {
-                            throw new UnableToProvisionSystemException($"The provisioning step type '{currentStep?.Type}' does not exist on the client.");
-                        }
-                        goto immediatelyStartNextStep;
                     }
                 }
                 while (!context.GetCancellationToken().IsCancellationRequested);
