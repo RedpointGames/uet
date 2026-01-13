@@ -1,0 +1,11 @@
+[Unit]
+Description=Temporary Directory for Root User Home
+Conflicts=umount.target
+Before=local-fs.target umount.target rkm-provision-client.service display-manager.service xorg.service xvnc.service
+After=tmp.mount
+DefaultDependencies=no
+
+[Mount]
+What=tmpfs
+Where=/root
+Type=tmpfs

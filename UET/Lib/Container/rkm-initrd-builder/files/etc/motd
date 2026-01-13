@@ -1,0 +1,8 @@
+====================================
+Welcome to RKM Provisioning.
+
+Run 'screen -x' to connect to the provisioner terminal and view the logs.
+
+Connect to SSH with '-L 5900:127.0.0.1:5900' to connect to VNC over SSH.
+====================================
+
