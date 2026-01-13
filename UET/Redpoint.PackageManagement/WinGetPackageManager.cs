@@ -75,7 +75,7 @@
                         FilePath = @"C:\WINDOWS\system32\msiexec.exe",
                         Arguments = new LogicalProcessArgument[]
                         {
-                            "/a",
+                            "/i",
                             targetPath,
                             "/quiet",
                             "/qn",
