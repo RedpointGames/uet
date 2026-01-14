@@ -26,6 +26,27 @@ jobs:
         find . -maxdepth 1 -mindepth 1 '!' -path ./containerd '!' -path ./actionarchivecache '!' -path ./runner '!' -path ./runner-cache -exec rm -rf '{}' ';'
     - name: Check disk space
       run: df -h
+    - name: Free up disk space - third pass
+      run: |
+        sudo rm -rf /usr/lib/jvm
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/swift
+        sudo rm -rf /usr/local/.ghcup
+        sudo rm -rf /usr/local/julia*
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/local/share/chromium
+        sudo rm -rf /opt/microsoft
+        sudo rm -rf /opt/google
+        sudo rm -rf /opt/az
+        sudo rm -rf /usr/local/share/powershell
+    - name: Check disk space
+      run: df -h
+    - name: Free up disk space - fourth pass
+      run: |
+        docker system prune -af || true
+        docker builder prune -af || true
+    - name: Check disk space
+      run: df -h
     - name: Checkout
       uses: actions/checkout@v4
       with:
