@@ -34,12 +34,36 @@
             _globalMutexReservationManager = reservationManagerFactory.CreateGlobalMutexReservationManager();
         }
 
+        private async Task<string> FindPwsh()
+        {
+            try
+            {
+                return await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
+            }
+            catch (FileNotFoundException)
+            {
+                var fallbackPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "PowerShell",
+                    "7",
+                    "pwsh.exe");
+                if (File.Exists(fallbackPath))
+                {
+                    return fallbackPath;
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
         private async Task<string> FindPwshOrInstallItAsync(CancellationToken cancellationToken)
         {
             // Try to find PowerShell 7 via PATH. The WinGet CLI doesn't work under SYSTEM (even with absolute path) due to MSIX nonsense, but apparently the PowerShell scripts use a COM API that does?
             try
             {
-                return await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
+                return await FindPwsh().ConfigureAwait(false);
             }
             catch (FileNotFoundException)
             {
@@ -49,7 +73,7 @@
             {
                 try
                 {
-                    return await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
+                    return await FindPwsh().ConfigureAwait(false);
                 }
                 catch (FileNotFoundException)
                 {
@@ -90,7 +114,7 @@
                     }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
             }
 
-            return await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
+            return await FindPwsh().ConfigureAwait(false);
         }
 
         public async Task InstallOrUpgradePackageToLatestAsync(string packageId, CancellationToken cancellationToken)
