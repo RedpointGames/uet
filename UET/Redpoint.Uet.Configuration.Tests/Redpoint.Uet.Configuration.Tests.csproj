@@ -30,6 +30,9 @@
     <None Update="TestCases\NestedProjectDistributions\C\BuildConfig.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="TestCases\PluginTestsPredefined\BuildConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="TestCases\PluginTestsWithExtraParameter\BuildConfig.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

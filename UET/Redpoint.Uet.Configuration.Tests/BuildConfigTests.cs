@@ -122,5 +122,19 @@ namespace Redpoint.Uet.Configuration.Tests
                 Assert.Contains("Test of type 'Undefined' is not recognised as a test provider.", ex.Message);
             }
         }
+
+        [Fact]
+        public void PluginTestsPredefined()
+        {
+            var services = CreateServices();
+
+            var sp = services.BuildServiceProvider();
+
+            var basePath = Path.Combine("TestCases", "PluginTestsPredefined");
+            using (var stream = new FileStream(Path.Combine(basePath, "BuildConfig.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                JsonSerializer.Deserialize(stream, BuildConfigSourceGenerationContext.Create(sp, basePath).BuildConfig);
+            }
+        }
     }
 }

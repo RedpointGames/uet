@@ -158,6 +158,15 @@
             }
         }
 
+        public static void AddGlobalParsingServices(ICommandLineBuilder<UetGlobalCommandContext> builder, IServiceCollection parsingServices)
+        {
+            AddGeneralServices(
+                parsingServices,
+                minimumLogLevel: LogLevel.Information,
+                permitRunbackLogging: false,
+                bugReporting: false);
+        }
+
         private static async Task<int> ExecuteWithApplicationLifecycles(CommandExecution<UetGlobalCommandContext> execution)
         {
             var exitCode = 1;

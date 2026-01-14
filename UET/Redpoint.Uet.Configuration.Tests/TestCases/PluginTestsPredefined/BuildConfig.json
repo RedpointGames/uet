@@ -1,0 +1,29 @@
+{
+    "Type": "Plugin",
+    "PluginName": "Test",
+    "Tests": [
+        {
+            "Name": "Custom Test",
+            "Type": "Custom",
+            "Custom": {
+                "TestAgainst": "PackagedPlugin",
+                "Platforms": [
+                    "Win64"
+                ],
+                "ScriptPath": "BuildScriptsExtra/TestFreeEditionLicenseValidation.ps1"
+            }
+        }
+    ],
+    "Distributions": [
+        {
+            "Name": "Default",
+            "Tests": [
+                {
+                    "Name": "Custom Test",
+                    "Type": "Predefined",
+                    "Predefined": "Custom Test"
+                }
+            ]
+        }
+    ]
+}

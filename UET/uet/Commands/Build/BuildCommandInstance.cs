@@ -1,0 +1,379 @@
+﻿namespace UET.Commands.Build
+{
+    using Microsoft.Extensions.Logging;
+    using Redpoint.CommandLine;
+    using Redpoint.ProcessExecution;
+    using Redpoint.Uet.BuildPipeline.Executors;
+    using Redpoint.Uet.BuildPipeline.Executors.GitLab;
+    using Redpoint.Uet.BuildPipeline.Executors.Jenkins;
+    using Redpoint.Uet.BuildPipeline.Executors.Local;
+    using Redpoint.Uet.Commands.Build;
+    using Redpoint.Uet.Commands.ParameterSpec;
+    using Redpoint.Uet.CommonPaths;
+    using Redpoint.Uet.Configuration.Dynamic;
+    using Redpoint.Uet.Configuration.Engine;
+    using Redpoint.Uet.Configuration.Plugin;
+    using Redpoint.Uet.Configuration.Project;
+    using Redpoint.Uet.Core;
+    using Redpoint.Uet.Workspace;
+    using System;
+    using System.CommandLine.Parsing;
+    using System.Threading.Tasks;
+    using static Crayon.Output;
+
+    internal sealed class BuildCommandInstance : ICommandInstance
+    {
+        private readonly ILogger<BuildCommandInstance> _logger;
+        private readonly BuildCommandOptions _options;
+        private readonly IBuildSpecificationGenerator _buildSpecificationGenerator;
+        private readonly LocalBuildExecutorFactory _localBuildExecutorFactory;
+        private readonly GitLabBuildExecutorFactory _gitLabBuildExecutorFactory;
+        private readonly JenkinsBuildExecutorFactory _jenkinsBuildExecutorFactory;
+        private readonly IStringUtilities _stringUtilities;
+        private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
+
+        public BuildCommandInstance(
+            ILogger<BuildCommandInstance> logger,
+            BuildCommandOptions options,
+            IBuildSpecificationGenerator buildSpecificationGenerator,
+            LocalBuildExecutorFactory localBuildExecutorFactory,
+            GitLabBuildExecutorFactory gitLabBuildExecutorFactory,
+            JenkinsBuildExecutorFactory jenkinsBuildExecutorFactory,
+            IStringUtilities stringUtilities,
+            IWorkspaceProvider dynamicWorkspaceProvider)
+        {
+            _logger = logger;
+            _options = options;
+            _buildSpecificationGenerator = buildSpecificationGenerator;
+            _localBuildExecutorFactory = localBuildExecutorFactory;
+            _gitLabBuildExecutorFactory = gitLabBuildExecutorFactory;
+            _jenkinsBuildExecutorFactory = jenkinsBuildExecutorFactory;
+            _stringUtilities = stringUtilities;
+            _dynamicWorkspaceProvider = dynamicWorkspaceProvider;
+        }
+
+        public async Task<int> ExecuteAsync(ICommandInvocationContext context)
+        {
+            var engine = context.ParseResult.GetValueForOption(_options.Engine)!;
+            var path = context.ParseResult.GetValueForOption(_options.Path)!;
+            var distribution = context.ParseResult.GetValueForOption(_options.Distribution);
+            var shipping = context.ParseResult.GetValueForOption(_options.Shipping);
+            var executorName = context.ParseResult.GetValueForOption(_options.Executor);
+            var executorOutputFile = context.ParseResult.GetValueForOption(_options.ExecutorOutputFile);
+            var executorGitUrl = context.ParseResult.GetValueForOption(_options.ExecutorGitUrl);
+            var executorGitBranch = context.ParseResult.GetValueForOption(_options.ExecutorGitBranch);
+            var windowsSharedStoragePath = context.ParseResult.GetValueForOption(_options.WindowsSharedStoragePath);
+            var windowsSharedGitCachePath = context.ParseResult.GetValueForOption(_options.WindowsSharedGitCachePath);
+            var windowsSdksPath = context.ParseResult.GetValueForOption(_options.WindowsSdksPath);
+            var macSharedStoragePath = context.ParseResult.GetValueForOption(_options.MacSharedStoragePath);
+            var macSharedGitCachePath = context.ParseResult.GetValueForOption(_options.MacSharedGitCachePath);
+            var macSdksPath = context.ParseResult.GetValueForOption(_options.MacSdksPath);
+            var strictIncludes = context.ParseResult.GetValueForOption(_options.StrictIncludes);
+            var platforms = context.ParseResult.GetValueForOption(_options.Platform);
+            var projectStagingDirectory = context.ParseResult.GetValueForOption(_options.ProjectStagingDirectory);
+            var pluginPackage = context.ParseResult.GetValueForOption(_options.PluginPackage);
+            var pluginVersionName = context.ParseResult.GetValueForOption(_options.PluginVersionName);
+            var pluginVersionNumber = context.ParseResult.GetValueForOption(_options.PluginVersionNumber);
+
+            // Despite the function signature, GetValueForOption won't return null if options are omitted,
+            // instead defaulting to an empty array (which we actually want to treat as "all"). Use HasOption
+            // to detect if the option actually exists and use that to determine whether the value should be null.
+            var test = context.ParseResult.HasOption(_options.Test)
+                ? context.ParseResult.GetValueForOption(_options.Test)!
+                : null;
+            var deploy = context.ParseResult.HasOption(_options.Deploy)
+                ? context.ParseResult.GetValueForOption(_options.Deploy)!
+                : null;
+
+            // @todo: Move this validation to the parsing APIs.
+            string? windowsTelemetryPath = null;
+            string? macTelemetryPath = null;
+            if (executorName == "local")
+            {
+                if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
+                {
+                    windowsSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
+                }
+                if (string.IsNullOrWhiteSpace(macSharedStoragePath))
+                {
+                    macSharedStoragePath = Path.Combine(path.DirectoryPath, ".uet", "shared-storage");
+                }
+                if (string.IsNullOrWhiteSpace(windowsSdksPath))
+                {
+                    windowsSdksPath = UetPaths.UetDefaultWindowsSdkStoragePath;
+                }
+                if (string.IsNullOrWhiteSpace(macSdksPath))
+                {
+                    macSdksPath = UetPaths.UetDefaultMacSdkStoragePath;
+                }
+            }
+            else
+            {
+                // Inherit from environment variables if things aren't specified on the command line.
+                var windowsSharedStoragePathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_SHARED_STORAGE_PATH");
+                var windowsSdksPathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_SDKS_PATH");
+                var windowsTelemetryPathEnv = Environment.GetEnvironmentVariable("UET_WINDOWS_TELEMETRY_PATH");
+                var macSharedStoragePathEnv = Environment.GetEnvironmentVariable("UET_MAC_SHARED_STORAGE_PATH");
+                var macSdksPathEnv = Environment.GetEnvironmentVariable("UET_MAC_SDKS_PATH");
+                var macTelemetryPathEnv = Environment.GetEnvironmentVariable("UET_MAC_TELEMETRY_PATH");
+                if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
+                {
+                    windowsSharedStoragePath = windowsSharedStoragePathEnv;
+                }
+                if (string.IsNullOrWhiteSpace(windowsSdksPath))
+                {
+                    windowsSdksPath = windowsSdksPathEnv;
+                }
+                if (string.IsNullOrWhiteSpace(windowsTelemetryPathEnv))
+                {
+                    windowsTelemetryPath = windowsTelemetryPathEnv;
+                }
+                if (string.IsNullOrWhiteSpace(macSharedStoragePath))
+                {
+                    macSharedStoragePath = macSharedStoragePathEnv;
+                }
+                if (string.IsNullOrWhiteSpace(macSdksPath))
+                {
+                    macSdksPath = macSdksPathEnv;
+                }
+                if (string.IsNullOrWhiteSpace(macTelemetryPathEnv))
+                {
+                    macTelemetryPath = macTelemetryPathEnv;
+                }
+
+                // Ensure that at least the shared storage paths are set.
+                if (string.IsNullOrWhiteSpace(windowsSharedStoragePath))
+                {
+                    _logger.LogError("--windows-shared-storage-path must be set when not using the local executor.");
+                    return 1;
+                }
+                if (string.IsNullOrWhiteSpace(macSharedStoragePath))
+                {
+                    _logger.LogError("--mac-shared-storage-path must be set when not using the local executor.");
+                    return 1;
+                }
+            }
+
+            _logger.LogInformation($"--engine:                        {engine}");
+            _logger.LogInformation($"--path:                          {path}");
+            _logger.LogInformation($"--distribution:                  {(distribution == null ? "(not set)" : distribution)}");
+            _logger.LogInformation($"--shipping:                      {(distribution != null ? "n/a" : (shipping ? "yes" : "no"))}");
+            _logger.LogInformation($"--executor:                      {executorName}");
+            _logger.LogInformation($"--executor-output-file:          {executorOutputFile}");
+            _logger.LogInformation($"--executor-git-url:              {(executorGitUrl != null ? "(set, not shown to protect potential secret)" : "(not set)")}");
+            _logger.LogInformation($"--executor-git-branch:           {executorGitBranch}");
+            _logger.LogInformation($"--windows-shared-storage-path:   {windowsSharedStoragePath}");
+            _logger.LogInformation($"--windows-shared-git-cache-path: {windowsSharedGitCachePath}");
+            _logger.LogInformation($"--windows-sdks-path:             {windowsSdksPath}");
+            _logger.LogInformation($"--mac-shared-storage-path:       {macSharedStoragePath}");
+            _logger.LogInformation($"--mac-shared-git-cache-path:     {macSharedGitCachePath}");
+            _logger.LogInformation($"--mac-sdks-path:                 {macSdksPath}");
+            _logger.LogInformation($"--test:                          {(test != null ? test.Length == 0 ? "all" : string.Join(", ", test) : "no")}");
+            _logger.LogInformation($"--deploy:                        {(deploy != null ? deploy.Length == 0 ? "all" : string.Join(", ", deploy) : "no")}");
+            _logger.LogInformation($"--strict-includes:               {(strictIncludes ? "yes" : "no")}");
+            _logger.LogInformation($"--platforms:                     {string.Join(", ", platforms ?? [])}");
+            _logger.LogInformation($"--plugin-package:                {pluginPackage}");
+            _logger.LogInformation($"--plugin-version-name:           {pluginVersionName}");
+            _logger.LogInformation($"--plugin-version-number:         {pluginVersionNumber}");
+
+            var engineSpec = engine.ToBuildEngineSpecification(
+                "build",
+                distribution,
+                windowsSharedGitCachePath,
+                macSharedGitCachePath);
+
+            // @note: We need the build executor to get the pipeline ID, which is also used as an input to compute the derived storage path that's specific for this build.
+            var executor = executorName switch
+            {
+                "local" => _localBuildExecutorFactory.CreateExecutor(),
+                "gitlab" => _gitLabBuildExecutorFactory.CreateExecutor(executorOutputFile!),
+                "jenkins" => _jenkinsBuildExecutorFactory.CreateExecutor(executorGitUrl, executorGitBranch!),
+                _ => throw new NotSupportedException(),
+            };
+
+            // Compute the shared storage name for this build.
+            var pipelineId = executor.DiscoverPipelineId();
+            var sharedStorageName = _stringUtilities.GetStabilityHash(
+                $"{pipelineId}-{distribution?.DistributionCanonicalName}-{engineSpec.ToReparsableString()}",
+                null);
+            _logger.LogInformation($"Using pipeline ID: {pipelineId}");
+            _logger.LogInformation($"Using shared storage name: {sharedStorageName}");
+
+            // Derive the shared storage paths.
+            windowsSharedStoragePath = $"{windowsSharedStoragePath.TrimEnd('\\')}\\{sharedStorageName}\\";
+            macSharedStoragePath = $"{macSharedStoragePath.TrimEnd('/')}/{sharedStorageName}/";
+            _logger.LogInformation($"Derived shared storage path for Windows: {windowsSharedStoragePath}");
+            _logger.LogInformation($"Derived shared storage path for macOS: {macSharedStoragePath}");
+
+            if (!string.IsNullOrWhiteSpace(windowsTelemetryPath) || !string.IsNullOrWhiteSpace(macTelemetryPath))
+            {
+                _logger.LogInformation($"Telemetry storage path for Windows: {windowsTelemetryPath}");
+                _logger.LogInformation($"Telemetry storage path for macOS: {macTelemetryPath}");
+            }
+
+            var buildGraphEnvironment = new Redpoint.Uet.BuildPipeline.Environment.BuildGraphEnvironment
+            {
+                PipelineId = pipelineId,
+                Windows = new Redpoint.Uet.BuildPipeline.Environment.BuildGraphWindowsEnvironment
+                {
+                    SharedStorageAbsolutePath = windowsSharedStoragePath,
+                    SdksPath = windowsSdksPath?.TrimEnd('\\'),
+                    TelemetryPath = windowsTelemetryPath,
+                },
+                Mac = new Redpoint.Uet.BuildPipeline.Environment.BuildGraphMacEnvironment
+                {
+                    SharedStorageAbsolutePath = macSharedStoragePath,
+                    SdksPath = macSdksPath?.TrimEnd('/'),
+                    TelemetryPath = macTelemetryPath,
+                },
+            };
+
+            BuildSpecification buildSpec;
+            BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>[]? preparePlugin = null;
+            BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>[]? prepareProject = null;
+            try
+            {
+                switch (path!.Type)
+                {
+                    case PathSpecType.BuildConfig:
+                        switch (distribution!.Distribution)
+                        {
+                            case BuildConfigProjectDistribution projectDistribution:
+                                buildSpec = await _buildSpecificationGenerator.BuildConfigProjectToBuildSpecAsync(
+                                    engineSpec,
+                                    buildGraphEnvironment,
+                                    (BuildConfigProject)distribution.BuildConfig,
+                                    projectDistribution,
+                                    repositoryRoot: path.DirectoryPath,
+                                    executeBuild: true,
+                                    executeTests: test,
+                                    executeDeployments: deploy,
+                                    strictIncludes: strictIncludes,
+                                    localExecutor: executorName == "local",
+                                    alternateStagingDirectory: projectStagingDirectory).ConfigureAwait(false);
+                                prepareProject = projectDistribution.Prepare;
+                                break;
+                            case BuildConfigPluginDistribution pluginDistribution:
+                                if (pluginPackage is not null and not "none")
+                                {
+                                    _logger.LogError("The --plugin-package option can not be used when building using a BuildConfig.json file (unless it is set to 'none'), as the BuildConfig.json file controls how the plugin will be packaged instead.");
+                                    return 1;
+                                }
+                                if (pluginPackage == "none" && (test != null || deploy != null))
+                                {
+                                    _logger.LogError("The --plugin-package option can not be set to 'none' while also passing --test or --deploy (as plugin packaging is required for those steps), when building using a BuildConfig.json file. Either remove --test and --deploy or remove --plugin-package 'none' from the command line.");
+                                    return 1;
+                                }
+                                buildSpec = await _buildSpecificationGenerator.BuildConfigPluginToBuildSpecAsync(
+                                    engineSpec,
+                                    buildGraphEnvironment,
+                                    (BuildConfigPlugin)distribution.BuildConfig,
+                                    pluginDistribution,
+                                    repositoryRoot: path.DirectoryPath,
+                                    executeBuild: true,
+                                    executeTests: pluginPackage != "none" ? test : null,
+                                    executeDeployments: pluginPackage != "none" ? deploy : null,
+                                    strictIncludes: strictIncludes,
+                                    localExecutor: executorName == "local",
+                                    isPluginRooted: false,
+                                    commandlinePluginVersionName: pluginVersionName,
+                                    commandlinePluginVersionNumber: pluginVersionNumber,
+                                    skipPackaging: pluginPackage == "none").ConfigureAwait(false);
+                                preparePlugin = pluginDistribution.Prepare;
+                                break;
+                            case BuildConfigEngineDistribution engineDistribution:
+                                buildSpec = await _buildSpecificationGenerator.BuildConfigEngineToBuildSpecAsync(
+                                    engineSpec,
+                                    buildGraphEnvironment,
+                                    engineDistribution,
+                                    context.GetCancellationToken()).ConfigureAwait(false);
+                                break;
+                            default:
+                                throw new NotSupportedException();
+                        }
+                        break;
+                    case PathSpecType.UProject:
+                        buildSpec = _buildSpecificationGenerator.ProjectPathSpecToBuildSpec(
+                            engineSpec,
+                            buildGraphEnvironment,
+                            path,
+                            shipping,
+                            strictIncludes,
+                            platforms ?? [],
+                            projectStagingDirectory);
+                        break;
+                    case PathSpecType.UPlugin:
+                        buildSpec = await _buildSpecificationGenerator.PluginPathSpecToBuildSpecAsync(
+                            engineSpec,
+                            buildGraphEnvironment,
+                            path,
+                            shipping,
+                            strictIncludes,
+                            platforms ?? [],
+                            packageType: (pluginPackage ?? "none") switch
+                            {
+                                "none" => BuildConfigPluginPackageType.None,
+                                "generic" => BuildConfigPluginPackageType.Generic,
+                                "marketplace" => BuildConfigPluginPackageType.Marketplace,
+                                "fab" => BuildConfigPluginPackageType.Fab,
+                                _ => throw new NotSupportedException("pluginPackage value is not supported!")
+                            },
+                            commandlinePluginVersionName: pluginVersionName,
+                            commandlinePluginVersionNumber: pluginVersionNumber).ConfigureAwait(false);
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+            catch (BuildMisconfigurationException ex)
+            {
+                _logger.LogError(ex.Message);
+                return 1;
+            }
+
+            try
+            {
+                var executionEvents = new LoggerBasedBuildExecutionEvents(_logger);
+                var buildResult = await executor.ExecuteBuildAsync(
+                    buildSpec,
+                    preparePlugin,
+                    prepareProject,
+                    executionEvents,
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken()).ConfigureAwait(false);
+                if (buildResult == 0)
+                {
+                    _logger.LogInformation($"All build jobs {Bright.Green("passed successfully")}.");
+                }
+                else
+                {
+                    _logger.LogError($"One or more build jobs {Bright.Red("failed")}:");
+                    foreach (var (nodeName, resultStatus) in executionEvents.GetResults())
+                    {
+                        switch (resultStatus)
+                        {
+                            case BuildResultStatus.Success:
+                                _logger.LogInformation($"{nodeName} = {Bright.Green("Passed")}");
+                                break;
+                            case BuildResultStatus.Failed:
+                                _logger.LogInformation($"{nodeName} = {Bright.Red("Failed")}");
+                                break;
+                            case BuildResultStatus.Cancelled:
+                                _logger.LogInformation($"{nodeName} = {Bright.Yellow("Cancelled")}");
+                                break;
+                            case BuildResultStatus.NotRun:
+                                _logger.LogInformation($"{nodeName} = {Bright.Cyan("Not Run")}");
+                                break;
+                        }
+                    }
+                }
+                return buildResult;
+            }
+            catch (BuildPipelineExecutionFailureException ex)
+            {
+                _logger.LogError(ex.Message);
+                return 1;
+            }
+        }
+    }
+}
