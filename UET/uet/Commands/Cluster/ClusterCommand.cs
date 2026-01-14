@@ -33,6 +33,7 @@
                     builder.AddCommand<ClusterStartCommand>();
                     builder.AddCommand<ClusterStopCommand>();
                     builder.AddCommand<ClusterLogsCommand>();
+                    builder.AddCommand<ClusterTerminateStuckKubeProxyCommand>();
                     if (OperatingSystem.IsWindowsVersionAtLeast(5, 0))
                     {
                         builder.AddCommand<ClusterGetHnsEndpointCommand>();
