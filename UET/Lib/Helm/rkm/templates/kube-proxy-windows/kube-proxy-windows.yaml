@@ -56,7 +56,8 @@ spec:
             - .\pwsh\pwsh.exe
             - -ExecutionPolicy
             - Bypass
-            - .\scripts\allocate_source_vip.ps1
+            - -Command
+            - .\scripts\allocate_source_vip.ps1 2>&1 | Tee-Object -FilePath C:\RKM\allocate-source-vip.log
           volumeMounts:
             - mountPath: /scripts
               name: scripts
