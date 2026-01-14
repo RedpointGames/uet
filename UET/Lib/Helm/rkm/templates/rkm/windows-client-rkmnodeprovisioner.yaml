@@ -9,6 +9,7 @@ spec:
     esdFileImageIndex: "9" # Matches "Windows 11 Pro" in the default ESD.
     clusterControllerIpAddress: "[[provision:apiAddressIp]]"
     activeDirectoryIssuerAddress: ""
+    windowsProductKey: ""
   steps:
   - type: atomicSequence
     atomicSequence:
@@ -263,7 +264,7 @@ spec:
             } else {
               Write-Output "Skipping Active Directory join, 'activeDirectoryIssuerAddress' parameter not set."
             }
-
+            
             Write-Output "Enabling Hyper-V and Containers features..."
             dism /Image:${env:RKM_MOUNT_OS}\ /Enable-Feature /FeatureName:Containers /FeatureName:Microsoft-Hyper-V /All /ScratchDir:${env:RKM_MOUNT_PROVISION}\
 
@@ -684,6 +685,16 @@ spec:
             content: |
               Write-Output "Specialize running for $env:USERNAME at $(Get-Date)" >> C:\ProgramData\ProvisioningLog.log
               $scripts = @(
+                {
+                  $ProductKey = "[[param:windowsProductKey]]"
+                  if ($ProductKey -ne "") {
+                    Write-Output "Setting product key..." >> C:\ProgramData\ProvisioningLog.log
+                    slmgr.vbs /ipk $ProductKey
+                    Write-Output "Product key has been set." >> C:\ProgramData\ProvisioningLog.log
+                  } else {
+                    Write-Output "No product key set." >> C:\ProgramData\ProvisioningLog.log
+                  }
+                };
                 {
                   Write-Output "Installing VC redist..."
                   $OldProgressPreference = $ProgressPreference
