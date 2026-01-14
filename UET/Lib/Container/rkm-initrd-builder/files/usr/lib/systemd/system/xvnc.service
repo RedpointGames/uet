@@ -1,0 +1,11 @@
+[Unit]
+Description=X11 VNC Server
+Requires=xorg.service
+After=xorg.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/timeout 1s /bin/xset q
+ExecStart=/usr/bin/x11vnc -display :0.0 -rfbport 5900 -forever -localhost -shared -no6
+RestartSec=1s
+Environment="DISPLAY=:0"

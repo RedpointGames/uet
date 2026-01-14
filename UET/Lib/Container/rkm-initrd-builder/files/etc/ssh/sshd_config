@@ -1,0 +1,9 @@
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+
+PermitRootLogin yes
+PubkeyAuthentication no
+PasswordAuthentication yes
+AllowTcpForwarding yes
+PrintMotd yes

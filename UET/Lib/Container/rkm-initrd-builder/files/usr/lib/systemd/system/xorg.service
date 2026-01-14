@@ -1,0 +1,11 @@
+[Unit]
+Description=Xorg server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/bash -c "/usr/bin/Xorg :0.0 vt01 -s 0 -noreset -allowMouseOpenFail || /usr/bin/Xvfb :0.0 -screen 0 1024x768x24"
+Restart=always
+
+[Install]
+WantedBy=graphical.target

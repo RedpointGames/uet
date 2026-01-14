@@ -1,3 +1,3 @@
 [Unit]
 Description=RKM Provisioning Services
-Upholds=xorg.service display-manager.service rkm-rescue-shell.service rkm-provision-client.service
+Upholds=xorg.service display-manager.service rkm-rescue-shell.service rkm-provision-client.service sshd.service xvnc.service root.mount
