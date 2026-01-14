@@ -9,8 +9,8 @@
                 : [EnvironmentVariableTarget.Process];
             foreach (var target in targets)
             {
-                var paths = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-                var pathExts = OperatingSystem.IsWindows() ? (Environment.GetEnvironmentVariable("PATHEXT") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries) : [];
+                var paths = (Environment.GetEnvironmentVariable("PATH", target) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var pathExts = OperatingSystem.IsWindows() ? (Environment.GetEnvironmentVariable("PATHEXT", target) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries) : [];
 
                 foreach (var path in paths)
                 {

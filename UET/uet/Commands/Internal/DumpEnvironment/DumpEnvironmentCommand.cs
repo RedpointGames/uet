@@ -31,19 +31,22 @@
                 _logger = logger;
             }
 
-            public Task<int> ExecuteAsync(ICommandInvocationContext context)
+            public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 EnvironmentVariableTarget[] targets = OperatingSystem.IsWindows()
                     ? [EnvironmentVariableTarget.Process, EnvironmentVariableTarget.User, EnvironmentVariableTarget.Machine]
                     : [EnvironmentVariableTarget.Process];
+
+                _logger.LogInformation($"{targets.Length} environment variable targets to inspect.");
+
                 foreach (var target in targets)
                 {
                     _logger.LogInformation($"Inspecting environment variable target {target}...");
-                    _logger.LogInformation($"  PATH: {Environment.GetEnvironmentVariable("PATH")}");
-                    _logger.LogInformation($"  PATHEXT: {Environment.GetEnvironmentVariable("PATHEXT")}");
+                    _logger.LogInformation($"  PATH: {Environment.GetEnvironmentVariable("PATH", target)}");
+                    _logger.LogInformation($"  PATHEXT: {Environment.GetEnvironmentVariable("PATHEXT", target)}");
 
-                    var paths = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-                    var pathExts = OperatingSystem.IsWindows() ? (Environment.GetEnvironmentVariable("PATHEXT") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries) : [];
+                    var paths = (Environment.GetEnvironmentVariable("PATH", target) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    var pathExts = OperatingSystem.IsWindows() ? (Environment.GetEnvironmentVariable("PATHEXT", target) ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries) : [];
 
                     _logger.LogInformation($"  PATH (array):");
                     foreach (var v in paths)
@@ -92,7 +95,12 @@
                     }
                 }
 
-                return Task.FromResult(0);
+                _logger.LogInformation("Environment dump complete.");
+
+                // @hack: If we don't do this, we don't get all the logger output...????
+                await Console.Out.FlushAsync();
+
+                return 0;
             }
         }
     }
