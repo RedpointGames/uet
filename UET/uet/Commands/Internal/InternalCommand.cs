@@ -10,6 +10,7 @@
     using UET.Commands.Internal.CopyAndMutateBuildCs;
     using UET.Commands.Internal.CreateGitHubRelease;
     using UET.Commands.Internal.CreateJunction;
+    using UET.Commands.Internal.DumpEnvironment;
     using UET.Commands.Internal.DynamicReentrantTask;
     using UET.Commands.Internal.EngineCheckout;
     using UET.Commands.Internal.EnginePerforceToGit;
@@ -98,6 +99,7 @@
                     builder.AddCommand<TpmCommand>();
                     builder.AddCommandWithoutGlobalContext<PxeBootCommand>();
                     builder.AddCommand<ListCustomObjectsCommand>();
+                    builder.AddCommand<DumpEnvironmentCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
                     command.IsHidden = true;
