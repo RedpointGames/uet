@@ -25,15 +25,15 @@
 
         public sealed class Options
         {
-            public Argument<string> Package;
+            public Argument<string[]> Packages;
 
             public Options()
             {
-                Package = new Argument<string>(
-                    name: "id",
-                    description: "The package ID in WinGet or Homebrew.")
+                Packages = new Argument<string[]>(
+                    name: "ids",
+                    description: "One or more package IDs in WinGet or Homebrew to install.")
                 {
-                    Arity = ArgumentArity.ExactlyOne
+                    Arity = ArgumentArity.OneOrMore
                 };
             }
         }
@@ -53,9 +53,11 @@
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
-                var package = context.ParseResult.GetValueForArgument(_options.Package)!;
+                foreach (var packageId in context.ParseResult.GetValueForArgument(_options.Packages) ?? [])
+                {
+                    await _packageManager.InstallOrUpgradePackageToLatestAsync(packageId, context.GetCancellationToken());
+                }
 
-                await _packageManager.InstallOrUpgradePackageToLatestAsync(package, context.GetCancellationToken());
                 return 0;
             }
         }
