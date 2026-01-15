@@ -39,7 +39,7 @@
             services.AddProgressMonitor();
             services.AddReservation();
             services.AddCredentialDiscovery();
-            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddUetCore(skipLoggingRegistration: true);
             return services;
         }
 

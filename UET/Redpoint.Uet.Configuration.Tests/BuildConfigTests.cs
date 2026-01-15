@@ -33,7 +33,7 @@ namespace Redpoint.Uet.Configuration.Tests
             services.AddUetWorkspace();
             services.AddPackageManagement();
             services.AddProgressMonitor();
-            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddUetCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
             return services;

@@ -50,7 +50,7 @@
             services.AddUetWorkspace();
             services.AddPackageManagement();
             services.AddProgressMonitor();
-            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddUetCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 
@@ -109,7 +109,7 @@
             services.AddUefs();
             services.AddUetWorkspace();
             services.AddProgressMonitor();
-            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddUetCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 
@@ -195,7 +195,7 @@
             services.AddUefs();
             services.AddUetWorkspace();
             services.AddProgressMonitor();
-            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddUetCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 
@@ -256,7 +256,7 @@
             services.AddUefs();
             services.AddUetWorkspace();
             services.AddProgressMonitor();
-            services.AddUETCore(skipLoggingRegistration: true);
+            services.AddUetCore(skipLoggingRegistration: true);
             services.AddReservation();
             services.AddCredentialDiscovery();
 

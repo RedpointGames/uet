@@ -17,7 +17,7 @@ namespace Redpoint.Uet.Uat.Tests
             services.AddLogging();
             services.AddPathResolution();
             services.AddProcessExecution();
-            services.AddUETCore();
+            services.AddUetCore();
             services.AddUETUAT();
 
             var serviceProvider = services.BuildServiceProvider();

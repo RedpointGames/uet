@@ -104,7 +104,7 @@
             services.AddUETBuildPipelineProvidersTest();
             services.AddUETBuildPipelineProvidersDeployment();
             services.AddUetWorkspace();
-            services.AddUETCore(
+            services.AddUetCore(
                 minimumLogLevel: minimumLogLevel,
                 permitRunbackLogging: permitRunbackLogging,
                 bugReportCollector: bugReporting ? BugReportCollector.Instance : null);
@@ -252,7 +252,7 @@
                     }
 
                     var services = new ServiceCollection();
-                    services.AddUETCore(permitRunbackLogging: execution.GlobalContext.Args.Contains("ci-build", StringComparer.Ordinal));
+                    services.AddUetCore(permitRunbackLogging: execution.GlobalContext.Args.Contains("ci-build", StringComparer.Ordinal));
                     services.AddTasks();
                     services.AddProcessExecution();
                     await using (services.BuildServiceProvider().AsAsyncDisposable(out var sp).ConfigureAwait(false))
@@ -381,7 +381,7 @@
                 if (!Directory.Exists("/Library/Developer/CommandLineTools"))
                 {
                     var macosXcodeSelectServices = new ServiceCollection();
-                    macosXcodeSelectServices.AddUETCore(permitRunbackLogging: execution.GlobalContext.Args.Contains("ci-build", StringComparer.Ordinal));
+                    macosXcodeSelectServices.AddUetCore(permitRunbackLogging: execution.GlobalContext.Args.Contains("ci-build", StringComparer.Ordinal));
                     macosXcodeSelectServices.AddProcessExecution();
                     await using (macosXcodeSelectServices.BuildServiceProvider().AsAsyncDisposable(out var macosXcodeSelectProvider).ConfigureAwait(false))
                     {
