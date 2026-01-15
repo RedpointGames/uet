@@ -14,7 +14,7 @@
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
              Justification = "AddConsoleFormatter and RegisterProviderOptions are only dangerous when the Options type cannot be statically analyzed, but that is not the case here. " +
              "The DynamicallyAccessedMembers annotations on them will make sure to preserve the right members from the different options objects.")]
-        public static void AddUETCore(
+        public static void AddUetCore(
             this IServiceCollection services,
             bool omitLogPrefix = false,
             LogLevel minimumLogLevel = LogLevel.Information,
@@ -61,7 +61,7 @@
                             }
                         }
 
-                        builder.AddFile(new FileStream(RunbackGlobalState.RunbackLogPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
+                        builder.AddFile(RunbackGlobalState.RunbackFileStream);
                     }
 
                     if (bugReportCollector != null)
