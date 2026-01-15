@@ -6,11 +6,6 @@
     {
         private HashSet<Command> _commandsUsingBuildConfigUetVersion = new();
 
-        public UetGlobalCommandContext(string[] args)
-        {
-            Args = args;
-        }
-
         public void CommandRequiresUetVersionInBuildConfig(Command command)
         {
             _commandsUsingBuildConfigUetVersion.Add(command);
@@ -20,7 +15,5 @@
         {
             return _commandsUsingBuildConfigUetVersion.Contains(executingCommand);
         }
-
-        public string[] Args { get; set; }
     }
 }

@@ -61,7 +61,7 @@
                             }
                         }
 
-                        builder.AddFile(RunbackGlobalState.RunbackFileStream);
+                        builder.AddFile(new FileStream(RunbackGlobalState.RunbackLogPath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read | FileShare.Delete));
                     }
 
                     if (bugReportCollector != null)
