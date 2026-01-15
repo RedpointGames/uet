@@ -86,9 +86,20 @@
                                 continue;
                             }
 
-                            if (allocateSourceVipContainer.Ready &&
-                                mainContainer.State?.Waiting?.Reason == "PodInitializing" &&
+                            var mainContainerIsBroken = false;
+                            if (mainContainer.State?.Waiting?.Reason == "PodInitializing" &&
                                 mainContainer.LastState?.Terminated?.Reason == "ContainerStatusUnknown")
+                            {
+                                mainContainerIsBroken = true;
+                            }
+                            if (mainContainer.State?.Terminated?.Reason == "Unknown" &&
+                                mainContainer.State?.Terminated?.ExitCode == 255)
+                            {
+                                mainContainerIsBroken = true;
+                            }
+
+                            if (allocateSourceVipContainer.Ready &&
+                                mainContainerIsBroken)
                             {
                                 _logger.LogInformation($"Detected stuck kube-proxy Windows pod '{pod.Metadata.Name}'. Deleting it...");
 
