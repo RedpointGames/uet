@@ -71,9 +71,14 @@
 
                         foreach (var pod in pods)
                         {
-                            var allocateSourceVipContainer = pod.Status.InitContainerStatuses
+                            if (pod == null)
+                            {
+                                continue;
+                            }
+
+                            var allocateSourceVipContainer = (pod.Status?.InitContainerStatuses ?? [])
                                 .FirstOrDefault(x => x.Name == "allocate-source-vip");
-                            var mainContainer = pod.Status.ContainerStatuses
+                            var mainContainer = (pod.Status?.ContainerStatuses ?? [])
                                 .FirstOrDefault(x => x.Name == "kube-proxy");
                             if (allocateSourceVipContainer == null ||
                                 mainContainer == null)
