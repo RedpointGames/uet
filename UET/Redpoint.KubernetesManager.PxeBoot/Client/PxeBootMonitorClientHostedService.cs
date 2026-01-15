@@ -138,7 +138,8 @@
                                         cancellationToken);
                                 },
                                 cancellationToken);
-                            if (rebootResponse.StatusCode == HttpStatusCode.Conflict)
+                            if (rebootResponse.StatusCode == HttpStatusCode.Conflict ||
+                                rebootResponse.StatusCode == HttpStatusCode.Unauthorized)
                             {
                                 _logger.LogInformation("Machine requires reprovisioning. Rebooting.");
                                 await _reboot.RebootMachine(cancellationToken);
