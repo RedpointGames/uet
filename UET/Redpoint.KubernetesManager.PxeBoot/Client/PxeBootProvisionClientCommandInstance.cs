@@ -262,6 +262,41 @@
                 _logger.LogInformation($"EFI boot entry {kv.Key}, name '{kv.Value.Name}', {(kv.Value.Active ? "active" : "inactive")}, path '{kv.Value.Path}'");
             }
 
+            // @note: We never want the machine to boot from disk. However, if network boot fails
+            // because the PXE boot server is not running, some UEFI implementations will open
+            // the UEFI setup instead of rebooting, which leaves the machine in a stuck state.
+            // For these machines, we install iPXE as an EFI image on disk with an autoexec.ipxe
+            // script that just reboots the machine, allowing automatic recovery once the
+            // PXE boot server is available again.
+            _logger.LogInformation($"Setting automatic reboot from disk for network boot failure...");
+            Directory.CreateDirectory($"{MountConstants.LinuxBootMountPath}/EFI/RKM-Reboot");
+            using (var clientNoTimeout = clientFactory.Create())
+            {
+                clientNoTimeout.Timeout = TimeSpan.FromHours(1);
+                await _fileTransferClient.DownloadFilesAsync(
+                    new Uri($"https://{apiAddress}:8791/static"),
+                    $"{MountConstants.LinuxBootMountPath}/EFI/RKM-Reboot",
+                    new Dictionary<string, string>
+                    {
+                        { "ipxe.efi", "ipxe.efi" },
+                    },
+                    client: clientNoTimeout,
+                    cancellationToken: cancellationToken);
+            }
+            await File.WriteAllTextAsync(
+                $"{MountConstants.LinuxBootMountPath}/EFI/RKM-Reboot/autoexec.ipxe",
+                $"""
+                #!ipxe
+                echo
+                echo Network boot failed, or UEFI did not attempt it. This machine will now automatically reboot to attempt network boot again, to prevent the UEFI setup screen from showing.
+                echo Rebooting in 30 seconds...
+                echo
+                sleep 30
+                reboot
+                """,
+                CancellationToken.None);
+
+            // Delete any old "recovery" folder.
             if (Directory.Exists($"{MountConstants.LinuxBootMountPath}/EFI/RKM"))
             {
                 await DirectoryAsync.DeleteAsync($"{MountConstants.LinuxBootMountPath}/EFI/RKM", true);
@@ -282,6 +317,14 @@
                         CancellationToken.None);
                 }
             }
+
+            _logger.LogInformation("Adding EFI boot entry for automatic reboot on network boot failure...");
+            await _efiBootManager.AddBootManagerDiskEntryAsync(
+                diskPath,
+                1,
+                "Reboot Machine",
+                @"\EFI\RKM-Reboot\ipxe.efi",
+                CancellationToken.None);
 
             _logger.LogInformation("Reading EFI boot manager configuration...");
             configuration = await _efiBootManager.GetBootManagerConfigurationAsync(
@@ -304,6 +347,11 @@
                         {
                             // Always network boot first.
                             return 10;
+                        }
+                        else if (kv.Name == "Reboot Machine")
+                        {
+                            // Reboot should always be last.
+                            return -10;
                         }
                         else if (
                             kv.Name == "FrontPage" ||
@@ -360,7 +408,11 @@
             {
                 _logger.LogInformation($"Checking 'Boot{bootKv.Key:X4}'...");
 
-                if (bootKv.Value.Active && inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal))
+                // Make sure our reboot entry is always active, even if the provisioner things it should not be. This prevents
+                // unrecoverable boot states.
+                var isRebootEntry = bootKv.Value.Name == "Reboot Machine";
+
+                if (bootKv.Value.Active && inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal) && !isRebootEntry)
                 {
                     _logger.LogInformation($"Need to mark boot entry {bootKv.Key} as inactive...");
                     await _efiBootManager.SetBootManagerEntryActiveAsync(
@@ -369,7 +421,7 @@
                         cancellationToken);
                     anyBootActiveChanges = true;
                 }
-                else if (!bootKv.Value.Active && (!inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal)))
+                else if (!bootKv.Value.Active && (!inactiveBootEntries.Contains($"Boot{bootKv.Key:X4}", StringComparer.Ordinal) || isRebootEntry))
                 {
                     _logger.LogInformation($"Need to mark boot entry {bootKv.Key} as active...");
                     await _efiBootManager.SetBootManagerEntryActiveAsync(
