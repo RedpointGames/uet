@@ -167,6 +167,12 @@
                 _logger.LogWarning("Detected one or more invalid DLL files were deleted due to post-Compile checks. The corrupt files have been deleted and the build will be retried.");
                 NeedsRetry = true;
             }
+            if (data.Contains("UnrealBuildTool.Env.BuildConfiguration.xml", StringComparison.Ordinal) &&
+                data.Contains("used by another process", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected access conflict on 'UnrealBuildTool.Env.BuildConfiguration.xml'. The build will be retried.");
+                NeedsRetry = true;
+            }
         }
 
         public void OnReceiveStandardError(string data)
