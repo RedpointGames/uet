@@ -86,15 +86,31 @@
                                 continue;
                             }
 
+                            var now = DateTime.UtcNow;
+                            var readyToStartContainers = pod.Status?.Conditions?.FirstOrDefault(x => x.Type == "PodReadyToStartContainers")?.LastTransitionTime;
+
                             var mainContainerIsBroken = false;
                             if (mainContainer.State?.Waiting?.Reason == "PodInitializing" &&
                                 mainContainer.LastState?.Terminated?.Reason == "ContainerStatusUnknown")
                             {
+                                // Main container was lost (presumably killed by containerd without
+                                // Kubernetes knowing), and Kubernetes isn't recreating the pod.
                                 mainContainerIsBroken = true;
                             }
                             if (mainContainer.State?.Terminated?.Reason == "Unknown" &&
                                 mainContainer.State?.Terminated?.ExitCode == 255)
                             {
+                                // Main container was terminated for an unknown reason, and Kubernetes
+                                // isn't recreating the pod.
+                                mainContainerIsBroken = true;
+                            }
+                            if (mainContainer.State?.Waiting?.Reason == "PodInitializing" &&
+                                readyToStartContainers.HasValue &&
+                                readyToStartContainers.Value < DateTime.UtcNow.AddSeconds(60))
+                            {
+                                // allocate-source-vip container is ready, and we are ready to start
+                                // the main container more than 60 seconds ago, but the main container
+                                // is still stuck in PodInitializing.
                                 mainContainerIsBroken = true;
                             }
 
