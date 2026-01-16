@@ -40,7 +40,9 @@
             return new WindowsSdkInstallerTarget
             {
                 WindowsSdkPreferredVersion = VersionNumber.Parse(rawVersions.windowsSdkPreferredVersion),
-                VisualCppMinimumVersion = VersionNumber.Parse(rawVersions.visualCppMinimumVersion),
+                MinimumVisualCppVersion = VersionNumber.Parse(rawVersions.visualCppMinimumVersion),
+                BannedVisualCppVersions = new(),
+                PreferredVisualCppVersions = new(),
                 SuggestedComponents = rawVersions.suggestedComponents
             };
         }
