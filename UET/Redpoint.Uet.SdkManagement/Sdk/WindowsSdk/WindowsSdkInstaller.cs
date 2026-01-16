@@ -866,7 +866,9 @@
                     throw new SdkSetupPackageGenerationFailedException($"Missing expected MSI file: {Path.Combine(sdkPackagePath, "__Installers", msiFile)}");
                 }
 
+            retryExtract:
                 _logger.LogInformation($"Extracting MSI: {msiFile}");
+                var msiexecOutput = new StringBuilder();
                 await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
@@ -880,7 +882,15 @@
                             $"TARGETDIR={windowsKitsPath}",
                         },
                         WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
-                    }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
+                    },
+                    CaptureSpecification.CreateFromStdoutStringBuilder(msiexecOutput),
+                    cancellationToken).ConfigureAwait(false);
+                if (msiexecOutput.ToString().Contains("Another program is being installed.", StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("Another instance of msiexec is currently running; retrying extraction in 2 seconds...");
+                    await Task.Delay(2000, cancellationToken);
+                    goto retryExtract;
+                }
                 if (!File.Exists(Path.Combine(windowsKitsPath, msiFile)))
                 {
                     throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
