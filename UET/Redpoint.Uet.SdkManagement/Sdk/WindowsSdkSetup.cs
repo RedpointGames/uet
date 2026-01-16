@@ -28,10 +28,14 @@
 
         public string CommonPlatformNameForPackageId => "Windows";
 
+        private const string _installLogicVersion = "v4";
+
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             var versions = await _versionNumberResolver.For<IWindowsVersionNumbers>(unrealEnginePath).GetWindowsVersionNumbersAsync(unrealEnginePath).ConfigureAwait(false);
-            return $"{versions.WindowsSdkPreferredVersion}-{versions.VisualCppMinimumVersion}-v4";
+            var selectedVcVersion = await _windowsSdkInstaller.GetSelectedVisualCppVersion(versions, cancellationToken).ConfigureAwait(false);
+
+            return $"{versions.WindowsSdkPreferredVersion}-{selectedVcVersion}-{_installLogicVersion}";
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)

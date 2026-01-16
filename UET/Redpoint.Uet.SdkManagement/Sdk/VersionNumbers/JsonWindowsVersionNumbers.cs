@@ -34,10 +34,41 @@
                     AllowTrailingCommas = true,
                     ReadCommentHandling = JsonCommentHandling.Skip,
                 }).DictionaryStringJsonElement);
+
+            VersionNumber visualCppMinimumVersion = VersionNumber.Parse(dictionary!["MinimumVisualCppVersion"].ToString());
+            List<VersionRange> preferredVisualCppVersions = new();
+            List<VersionRange> bannedVisualCppVersions = new();
+
+            if (dictionary.TryGetValue("PreferredVisualCppVersions", out var preferredJsonElement) &&
+                preferredJsonElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var preferredJsonSubElement in preferredJsonElement.EnumerateArray())
+                {
+                    if (preferredJsonSubElement.ValueKind == JsonValueKind.String)
+                    {
+                        preferredVisualCppVersions.Add(VersionRange.Parse(preferredJsonSubElement.GetString()!));
+                    }
+                }
+            }
+
+            if (dictionary.TryGetValue("BannedVisualCppVersions", out var bannedJsonElement) &&
+                bannedJsonElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var bannedJsonSubElement in bannedJsonElement.EnumerateArray())
+                {
+                    if (bannedJsonSubElement.ValueKind == JsonValueKind.String)
+                    {
+                        bannedVisualCppVersions.Add(VersionRange.Parse(bannedJsonSubElement.GetString()!));
+                    }
+                }
+            }
+
             return new WindowsSdkInstallerTarget
             {
                 WindowsSdkPreferredVersion = VersionNumber.Parse(dictionary!["MainVersion"].ToString()),
-                VisualCppMinimumVersion = VersionNumber.Parse(dictionary!["MinimumVisualCppVersion"].ToString()),
+                MinimumVisualCppVersion = visualCppMinimumVersion,
+                PreferredVisualCppVersions = preferredVisualCppVersions,
+                BannedVisualCppVersions = bannedVisualCppVersions,
                 SuggestedComponents = Array.Empty<string>(),
             };
         }

@@ -223,7 +223,9 @@
                     new WindowsSdkInstallerTarget
                     {
                         WindowsSdkPreferredVersion = windowsSdkPreferredVersion,
-                        VisualCppMinimumVersion = visualCppMinimumVersion,
+                        MinimumVisualCppVersion = visualCppMinimumVersion,
+                        PreferredVisualCppVersions = new(),
+                        BannedVisualCppVersions = new(),
                         SuggestedComponents = suggestedComponents,
                     },
                     string.IsNullOrWhiteSpace(_config.RequiredWindowsSdk.SubdirectoryName) ? sdkPackagePath : Path.Combine(sdkPackagePath, _config.RequiredWindowsSdk.SubdirectoryName),

@@ -24,6 +24,7 @@
         private readonly ISimpleDownloadProgress _simpleDownloadProgress;
         private readonly IProcessExecutor _processExecutor;
         private readonly ILogger<WindowsSdkInstaller> _logger;
+        private InternetManifest? _cachedManifest;
 
         public WindowsSdkInstaller(
             ISimpleDownloadProgress simpleDownloadProgress,
@@ -33,10 +34,23 @@
             _simpleDownloadProgress = simpleDownloadProgress;
             _processExecutor = processExecutor;
             _logger = logger;
+            _cachedManifest = null;
         }
 
-        internal async Task InstallSdkToPath(WindowsSdkInstallerTarget versions, string sdkPackagePath, CancellationToken cancellationToken)
+        private class InternetManifest
         {
+            public required VisualStudioManifest PackagesManifest { get; init; }
+
+            public required Dictionary<string, VisualStudioManifestChannelItem> ComponentLookup { get; init; }
+        }
+
+        private async Task<InternetManifest> LoadInternetManifestAsync(CancellationToken cancellationToken)
+        {
+            if (_cachedManifest != null)
+            {
+                return _cachedManifest;
+            }
+
             const string rootManifestUrl = "https://aka.ms/vs/17/release/channel";
             var serializerOptions = new JsonSerializerOptions
             {
@@ -81,17 +95,27 @@
                 componentLookup.TryAdd(package.Id!, package);
             }
 
-            // Generate the list of components to install.
-            var componentsToInstall = new HashSet<string>
+            _cachedManifest = new InternetManifest
             {
-                // We need the setup configuration component, which provides the COM component
-                // that Unreal Engine uses to locate Visual Studio installations.
-                "Microsoft.VisualStudio.Setup.Configuration"
+                PackagesManifest = packagesManifest,
+                ComponentLookup = componentLookup,
             };
+            return _cachedManifest;
+        }
 
+        private class SelectedVcVersionAndComponents
+        {
+            public required string NumericVersionSignifier { get; init; }
+
+            public required string VisualCppVersion { get; init; }
+
+            public required HashSet<string> ComponentIds { get; init; }
+        }
+
+        private static SelectedVcVersionAndComponents ComputeSelectedVcVersion(InternetManifest manifest, WindowsSdkInstallerTarget versions)
+        {
             // Locate the VC components directly so we can add
             // them to the desired components.
-            _logger.LogInformation("Determining MSVC compiler components to install...");
             var vcComponentSuffixes = new[]
             {
                 ".tools.hostx64.targetx64.base",
@@ -110,7 +134,10 @@
             };
             var numericVersionSignifier = new Regex("^[0-9\\.]+$");
             var vcComponentsByVersionSignifier = new Dictionary<string, HashSet<string>>();
-            foreach (var vcComponent in packagesManifest.Packages!.Where(x => x.Id!.StartsWith("microsoft.vc.", StringComparison.InvariantCultureIgnoreCase)))
+            var preferredVersionSignifiers = new HashSet<string>();
+            var availableVcComponents = manifest.PackagesManifest.Packages!.Where(x => x.Id!.StartsWith("microsoft.vc.", StringComparison.InvariantCultureIgnoreCase));
+            var versionSignifierToVersionMapping = new Dictionary<string, string>();
+            foreach (var vcComponent in availableVcComponents)
             {
                 var id = vcComponent.Id!.ToLowerInvariant();
                 foreach (var suffix in vcComponentSuffixes)
@@ -121,12 +148,21 @@
                         versionSignifier = versionSignifier[..^suffix.Length];
                         if (numericVersionSignifier.IsMatch(versionSignifier))
                         {
-                            if (VersionNumber.Parse(vcComponent.Version!) >= versions.VisualCppMinimumVersion)
+                            var parsedVcComponentVersion = VersionNumber.Parse(vcComponent.Version!);
+                            if (parsedVcComponentVersion >= versions.MinimumVisualCppVersion &&
+                                !versions.BannedVisualCppVersions.Any(x => x.Contains(parsedVcComponentVersion)))
                             {
                                 if (!vcComponentsByVersionSignifier.TryGetValue(versionSignifier, out HashSet<string>? versionIds))
                                 {
                                     versionIds = new HashSet<string>();
                                     vcComponentsByVersionSignifier[versionSignifier] = versionIds;
+
+                                    versionSignifierToVersionMapping[versionSignifier] = vcComponent.Version!;
+
+                                    if (versions.PreferredVisualCppVersions.Any(x => x.Contains(parsedVcComponentVersion)))
+                                    {
+                                        preferredVersionSignifiers.Add(versionSignifier);
+                                    }
                                 }
 
                                 versionIds.Add(vcComponent.Id!);
@@ -138,8 +174,58 @@
 
             // Pick the lowest version available (in case a new version of MSVC breaks things and UE hasn't been
             // updated to know about the breakage).
-            var lowestVersion = vcComponentsByVersionSignifier.Keys.OrderBy(x => x).First();
-            foreach (var component in vcComponentsByVersionSignifier[lowestVersion])
+            var lowestVersion = vcComponentsByVersionSignifier.Keys
+                .OrderByDescending(x =>
+                {
+                    if (preferredVersionSignifiers.Contains(x))
+                    {
+                        // Rank preferred versions first.
+                        return 20;
+                    }
+                    else
+                    {
+                        // Put non-preferred versions last.
+                        return 0;
+                    }
+                })
+                // Then within the buckets of preferred and non-preferred, pick the lowest version.
+                .ThenBy(x => x)
+                .First();
+            return new SelectedVcVersionAndComponents
+            {
+                NumericVersionSignifier = lowestVersion,
+                VisualCppVersion = versionSignifierToVersionMapping[lowestVersion],
+                ComponentIds = vcComponentsByVersionSignifier[lowestVersion],
+            };
+        }
+
+        internal async Task<string> GetSelectedVisualCppVersion(WindowsSdkInstallerTarget versions, CancellationToken cancellationToken)
+        {
+            var internetManifest = await LoadInternetManifestAsync(cancellationToken);
+            var selectedVcVersion = ComputeSelectedVcVersion(internetManifest, versions);
+            return selectedVcVersion.VisualCppVersion;
+        }
+
+        internal async Task InstallSdkToPath(WindowsSdkInstallerTarget versions, string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            // Load Visual Studio manifest from the Internet.
+            var internetManifest = await LoadInternetManifestAsync(cancellationToken);
+            var packagesManifest = internetManifest.PackagesManifest;
+            var componentLookup = internetManifest.ComponentLookup;
+
+            // Generate the list of components to install.
+            var componentsToInstall = new HashSet<string>
+            {
+                // We need the setup configuration component, which provides the COM component
+                // that Unreal Engine uses to locate Visual Studio installations.
+                "Microsoft.VisualStudio.Setup.Configuration"
+            };
+
+            // Locate the VC components directly so we can add
+            // them to the desired components.
+            _logger.LogInformation("Determining MSVC compiler components to install...");
+            var selectedVcVersion = ComputeSelectedVcVersion(internetManifest, versions);
+            foreach (var component in selectedVcVersion.ComponentIds)
             {
                 _logger.LogInformation($"Adding the following component to the install manifest: {component} (from MSVC)");
                 componentsToInstall.Add(component);
@@ -155,7 +241,7 @@
                 {
                     _logger.LogInformation($"Adding the following component to the install manifest: {component} (from Windows SDK)");
                     componentsToInstall.Add(component);
-                    foundWinSdkVersion = false;
+                    foundWinSdkVersion = true;
                 }
             }
 
@@ -229,7 +315,7 @@
                     }
                 }
             }
-            ;
+
             foreach (var component in versions.SuggestedComponents)
             {
                 RecursivelyAddComponent(component, "Unreal Engine");
@@ -427,7 +513,7 @@
             var winsdkVersion = Path.GetFileName(Directory.GetDirectories(Path.Combine(sdkPackagePath, "Windows Kits", "10", "bin"))[0]);
             var envs = new Dictionary<string, string>
             {
-                { "UES_VS_INSTANCE_ID", $"{versions.WindowsSdkPreferredVersion}-{versions.VisualCppMinimumVersion}" },
+                { "UES_VS_INSTANCE_ID", $"{versions.WindowsSdkPreferredVersion}-{versions.MinimumVisualCppVersion}" },
                 { "VCToolsInstallDir", $"{Path.Combine("<root>", "VS2022", "VC", "Tools", "MSVC", msvcVersion)}\\" },
                 { "VCToolsVersion", msvcVersion },
                 { "VisualStudioVersion", "17.0" },
