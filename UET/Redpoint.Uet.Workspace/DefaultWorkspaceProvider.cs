@@ -458,6 +458,13 @@
                     // We can fallthrough to this case if there is no existing mount or if we unmounted it
                     // because it wasn't in a valid state.
                     {
+                        if (descriptor.NoWriteScratchReuse)
+                        {
+                            _logger.LogInformation($"Deleting existing write scratch folder at: {scratchReservation.ReservedPath}");
+                            await DirectoryAsync.DeleteAsync(scratchReservation.ReservedPath, true);
+                            Directory.CreateDirectory(scratchReservation.ReservedPath);
+                        }
+
                         _logger.LogInformation($"Creating virtual package workspace using UEFS ({descriptor.PackageTag}): {mountReservation.ReservedPath}");
                         string? mountId;
                         try
