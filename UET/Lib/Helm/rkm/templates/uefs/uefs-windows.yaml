@@ -36,6 +36,13 @@ spec:
       hostNetwork: true
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
+      initContainers:
+        - name: install-dependencies
+          image: {{ printf "ghcr.io/redpointgames/uet/uet:%s-hostprocess" .Values.versions.rkm | quote }}
+          args:
+            - "internal"
+            - "install-package"
+            - "WinFsp.WinFsp"
       containers:
-      - name: uefs
-        image: {{ printf "ghcr.io/redpointgames/uet/uefs:%s" .Values.versions.rkm | quote }}
+        - name: uefs
+          image: {{ printf "ghcr.io/redpointgames/uet/uefs:%s" .Values.versions.rkm | quote }}
