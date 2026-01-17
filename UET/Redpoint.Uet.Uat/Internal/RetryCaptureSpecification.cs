@@ -55,6 +55,12 @@
                 _logger.LogWarning("This build will be retried because a temporary linker error occurred.");
                 NeedsRetry = true;
             }
+            if (data.Contains("error C1060", StringComparison.Ordinal))
+            {
+                // Temporary "compiler is out of heap space" error.
+                _logger.LogWarning("This build will be retried due to a 'compiler is out of heap space' error from MVSC.");
+                NeedsRetry = true;
+            }
             if (data.Contains("error LNK1327", StringComparison.Ordinal) ||
                 data.Contains("error LNK1171", StringComparison.Ordinal) ||
                 data.Contains("error LNK1123", StringComparison.Ordinal))
