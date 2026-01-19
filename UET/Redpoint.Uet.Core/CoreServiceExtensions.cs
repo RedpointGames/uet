@@ -11,6 +11,8 @@
 
     public static class CoreServiceExtensions
     {
+        public static bool SuppressAllLogging { get; set; } = false;
+
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
              Justification = "AddConsoleFormatter and RegisterProviderOptions are only dangerous when the Options type cannot be statically analyzed, but that is not the case here. " +
              "The DynamicallyAccessedMembers annotations on them will make sure to preserve the right members from the different options objects.")]
@@ -25,7 +27,14 @@
             services.AddSingleton<IStringUtilities, DefaultStringUtilities>();
             services.AddSingleton<IWorldPermissionApplier, DefaultWorldPermissionApplier>();
 
-            if (!skipLoggingRegistration)
+            if (SuppressAllLogging)
+            {
+                services.AddLogging(builder =>
+                {
+                    builder.ClearProviders();
+                });
+            }
+            else if (!skipLoggingRegistration)
             {
                 services.AddLogging(builder =>
                 {

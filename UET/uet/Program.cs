@@ -41,6 +41,9 @@ if (args.Any(x => string.Equals(x, "git-credential-helper", StringComparison.Ord
 {
     // Do not allow the automation logger pipe to be used if it looks like we're invoking the Git credential helper.
     AutomationLoggerPipe.AllowLoggerPipe = false;
+
+    // Prevent all logging.
+    CoreServiceExtensions.SuppressAllLogging = true;
 }
 
 // Construct the root command. We have to do this to see what command the user
