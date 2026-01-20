@@ -1,40 +1,42 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <ItemGroup>
-    <PackageReference Include="Crayon" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Crayon" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Remove="BuildGraph\BuildGraph_Plugin.xml" />
-    <None Remove="BuildGraph\BuildGraph_Project.xml" />
-    <None Remove="BuildGraph\BuildGraph_TestPatches.xml" />
-    <None Remove="BuildGraph\Patching\BuildGraphPatches.json" />
-    <None Remove="BuildGraph\Patching\fastJSON.deps.json" />
-    <None Remove="BuildGraph\Patching\fastJSON.dll" />
-    <None Remove="BuildGraph\Patching\Ionic.Zip.Reduced.dll" />
-    <None Remove="BuildGraph\Patching\OneSky.dll" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="BuildGraph\BuildGraph_Plugin.xml" />
+		<None Remove="BuildGraph\BuildGraph_Plugin_Unified.xml" />
+		<None Remove="BuildGraph\BuildGraph_Project.xml" />
+		<None Remove="BuildGraph\BuildGraph_TestPatches.xml" />
+		<None Remove="BuildGraph\Patching\BuildGraphPatches.json" />
+		<None Remove="BuildGraph\Patching\fastJSON.deps.json" />
+		<None Remove="BuildGraph\Patching\fastJSON.dll" />
+		<None Remove="BuildGraph\Patching\Ionic.Zip.Reduced.dll" />
+		<None Remove="BuildGraph\Patching\OneSky.dll" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="BuildGraph\BuildGraph_Plugin.xml" />
-    <EmbeddedResource Include="BuildGraph\BuildGraph_TestPatches.xml" />
-    <EmbeddedResource Include="BuildGraph\BuildGraph_Project.xml" />
-    <EmbeddedResource Include="BuildGraph\Patching\BuildGraphPatches.json" />
-    <EmbeddedResource Include="BuildGraph\Patching\fastJSON.deps.json" />
-    <EmbeddedResource Include="BuildGraph\Patching\fastJSON.dll" />
-    <EmbeddedResource Include="BuildGraph\Patching\Ionic.Zip.Reduced.dll" />
-    <EmbeddedResource Include="BuildGraph\Patching\OneSky.dll" />
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="BuildGraph\BuildGraph_Plugin.xml" />
+		<EmbeddedResource Include="BuildGraph\BuildGraph_Plugin_Unified.xml" />
+		<EmbeddedResource Include="BuildGraph\BuildGraph_TestPatches.xml" />
+		<EmbeddedResource Include="BuildGraph\BuildGraph_Project.xml" />
+		<EmbeddedResource Include="BuildGraph\Patching\BuildGraphPatches.json" />
+		<EmbeddedResource Include="BuildGraph\Patching\fastJSON.deps.json" />
+		<EmbeddedResource Include="BuildGraph\Patching\fastJSON.dll" />
+		<EmbeddedResource Include="BuildGraph\Patching\Ionic.Zip.Reduced.dll" />
+		<EmbeddedResource Include="BuildGraph\Patching\OneSky.dll" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
-    <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
+		<ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Workspace\Redpoint.Uet.Workspace.csproj" />
+	</ItemGroup>
 
 </Project>

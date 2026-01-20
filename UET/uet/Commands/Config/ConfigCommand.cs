@@ -14,6 +14,17 @@
 
     internal sealed class ConfigCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
+        private static void AddServices(IServiceCollection services)
+        {
+            services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
+            services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
+            services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
+            services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
+            services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
+            services.AddSingleton<IBooleanConfigSetting, UbaPreferRemoteBooleanConfigSetting>();
+            services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
+        }
+
         public static CommandDescriptor<UetGlobalCommandContext> Descriptor => UetCommandDescriptor.NewBuilder()
             .WithOptions<Options>()
             .WithInstance<ConfigCommandInstance>()
@@ -27,13 +38,12 @@
             .WithParsingServices(
                 (_, services) =>
                 {
-                    services.AddSingleton<IXmlConfigHelper, DefaultXmlConfigHelper>();
-                    services.AddSingleton<IBooleanConfigSetting, IwyuBooleanConfigSetting>();
-                    services.AddSingleton<IBooleanConfigSetting, MaxCpuBooleanConfigSetting>();
-                    services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
-                    services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
-                    services.AddSingleton<IBooleanConfigSetting, UbaPreferRemoteBooleanConfigSetting>();
-                    services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
+                    AddServices(services);
+                })
+            .WithRuntimeServices(
+                (_, services, _) =>
+                {
+                    AddServices(services);
                 })
             .Build();
 
