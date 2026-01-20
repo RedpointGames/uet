@@ -394,6 +394,64 @@
         {
             try
             {
+                var allowUnifiedBuildGraph = false;
+                if (System.Environment.GetEnvironmentVariable("UET_ALLOW_UNIFIED_BUILDGRAPH") == "1")
+                {
+                    var installedBuildPath = Path.Combine(engineWorkspacePath, "Engine", "Build", "InstalledBuild.txt");
+                    var versionPath = Path.Combine(engineWorkspacePath, "Engine", "Build", "Build.version");
+                    var isInstalled = File.Exists(installedBuildPath);
+                    int majorVersion = 0, minorVersion = 0;
+                    try
+                    {
+                        var engineVersion = JsonSerializer.Deserialize(
+                            File.ReadAllText(versionPath),
+                            EngineBuildVersionJsonSerializerContext.Default.EngineBuildVersion);
+                        majorVersion = engineVersion!.MajorVersion;
+                        minorVersion = engineVersion.MinorVersion;
+                    }
+                    catch
+                    {
+                    }
+                    if (majorVersion >= 5 && minorVersion >= 6)
+                    {
+                        // We allow unified BuildGraph from 5.6 and above, except for 5.7 if it is an installed
+                        // build of the engine since we expect that to contain a regression that prevents UBA
+                        // from working correctly on Windows containers.
+                        allowUnifiedBuildGraph = (minorVersion != 7 || !isInstalled);
+                    }
+                    if (allowUnifiedBuildGraph)
+                    {
+                        var hordeEnabled = false;
+                        if (string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable("UE_HORDE_URL")))
+                        {
+                            hordeEnabled = true;
+                        }
+                        var buildConfigurationPath = Path.Combine(
+                            System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+                            "Unreal Engine",
+                            "UnrealBuildTool",
+                            "BuildConfiguration.xml");
+                        if (File.Exists(buildConfigurationPath) &&
+                            File.ReadAllText(buildConfigurationPath).Contains("<Horde>", StringComparison.OrdinalIgnoreCase))
+                        {
+                            hordeEnabled = true;
+                        }
+                        if (!hordeEnabled)
+                        {
+                            _logger.LogWarning("This engine supports building with the unified BuildGraph, but neither UE_HORDE_URL nor <Horde> is set. Assuming that the Unreal Build Accelerator is not available, and distributing work across multiple nodes.");
+                            allowUnifiedBuildGraph = false;
+                        }
+                        else
+                        {
+                            _logger.LogInformation("This build will run with the unified BuildGraph, as the engine supports the Unreal Build Accelerator and UE_HORDE_URL is set. This will reduce the number of BuildGraph nodes with the expectation that UBA will distribute compilation across multiple machines.");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("This build will run with the non-unified BuildGraph, as the engine does not support the Unreal Build Accelerator, or the engine is known to contain bugs that will prevent UBA from working properly in constrained environments.");
+                    }
+                }
+
                 string buildGraphScriptPath;
                 var deleteBuildGraphScriptPath = false;
                 if (buildGraphScript._forEngine)
@@ -407,7 +465,10 @@
                 else if (buildGraphScript._forPlugin)
                 {
                     buildGraphScriptPath = Path.GetTempFileName();
-                    using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream("Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Plugin.xml"))
+                    using (var reader = Assembly.GetExecutingAssembly().GetManifestResourceStream(
+                        allowUnifiedBuildGraph
+                            ? "Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Plugin_Unified.xml"
+                            : "Redpoint.Uet.BuildPipeline.BuildGraph.BuildGraph_Plugin.xml"))
                     {
                         using (var writer = new FileStream(buildGraphScriptPath, FileMode.Open, FileAccess.Write, FileShare.None))
                         {

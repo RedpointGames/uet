@@ -19,6 +19,7 @@
     using Redpoint.Uet.Services;
     using Redpoint.Uet.Uat;
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
@@ -207,6 +208,51 @@
                 filterRules.Add(rawFilterRule[1..]);
             }
             return string.Join(";", filterRules);
+        }
+
+
+        private struct UnifiedCompilePlatforms
+        {
+            public required string Win64;
+            public required string Mac;
+        }
+
+        private static UnifiedCompilePlatforms ComputeUnifiedCompilePlatforms(
+            string[] editorTargetPlatforms,
+            TargetConfig gameConfig,
+            TargetConfig clientConfig,
+            TargetConfig serverConfig)
+        {
+            var allPlatforms = new HashSet<string>(editorTargetPlatforms);
+            foreach (var platform in gameConfig.TargetPlatforms.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                allPlatforms.Add(platform);
+            }
+            foreach (var platform in clientConfig.TargetPlatforms.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                allPlatforms.Add(platform);
+            }
+            foreach (var platform in serverConfig.TargetPlatforms.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                allPlatforms.Add(platform);
+            }
+
+            return new UnifiedCompilePlatforms
+            {
+                Win64 = string.Join(" ", allPlatforms.Where(x => x != "Mac" && x != "IOS")),
+                Mac = string.Join(" ", allPlatforms.Where(x => x == "Mac" || x == "IOS")),
+            };
+        }
+
+        private static UnifiedCompilePlatforms ComputeUnifiedCompilePlatforms(IEnumerable<string> platforms)
+        {
+            var allPlatforms = new HashSet<string>(platforms);
+
+            return new UnifiedCompilePlatforms
+            {
+                Win64 = string.Join(" ", allPlatforms.Where(x => x != "Mac" && x != "IOS")),
+                Mac = string.Join(" ", allPlatforms.Where(x => x == "Mac" || x == "IOS")),
+            };
         }
 
         public async Task<BuildSpecification> BuildConfigEngineToBuildSpecAsync(
@@ -558,6 +604,13 @@
                 ? usePrecompiled.Value
                 : versioningType == BuildConfigPluginPackageType.Generic;
 
+            // Compute unified compile platforms.
+            var unifiedCompilePlatforms = ComputeUnifiedCompilePlatforms(
+                editorTargetPlatforms,
+                gameConfig,
+                clientConfig,
+                serverConfig);
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -601,6 +654,8 @@
                     { "EnginePrefix", "Unreal" },
                     { "StripDebugSymbols", (distribution.Build?.StripDebugSymbols ?? false) ? "true" : "false" },
                     { "AppleArchitectureOnly", (distribution.Build?.AppleArchitectureOnly ?? false) ? "true" : "false" },
+                    { "UnifiedCompilePlatformsSuffixWin64", unifiedCompilePlatforms.Win64 },
+                    { "UnifiedCompilePlatformsSuffixMac", unifiedCompilePlatforms.Mac },
 
                     // Package options
                     { "VersionNumber", versionInfo.versionNumber },
@@ -779,6 +834,10 @@
             // it independent of the package type, developers need to use a BuildConfig.json file.
             var distributionUsesPrecompiled = packageType == BuildConfigPluginPackageType.Generic;
 
+            // Compute unified compile platforms.
+            var unifiedCompilePlatforms = ComputeUnifiedCompilePlatforms(
+                new[] { targetPlatform }.Concat(extraPlatforms));
+
             // Compute final settings for BuildGraph.
             return new BuildSpecification
             {
@@ -819,6 +878,8 @@
                     { "EnginePrefix", "Unreal" },
                     { "StripDebugSymbols", "false" },
                     { "AppleArchitectureOnly", "false" },
+                    { "UnifiedCompilePlatformsSuffixWin64", unifiedCompilePlatforms.Win64 },
+                    { "UnifiedCompilePlatformsSuffixMac", unifiedCompilePlatforms.Mac },
 
                     // Package options
                     { "VersionNumber", versionInfo.versionNumber },
