@@ -121,7 +121,7 @@
                 _logger.LogInformation("Installing Ruby...");
                 await _packageManager.InstallOrUpgradePackageToLatestAsync(
                     "RubyInstallerTeam.RubyWithDevKit.3.4",
-                    cancellationToken);
+                     cancellationToken: cancellationToken);
 
                 _logger.LogInformation("Installing Fastlane...");
                 var gemPath = @"C:\Ruby34-x64\bin\gem.cmd";

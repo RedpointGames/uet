@@ -11,6 +11,7 @@
     {
         public Task InstallOrUpgradePackageToLatestAsync(
             string packageId,
+            string? locationOverride,
             CancellationToken cancellationToken)
         {
             throw new PlatformNotSupportedException("This platform does not support package management.");

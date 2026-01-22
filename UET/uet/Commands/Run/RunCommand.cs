@@ -722,7 +722,7 @@
                                         _logger.LogInformation("Installing Ruby...");
                                         await _packageManager.InstallOrUpgradePackageToLatestAsync(
                                             "RubyInstallerTeam.RubyWithDevKit.3.4",
-                                            context.GetCancellationToken());
+                                             cancellationToken: context.GetCancellationToken());
 
                                         if (!File.Exists(@"C:\Ruby34-x64\bin\fastlane.bat"))
                                         {

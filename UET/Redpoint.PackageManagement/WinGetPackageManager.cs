@@ -93,13 +93,35 @@
             return await _pathResolver.ResolveBinaryPath("pwsh").ConfigureAwait(false);
         }
 
-        public async Task InstallOrUpgradePackageToLatestAsync(string packageId, CancellationToken cancellationToken)
+        public async Task InstallOrUpgradePackageToLatestAsync(
+            string packageId,
+            string? locationOverride,
+            CancellationToken cancellationToken)
         {
             var pwsh = await FindPwshOrInstallItAsync(cancellationToken).ConfigureAwait(false);
 
             await using (await _globalMutexReservationManager.TryReserveExactAsync($"PackageInstall-{packageId}").ConfigureAwait(false))
             {
                 var stopwatch = Stopwatch.StartNew();
+
+                var locationParam = string.Empty;
+                var locationCheck = string.Empty;
+                if (!string.IsNullOrWhiteSpace(locationOverride))
+                {
+                    _logger.LogInformation($"Using location override: {locationOverride}");
+                    locationParam = $" -Location \"{locationOverride}\"";
+                    locationCheck =
+                        $$"""
+                        if (!(Test-Path "{{locationOverride}}")) {
+                            Write-Host "Uninstalling $PackageId because it's not in the expected location...";
+                            try {
+                                Uninstall-WinGetPackage -Id $PackageId -Mode Silent;
+                                Remove-Item -Force $InstalledVersionPath
+                            } catch { }
+                        }
+                        """;
+                }
+
                 _logger.LogInformation($"Ensuring {packageId} is installed and up-to-date...");
                 try
                 {
@@ -116,6 +138,7 @@
                         }
 
                         $InstalledVersionPath = "$env:USERPROFILE\$PackageId.pkgiv";
+                        {{locationCheck}}
                         $InstalledVersionFile = Get-Item -Path $InstalledVersionPath -ErrorAction SilentlyContinue;
                         $InstalledVersionStopwatch = [System.Diagnostics.Stopwatch]::StartNew();
                         $InstalledVersion = $null;
@@ -157,19 +180,19 @@
                         if ($null -eq $InstalledVersion -or $InstalledVersion -eq "") {
                             Write-Host "Installing $PackageId because it's not currently installed...";
                             try {
-                                Install-WinGetPackage -Id $PackageId -Mode Silent -Scope System;
+                                Install-WinGetPackage -Id $PackageId -Mode Silent -Scope System{{locationParam}};
                             } catch {
                                 Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
-                                Install-WinGetPackage -Id $PackageId -Mode Silent;
+                                Install-WinGetPackage -Id $PackageId -Mode Silent{{locationParam}};
                             }
                         }
                         elseif ($InstalledVersion -ne $TargetVersion) {
                             Write-Host "Updating $PackageId because the installed version $InstalledVersion is not the target version $TargetVersion...";
                             try {
-                                Update-WinGetPackage -Id $PackageId -Mode Silent -Scope System;
+                                Update-WinGetPackage -Id $PackageId -Mode Silent -Scope System{{locationParam}};
                             } catch {
                                 Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
-                                Update-WinGetPackage -Id $PackageId -Mode Silent;
+                                Update-WinGetPackage -Id $PackageId -Mode Silent{{locationParam}};
                             }
                         }
                         exit 0;

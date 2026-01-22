@@ -130,12 +130,12 @@
                 }
 
                 // Make sure Git is up-to-date.
-                await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.Git", CancellationToken.None);
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.Git", cancellationToken: CancellationToken.None);
             }
             else if (OperatingSystem.IsMacOS())
             {
                 // Make sure Git is up-to-date.
-                await _packageManager.InstallOrUpgradePackageToLatestAsync("git", CancellationToken.None);
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("git", cancellationToken: CancellationToken.None);
             }
         }
 

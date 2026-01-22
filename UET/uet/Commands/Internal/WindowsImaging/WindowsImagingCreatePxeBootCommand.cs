@@ -91,7 +91,7 @@
 
                 Directory.CreateDirectory(path.FullName);
 
-                await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.WindowsADK", context.GetCancellationToken());
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.WindowsADK", cancellationToken: context.GetCancellationToken());
 
                 // @note: When accepted to WinGet repository, uncomment this.
                 // await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.WindowsADK.WinPEAddon", context.GetCancellationToken());
