@@ -156,11 +156,21 @@
 
                         if ($null -eq $InstalledVersion -or $InstalledVersion -eq "") {
                             Write-Host "Installing $PackageId because it's not currently installed...";
-                            Install-WinGetPackage -Id $PackageId -Mode Silent;
+                            try {
+                                Install-WinGetPackage -Id $PackageId -Mode Silent -Scope System;
+                            } catch {
+                                Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
+                                Install-WinGetPackage -Id $PackageId -Mode Silent;
+                            }
                         }
                         elseif ($InstalledVersion -ne $TargetVersion) {
                             Write-Host "Updating $PackageId because the installed version $InstalledVersion is not the target version $TargetVersion...";
-                            Update-WinGetPackage -Id $PackageId -Mode Silent;
+                            try {
+                                Update-WinGetPackage -Id $PackageId -Mode Silent -Scope System;
+                            } catch {
+                                Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
+                                Update-WinGetPackage -Id $PackageId -Mode Silent;
+                            }
                         }
                         exit 0;
                         """;
