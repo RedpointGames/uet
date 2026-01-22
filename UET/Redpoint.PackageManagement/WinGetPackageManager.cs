@@ -118,6 +118,7 @@
                                 Uninstall-WinGetPackage -Id $PackageId -Mode Silent;
                                 Remove-Item -Force $InstalledVersionPath
                             } catch { }
+                            $CanBeInstalled = $false;
                         }
                         """;
                 }
@@ -137,27 +138,32 @@
                             Import-Module -Name Microsoft.WinGet.Client;
                         }
 
+                        $CanBeInstalled = $true;
                         $InstalledVersionPath = "$env:USERPROFILE\$PackageId.pkgiv";
                         {{locationCheck}}
                         $InstalledVersionFile = Get-Item -Path $InstalledVersionPath -ErrorAction SilentlyContinue;
                         $InstalledVersionStopwatch = [System.Diagnostics.Stopwatch]::StartNew();
                         $InstalledVersion = $null;
-                        if ($null -eq $InstalledVersionFile -or
-                            ((Get-Date) - $InstalledVersionFile.LastWriteTime).TotalMinutes -gt 10) {
-                            $InstalledPackage = (Get-WinGetPackage -Id $PackageId -ErrorAction SilentlyContinue);
-                            if ($null -eq $InstalledPackage) {
-                                $InstalledVersion = $null;
+                        if ($CanBeInstalled) {
+                            if ($null -eq $InstalledVersionFile -or
+                                ((Get-Date) - $InstalledVersionFile.LastWriteTime).TotalMinutes -gt 10) {
+                                $InstalledPackage = (Get-WinGetPackage -Id $PackageId -ErrorAction SilentlyContinue);
+                                if ($null -eq $InstalledPackage) {
+                                    $InstalledVersion = $null;
+                                } else {
+                                    $InstalledVersion = $InstalledPackage.InstalledVersion;
+                                }
+                                try {
+                                    Set-Content -Path $InstalledVersionPath -Value "$InstalledVersion";
+                                } catch {
+                                }
+                                Write-Host "Detected installed version of $PackageId as '$InstalledVersion' in $($InstalledVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds."
                             } else {
-                                $InstalledVersion = $InstalledPackage.InstalledVersion;
+                                $InstalledVersion = (Get-Content -Path $InstalledVersionFile.FullName -Raw).Trim();
+                                Write-Host "Detected installed version of $PackageId as '$InstalledVersion' in $($InstalledVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds (from cache)."
                             }
-                            try {
-                                Set-Content -Path $InstalledVersionPath -Value "$InstalledVersion";
-                            } catch {
-                            }
-                            Write-Host "Detected installed version of $PackageId as '$InstalledVersion' in $($InstalledVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds."
                         } else {
-                            $InstalledVersion = (Get-Content -Path $InstalledVersionFile.FullName -Raw).Trim();
-                            Write-Host "Detected installed version of $PackageId as '$InstalledVersion' in $($InstalledVersionStopwatch.Elapsed.TotalSeconds.ToString("F2")) seconds (from cache)."
+                            $InstalledVersion = $null;
                         }
                         
                         $TargetVersionPath = "$env:USERPROFILE\$PackageId.pkgtv";
@@ -180,10 +186,10 @@
                         if ($null -eq $InstalledVersion -or $InstalledVersion -eq "") {
                             Write-Host "Installing $PackageId because it's not currently installed...";
                             try {
-                                Install-WinGetPackage -Id $PackageId -Mode Silent -Scope System{{locationParam}};
+                                Install-WinGetPackage -Id $PackageId -Mode Silent -Force -Scope System{{locationParam}};
                             } catch {
                                 Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
-                                Install-WinGetPackage -Id $PackageId -Mode Silent{{locationParam}};
+                                Install-WinGetPackage -Id $PackageId -Mode Silent -Force{{locationParam}};
                             }
                         }
                         elseif ($InstalledVersion -ne $TargetVersion) {
