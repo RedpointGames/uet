@@ -26,6 +26,7 @@
         public sealed class Options
         {
             public Argument<string[]> Packages;
+            public Option<string[]> OverrideLocation;
 
             public Options()
             {
@@ -35,6 +36,10 @@
                 {
                     Arity = ArgumentArity.OneOrMore
                 };
+
+                OverrideLocation = new Option<string[]>(
+                    name: "--override-location",
+                    description: "A key-value pair in the format id=location which overrides the location a package is installed.");
             }
         }
 
@@ -53,9 +58,25 @@
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
+                var overrideLocationsArray = context.ParseResult.GetValueForOption(_options.OverrideLocation) ?? [];
+                var overrideLocations = new Dictionary<string, string>();
+                foreach (var overrideLocation in overrideLocationsArray)
+                {
+                    var components = overrideLocation.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    if (components.Length == 2)
+                    {
+                        overrideLocations[components[0]] = components[1];
+                    }
+                }
+
                 foreach (var packageId in context.ParseResult.GetValueForArgument(_options.Packages) ?? [])
                 {
-                    await _packageManager.InstallOrUpgradePackageToLatestAsync(packageId, context.GetCancellationToken());
+                    await _packageManager.InstallOrUpgradePackageToLatestAsync(
+                        packageId,
+                        locationOverride: overrideLocations.TryGetValue(packageId, out var locationOverride) && !string.IsNullOrWhiteSpace(locationOverride)
+                            ? locationOverride
+                            : null,
+                        cancellationToken: context.GetCancellationToken());
                 }
 
                 return 0;

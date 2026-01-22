@@ -92,7 +92,10 @@
             }
         }
 
-        public async Task InstallOrUpgradePackageToLatestAsync(string packageId, CancellationToken cancellationToken)
+        public async Task InstallOrUpgradePackageToLatestAsync(
+            string packageId,
+            string? locationOverride,
+            CancellationToken cancellationToken)
         {
             var homebrew = await FindHomebrewOrInstallItAsync(cancellationToken).ConfigureAwait(false);
 

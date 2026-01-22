@@ -36,7 +36,10 @@ namespace Redpoint.PackageManagement
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern uint getuid();
 
-        public async Task InstallOrUpgradePackageToLatestAsync(string packageId, CancellationToken cancellationToken)
+        public async Task InstallOrUpgradePackageToLatestAsync(
+            string packageId,
+            string? locationOverride,
+            CancellationToken cancellationToken)
         {
             if (getuid() != 0)
             {

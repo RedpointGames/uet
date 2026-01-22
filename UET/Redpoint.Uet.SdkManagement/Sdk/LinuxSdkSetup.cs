@@ -55,7 +55,7 @@
             var clangToolchain = await _versionNumberResolver.For<ILinuxVersionNumbers>(unrealEnginePath).GetClangToolchainVersion(unrealEnginePath).ConfigureAwait(false);
 
             _logger.LogInformation("Ensuring 7-zip is installed for fast extraction...");
-            await _packageManager.InstallOrUpgradePackageToLatestAsync("7zip.7zip", cancellationToken);
+            await _packageManager.InstallOrUpgradePackageToLatestAsync("7zip.7zip", cancellationToken: cancellationToken);
 
             _logger.LogInformation("Locating 7-zip...");
             var _7z = Path.Combine(
