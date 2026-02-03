@@ -25,6 +25,7 @@
         private readonly IProcessExecutor _processExecutor;
         private readonly ILogger<WindowsSdkInstaller> _logger;
         private InternetManifest? _cachedManifest;
+        private string? _cachedClangManifest;
 
         public WindowsSdkInstaller(
             ISimpleDownloadProgress simpleDownloadProgress,
@@ -35,6 +36,7 @@
             _processExecutor = processExecutor;
             _logger = logger;
             _cachedManifest = null;
+            _cachedClangManifest = null;
         }
 
         private class InternetManifest
@@ -103,6 +105,23 @@
             return _cachedManifest;
         }
 
+        private async Task<string> LoadClangManifestAsync(CancellationToken cancellationToken)
+        {
+            if (_cachedClangManifest != null)
+            {
+                return _cachedClangManifest;
+            }
+
+            using (var client = new HttpClient())
+            {
+                _logger.LogInformation($"Retrieving metadata for Clang for Unreal Engine...");
+                _cachedClangManifest = await client.GetStringAsync(
+                    new Uri("https://github.com/RedpointGames/llvm-project/releases/latest/download/info"),
+                    cancellationToken);
+                return _cachedClangManifest;
+            }
+        }
+
         private class SelectedVcVersionAndComponents
         {
             public required string NumericVersionSignifier { get; init; }
@@ -110,9 +129,14 @@
             public required string VisualCppVersion { get; init; }
 
             public required HashSet<string> ComponentIds { get; init; }
+
+            public required string ClangVersionAndHash { get; init; }
         }
 
-        private static SelectedVcVersionAndComponents ComputeSelectedVcVersion(InternetManifest manifest, WindowsSdkInstallerTarget versions)
+        private async Task<SelectedVcVersionAndComponents> ComputeSelectedVcVersionAsync(
+            InternetManifest manifest,
+            WindowsSdkInstallerTarget versions,
+            CancellationToken cancellationToken)
         {
             // Locate the VC components directly so we can add
             // them to the desired components.
@@ -191,19 +215,59 @@
                 // Then within the buckets of preferred and non-preferred, pick the lowest version.
                 .ThenBy(x => x)
                 .First();
+
+            // Figure out the Clang version.
+            var msvcMajorMinor = string.Join('.', lowestVersion.Split('.')[..2]);
+            var clangVersion = string.Empty;
+            if (versions.MinimumRequiredClangVersions.TryGetValue(msvcMajorMinor, out var clangMajorVersion))
+            {
+                var info = await LoadClangManifestAsync(cancellationToken);
+                var lines = info
+                    .Replace("\r\n", "\n", StringComparison.Ordinal)
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var listingZips = false;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (lines[i] == "---")
+                    {
+                        listingZips = true;
+                        continue;
+                    }
+
+                    if (!listingZips)
+                    {
+                        continue;
+                    }
+
+                    if (lines[i].StartsWith($"llvm-win64-{clangMajorVersion}.x-", StringComparison.OrdinalIgnoreCase) &&
+                        lines[i].EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        clangVersion = lines[i]["llvm-win64-".Length..];
+                        clangVersion = clangVersion[0..(clangVersion.Length - 4)];
+                        break;
+                    }
+                }
+            }
+
             return new SelectedVcVersionAndComponents
             {
                 NumericVersionSignifier = lowestVersion,
                 VisualCppVersion = versionSignifierToVersionMapping[lowestVersion],
                 ComponentIds = vcComponentsByVersionSignifier[lowestVersion],
+                ClangVersionAndHash = clangVersion,
             };
         }
 
-        internal async Task<string> GetSelectedVisualCppVersion(WindowsSdkInstallerTarget versions, CancellationToken cancellationToken)
+        internal async Task<string> GetPackageIdVersionSuffix(WindowsSdkInstallerTarget versions, CancellationToken cancellationToken)
         {
             var internetManifest = await LoadInternetManifestAsync(cancellationToken);
-            var selectedVcVersion = ComputeSelectedVcVersion(internetManifest, versions);
-            return selectedVcVersion.VisualCppVersion;
+            var selectedVcVersion = await ComputeSelectedVcVersionAsync(internetManifest, versions, cancellationToken);
+            var clangVersion = selectedVcVersion.ClangVersionAndHash;
+            if (string.IsNullOrWhiteSpace(clangVersion))
+            {
+                clangVersion = "noclang";
+            }
+            return $"{selectedVcVersion.VisualCppVersion}-{clangVersion}";
         }
 
         internal async Task InstallSdkToPath(WindowsSdkInstallerTarget versions, string sdkPackagePath, CancellationToken cancellationToken)
@@ -224,7 +288,7 @@
             // Locate the VC components directly so we can add
             // them to the desired components.
             _logger.LogInformation("Determining MSVC compiler components to install...");
-            var selectedVcVersion = ComputeSelectedVcVersion(internetManifest, versions);
+            var selectedVcVersion = await ComputeSelectedVcVersionAsync(internetManifest, versions, cancellationToken);
             foreach (var component in selectedVcVersion.ComponentIds)
             {
                 _logger.LogInformation($"Adding the following component to the install manifest: {component} (from MSVC)");
@@ -417,27 +481,11 @@
             {
                 using (var client = new HttpClient())
                 {
-                    _logger.LogInformation($"Retrieving metadata for Clang for Unreal Engine...");
-                    var info = await client.GetStringAsync(
-                        new Uri("https://github.com/RedpointGames/llvm-project/releases/latest/download/info"),
-                        cancellationToken);
-                    var name = info
-                        .Replace("\r\n", "\n", StringComparison.Ordinal)
-                        .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .Select(x =>
-                        {
-                            var components = x.Split('=', 2);
-                            if (components.Length != 2)
-                            {
-                                return (platform: string.Empty, name: string.Empty);
-                            }
-                            return (platform: components[0], name: components[1]);
-                        })
-                        .FirstOrDefault(x => x.platform == "win64")
-                        .name;
-                    if (!string.IsNullOrWhiteSpace(name))
+                    if (!string.IsNullOrWhiteSpace(selectedVcVersion.ClangVersionAndHash))
                     {
-                        _logger.LogInformation($"Downloading and extracting Clang for Unreal Engine: {name}");
+                        _logger.LogInformation($"Downloading and extracting Clang for Unreal Engine: {selectedVcVersion.ClangVersionAndHash}");
+                        var name = $"llvm-win64-{selectedVcVersion.ClangVersionAndHash}.zip";
+
                         var cache = Path.Combine(sdkPackagePath, "Cache");
                         Directory.CreateDirectory(cache);
                         var llvm = Path.Combine(sdkPackagePath, "LLVM");
@@ -465,14 +513,14 @@
 
                                     var baseName = Path.GetFileNameWithoutExtension(name);
                                     var relativeName = HttpUtility.UrlDecode(entry.FullName.Replace("+", "%2B", StringComparison.Ordinal));
-                                    if (relativeName.StartsWith(baseName, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        relativeName = relativeName[(baseName.Length + 1)..];
-                                    }
-                                    else
+
+                                    // @note: baseName no longer exactly matches the top-level directory in the ZIP since submodules have
+                                    // different commit hashes, but it *does* match the length, which is good enough for our purpose.
+                                    if (relativeName.Length < baseName.Length + 1)
                                     {
                                         continue;
                                     }
+                                    relativeName = relativeName[(baseName.Length + 1)..];
 
                                     if (relativeName.Contains('\\', StringComparison.Ordinal) || relativeName.Contains('/', StringComparison.Ordinal))
                                     {
