@@ -33,7 +33,7 @@
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             var versions = await _versionNumberResolver.For<IWindowsVersionNumbers>(unrealEnginePath).GetWindowsVersionNumbersAsync(unrealEnginePath).ConfigureAwait(false);
-            var selectedVcVersion = await _windowsSdkInstaller.GetSelectedVisualCppVersion(versions, cancellationToken).ConfigureAwait(false);
+            var selectedVcVersion = await _windowsSdkInstaller.GetPackageIdVersionSuffix(versions, cancellationToken).ConfigureAwait(false);
 
             return $"{versions.WindowsSdkPreferredVersion}-{selectedVcVersion}-{_installLogicVersion}";
         }

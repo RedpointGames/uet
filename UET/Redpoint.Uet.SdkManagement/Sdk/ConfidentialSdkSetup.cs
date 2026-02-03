@@ -227,6 +227,7 @@
                         PreferredVisualCppVersions = new(),
                         BannedVisualCppVersions = new(),
                         SuggestedComponents = suggestedComponents,
+                        MinimumRequiredClangVersions = [],
                     },
                     string.IsNullOrWhiteSpace(_config.RequiredWindowsSdk.SubdirectoryName) ? sdkPackagePath : Path.Combine(sdkPackagePath, _config.RequiredWindowsSdk.SubdirectoryName),
                     cancellationToken).ConfigureAwait(false);

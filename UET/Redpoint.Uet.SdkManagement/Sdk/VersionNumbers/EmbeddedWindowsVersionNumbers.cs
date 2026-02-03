@@ -43,7 +43,8 @@
                 MinimumVisualCppVersion = VersionNumber.Parse(rawVersions.visualCppMinimumVersion),
                 BannedVisualCppVersions = new(),
                 PreferredVisualCppVersions = new(),
-                SuggestedComponents = rawVersions.suggestedComponents
+                SuggestedComponents = rawVersions.suggestedComponents,
+                MinimumRequiredClangVersions = [],
             };
         }
 

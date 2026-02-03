@@ -38,6 +38,7 @@
             VersionNumber visualCppMinimumVersion = VersionNumber.Parse(dictionary!["MinimumVisualCppVersion"].ToString());
             List<VersionRange> preferredVisualCppVersions = new();
             List<VersionRange> bannedVisualCppVersions = new();
+            Dictionary<string, string> minimumRequiredClangVersions = new();
 
             if (dictionary.TryGetValue("PreferredVisualCppVersions", out var preferredJsonElement) &&
                 preferredJsonElement.ValueKind == JsonValueKind.Array)
@@ -63,13 +64,27 @@
                 }
             }
 
+            if (dictionary.TryGetValue("MinimumRequiredClangVersion", out var minimumRequiredClangVersionElement) &&
+                minimumRequiredClangVersionElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var minimumRequiredClangVersionSubElement in minimumRequiredClangVersionElement.EnumerateArray())
+                {
+                    if (minimumRequiredClangVersionSubElement.ValueKind == JsonValueKind.String)
+                    {
+                        var expr = (minimumRequiredClangVersionSubElement.GetString()!).Split('-');
+                        minimumRequiredClangVersions.Add(expr[0], expr[1]);
+                    }
+                }
+            }
+
             return new WindowsSdkInstallerTarget
             {
                 WindowsSdkPreferredVersion = VersionNumber.Parse(dictionary!["MainVersion"].ToString()),
                 MinimumVisualCppVersion = visualCppMinimumVersion,
                 PreferredVisualCppVersions = preferredVisualCppVersions,
                 BannedVisualCppVersions = bannedVisualCppVersions,
-                SuggestedComponents = Array.Empty<string>(),
+                SuggestedComponents = [],
+                MinimumRequiredClangVersions = minimumRequiredClangVersions,
             };
         }
     }
