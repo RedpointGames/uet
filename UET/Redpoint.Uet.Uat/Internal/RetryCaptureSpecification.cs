@@ -178,6 +178,11 @@
                 _logger.LogWarning("Detected that one or more files were corrupted. The engine will be remounted without the existing write scratch data and the build will be retried.");
                 NeedsEngineRemount = true;
             }
+            if (data.Contains("The file or directory is corrupted and unreadable.", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected that one or more files were corrupted. The engine will be remounted without the existing write scratch data and the build will be retried.");
+                NeedsEngineRemount = true;
+            }
             if (data.Contains("BUILD MUST RESTART DUE TO INVALID DLL FILE", StringComparison.Ordinal))
             {
                 _logger.LogWarning("Detected one or more invalid DLL files were deleted due to post-Compile checks. The corrupt files have been deleted and the build will be retried.");
