@@ -186,7 +186,10 @@
                         if ($null -eq $InstalledVersion -or $InstalledVersion -eq "") {
                             Write-Host "Installing $PackageId because it's not currently installed...";
                             try {
-                                Install-WinGetPackage -Id $PackageId -Mode Silent -Force -Scope System{{locationParam}};
+                                $Result = (Install-WinGetPackage -Id $PackageId -Mode Silent -Force -Scope System{{locationParam}});
+                                if ($Result.Status -eq "NoApplicableInstallers") {
+                                    throw "This package does not support installing system-wide."
+                                }
                             } catch {
                                 Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
                                 Install-WinGetPackage -Id $PackageId -Mode Silent -Force{{locationParam}};
@@ -195,7 +198,10 @@
                         elseif ($InstalledVersion -ne $TargetVersion) {
                             Write-Host "Updating $PackageId because the installed version $InstalledVersion is not the target version $TargetVersion...";
                             try {
-                                Update-WinGetPackage -Id $PackageId -Mode Silent -Scope System{{locationParam}};
+                                $Result = (Update-WinGetPackage -Id $PackageId -Mode Silent -Scope System{{locationParam}});
+                                if ($Result.Status -eq "NoApplicableUpgrade") {
+                                    throw "This package does not support upgrading system-wide."
+                                }
                             } catch {
                                 Write-Host "Falling back to unspecified scope, since machine scope didn't work...";
                                 Update-WinGetPackage -Id $PackageId -Mode Silent{{locationParam}};
