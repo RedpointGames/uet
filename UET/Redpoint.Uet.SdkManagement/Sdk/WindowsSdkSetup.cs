@@ -28,7 +28,7 @@
 
         public string CommonPlatformNameForPackageId => "Windows";
 
-        private const string _installLogicVersion = "v4";
+        private const string _installLogicVersion = "v5";
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {

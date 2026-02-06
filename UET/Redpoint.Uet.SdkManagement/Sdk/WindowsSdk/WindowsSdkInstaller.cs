@@ -544,6 +544,10 @@
                             Path.Combine(llvmVs, "bin"),
                             Path.Combine(llvmVs, "x64", "bin"),
                             true);
+                        await DirectoryAsync.CopyAsync(
+                            Path.Combine(llvmVs, "lib"),
+                            Path.Combine(llvmVs, "x64", "lib"),
+                            true);
                     }
                     else
                     {
