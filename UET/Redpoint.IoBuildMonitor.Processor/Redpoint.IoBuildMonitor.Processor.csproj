@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+
+	<PropertyGroup>
+		<PublishTrimmed>false</PublishTrimmed>
+		<PublishSingleFile>false</PublishSingleFile>
+		<SelfContained>false</SelfContained>
+		<IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">false</IsTrimmable>
+		<EnableTrimAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">false</EnableTrimAnalyzer>
+		<TrimmerSingleWarn Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">false</TrimmerSingleWarn>
+		<EnableSingleFileAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">false</EnableSingleFileAnalyzer>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Database\Redpoint.IoBuildMonitor.Database.csproj" />
+		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Json.Api\Redpoint.IoBuildMonitor.Json.Api.csproj" />
+		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Json.GitLab\Redpoint.IoBuildMonitor.Json.GitLab.csproj" />
+		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Mappers\Redpoint.IoBuildMonitor.Mappers.csproj" />
+		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Redis\Redpoint.IoBuildMonitor.Redis.csproj" />
+		<ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj">
+			<Aliases>RDCommandLine</Aliases>
+		</ProjectReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
+	</ItemGroup>
+
+</Project>

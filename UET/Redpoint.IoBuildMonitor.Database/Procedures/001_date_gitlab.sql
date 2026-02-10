@@ -1,0 +1,17 @@
+DROP FUNCTION IF EXISTS date_gitlab_from_string;
+CREATE FUNCTION date_gitlab_from_string (str TEXT) RETURNS TIMESTAMPTZ AS 
+$BODY$
+BEGIN
+    RETURN TO_TIMESTAMP(str, 'YYYY-MM-DD HH24:MI:SS');
+END
+$BODY$
+LANGUAGE 'plpgsql';
+
+DROP FUNCTION IF EXISTS date_gitlab_to_string;
+CREATE FUNCTION date_gitlab_to_string (ts TIMESTAMPTZ) RETURNS TEXT AS 
+$BODY$
+BEGIN
+    RETURN TO_CHAR(ts, 'YYYY-MM-DD HH24:MI:SS');
+END
+$BODY$
+LANGUAGE 'plpgsql';
