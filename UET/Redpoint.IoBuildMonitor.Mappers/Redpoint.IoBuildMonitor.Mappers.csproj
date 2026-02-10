@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Redpoint.IoBuildMonitor.Database\Redpoint.IoBuildMonitor.Database.csproj" />
+	  <ProjectReference Include="..\Redpoint.IoBuildMonitor.Json.Api\Redpoint.IoBuildMonitor.Json.Api.csproj" />
+	  <ProjectReference Include="..\Redpoint.IoBuildMonitor.Json.GitLab\Redpoint.IoBuildMonitor.Json.GitLab.csproj" />
+	</ItemGroup>
+
+</Project>
