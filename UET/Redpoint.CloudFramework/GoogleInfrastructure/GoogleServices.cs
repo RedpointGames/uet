@@ -107,7 +107,7 @@
 
             using (var reader = new FileStream(filePath, FileMode.Open, FileAccess.Read))
             {
-                var googleCredentials = GoogleCredential.FromStream(reader);
+                var googleCredentials = CredentialFactory.FromStream<GoogleCredential>(reader);
                 if (googleCredentials.IsCreateScopedRequired)
                 {
                     googleCredentials = googleCredentials.CreateScoped(scopes);

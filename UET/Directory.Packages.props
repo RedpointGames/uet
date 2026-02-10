@@ -57,7 +57,7 @@
     <!-- Google Cloud for Cloud Framework -->
     <PackageVersion Include="Google.Cloud.BigQuery.V2" Version="3.11.0" />
     <PackageVersion Include="Google.Cloud.Datastore.V1" Version="4.14.0" />
-    <PackageVersion Include="Google.Cloud.Monitoring.V3" Version="3.14.0" />
+    <PackageVersion Include="Google.Cloud.Monitoring.V3" Version="3.16.0" />
     <PackageVersion Include="Google.Cloud.PubSub.V1" Version="3.20.0" />
     <PackageVersion Include="Google.Cloud.SecretManager.V1" Version="2.5.0" />
     <!-- Dependencies for Cloud Framework -->
