@@ -99,7 +99,7 @@
     <PackageVersion Include="ZstdNet" Version="1.4.5" />
     <!-- Assorted dependencies that don't fit anywhere else -->
     <PackageVersion Include="Octokit" Version="14.0.0" />
-    <PackageVersion Include="BitFaster.Caching" Version="2.5.3" />
+    <PackageVersion Include="BitFaster.Caching" Version="2.5.4" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.2" />
     <PackageVersion Include="Crayon" Version="2.0.69" />
     <PackageVersion Include="Sentry" Version="5.0.1" />
