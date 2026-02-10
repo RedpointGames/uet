@@ -98,7 +98,7 @@
             return this;
         }
 
-        public Task<IWebHost> GetWebApp()
+        public Task<IHost> GetWebApp()
         {
             ValidateConfiguration();
             if (_startupType == null)
@@ -110,98 +110,103 @@
                 throw new InvalidOperationException("Your startup class must not implement IStartup (instead, use convention-based startup).");
             }
 
-            var hostBuilder = new WebHostBuilder()
-                .ConfigureServices((context, services) =>
+            var hostBuilder = new HostBuilder()
+                .ConfigureWebHost(webHostBuilder =>
                 {
-                    if (_helmConfig == null)
-                    {
-                        // Add the lifetime service that will set up the development environment if necessary.
-                        services.AddSingleton<DevelopmentStartup, DevelopmentStartup>(sp =>
+                    webHostBuilder
+                        .ConfigureServices((context, services) =>
                         {
-                            return new DevelopmentStartup(
-                                sp.GetRequiredService<IHostEnvironment>(),
-                                sp.GetRequiredService<ILogger<DevelopmentStartup>>(),
-                                _googleCloudUsage,
-                                sp.GetRequiredService<IConfiguration>(),
-                                _dockerFactory);
-                        });
-                        services.AddSingleton<IHostedService, DevelopmentStartup>(sp =>
-                        {
-                            return sp.GetRequiredService<DevelopmentStartup>();
-                        });
-                    }
-                    else if (context.HostingEnvironment.IsDevelopment())
-                    {
-                        var helmConfig = _helmConfig(context.Configuration, context.HostingEnvironment.ContentRootPath);
-                        services.AddSingleton<IOptionalHelmConfiguration>(new BoundHelmConfiguration(helmConfig));
-                        Environment.SetEnvironmentVariable("REDIS_SERVER", "localhost:" + helmConfig.RedisPort);
-                    }
-                })
-                .UseKestrel(options =>
-                {
-                    if (_http2Only)
-                    {
-                        options.ConfigureEndpointDefaults(lo => lo.Protocols = HttpProtocols.Http2);
-                    }
-
-                    _kestrelConfigure?.Invoke(options);
-                })
-                .UseContentRoot(Directory.GetCurrentDirectory());
-            // Don't register Sentry if this service uses OTLP endpoint for trace exporting.
-            if (!IsUsingOtelTracing)
-            {
-                hostBuilder = hostBuilder.UseSentry(options =>
-                    {
-                        options.TracesSampleRate = _tracingRate;
-                        options.TracesSampler = (ctx) =>
-                        {
-                            if (ctx.CustomSamplingContext.ContainsKey("__HttpPath") &&
-                                ctx.CustomSamplingContext["__HttpPath"] is string)
+                            if (_helmConfig == null)
                             {
-                                var path = (string?)ctx.CustomSamplingContext["__HttpPath"];
-                                if (path != null)
+                                // Add the lifetime service that will set up the development environment if necessary.
+                                services.AddSingleton<DevelopmentStartup, DevelopmentStartup>(sp =>
                                 {
-                                    if (path == "/healthz")
-                                    {
-                                        return 0;
-                                    }
-
-                                    if (_prefixes.Any(x => path.StartsWith(x, StringComparison.Ordinal)))
-                                    {
-                                        return 0;
-                                    }
-                                }
+                                    return new DevelopmentStartup(
+                                        sp.GetRequiredService<IHostEnvironment>(),
+                                        sp.GetRequiredService<ILogger<DevelopmentStartup>>(),
+                                        _googleCloudUsage,
+                                        sp.GetRequiredService<IConfiguration>(),
+                                        _dockerFactory);
+                                });
+                                services.AddSingleton<IHostedService, DevelopmentStartup>(sp =>
+                                {
+                                    return sp.GetRequiredService<DevelopmentStartup>();
+                                });
+                            }
+                            else if (context.HostingEnvironment.IsDevelopment())
+                            {
+                                var helmConfig = _helmConfig(context.Configuration, context.HostingEnvironment.ContentRootPath);
+                                services.AddSingleton<IOptionalHelmConfiguration>(new BoundHelmConfiguration(helmConfig));
+                                Environment.SetEnvironmentVariable("REDIS_SERVER", "localhost:" + helmConfig.RedisPort);
+                            }
+                        })
+                        .UseKestrel(options =>
+                        {
+                            if (_http2Only)
+                            {
+                                options.ConfigureEndpointDefaults(lo => lo.Protocols = HttpProtocols.Http2);
                             }
 
-                            return null;
-                        };
-                        options.AdjustStandardEnvironmentNameCasing = false;
-                    });
-            }
-            hostBuilder = hostBuilder.ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    ConfigureAppConfiguration(hostingContext.HostingEnvironment, config);
-                })
-                .ConfigureServices((context, services) =>
-                {
-                    var configurationBuilder = new ConfigurationBuilder()
-                            .SetBasePath(context.HostingEnvironment.ContentRootPath);
-                    ConfigureAppConfiguration(context.HostingEnvironment, configurationBuilder);
-                    var configuration = configurationBuilder.Build();
-                    // Register IConfiguration for web host.
-                    services.AddSingleton<IConfiguration>(configuration);
-                    // Replace the builder's IConfiguration for the rest of ConfigureServices and Startup.
-                    context.Configuration = configuration;
-                })
-                .ConfigureServices((context, services) =>
-                {
-                    _context = context;
-                    // There is no replacement for this functionality, but UseStartup does not immediately execute so calling ConfigureServices on the host builder does not allow us to execute "post startup" configure, and there's no other way of hooking around startup.
+                            _kestrelConfigure?.Invoke(options);
+                        })
+                        .UseContentRoot(Directory.GetCurrentDirectory());
+
+                    // Don't register Sentry if this service uses OTLP endpoint for trace exporting.
+                    if (!IsUsingOtelTracing)
+                    {
+                        webHostBuilder = webHostBuilder.UseSentry(options =>
+                        {
+                            options.TracesSampleRate = _tracingRate;
+                            options.TracesSampler = (ctx) =>
+                            {
+                                if (ctx.CustomSamplingContext.ContainsKey("__HttpPath") &&
+                                    ctx.CustomSamplingContext["__HttpPath"] is string)
+                                {
+                                    var path = (string?)ctx.CustomSamplingContext["__HttpPath"];
+                                    if (path != null)
+                                    {
+                                        if (path == "/healthz")
+                                        {
+                                            return 0;
+                                        }
+
+                                        if (_prefixes.Any(x => path.StartsWith(x, StringComparison.Ordinal)))
+                                        {
+                                            return 0;
+                                        }
+                                    }
+                                }
+
+                                return null;
+                            };
+                            options.AdjustStandardEnvironmentNameCasing = false;
+                        });
+                    }
+                    webHostBuilder = webHostBuilder.ConfigureAppConfiguration((hostingContext, config) =>
+                    {
+                        ConfigureAppConfiguration(hostingContext.HostingEnvironment, config);
+                    })
+                        .ConfigureServices((context, services) =>
+                        {
+                            var configurationBuilder = new ConfigurationBuilder()
+                                    .SetBasePath(context.HostingEnvironment.ContentRootPath);
+                            ConfigureAppConfiguration(context.HostingEnvironment, configurationBuilder);
+                            var configuration = configurationBuilder.Build();
+                            // Register IConfiguration for web host.
+                            services.AddSingleton<IConfiguration>(configuration);
+                            // Replace the builder's IConfiguration for the rest of ConfigureServices and Startup.
+                            context.Configuration = configuration;
+                        })
+                        .ConfigureServices((context, services) =>
+                        {
+                            _context = context;
+                            // There is no replacement for this functionality, but UseStartup does not immediately execute so calling ConfigureServices on the host builder does not allow us to execute "post startup" configure, and there's no other way of hooking around startup.
 #pragma warning disable CS0612
-                    services.AddSingleton<IStartupConfigureServicesFilter>(this);
+                            services.AddSingleton<IStartupConfigureServicesFilter>(this);
 #pragma warning restore CS0612
-                })
-                .UseStartup(_startupType);
+                        })
+                        .UseStartup(_startupType);
+                });
             return Task.FromResult(hostBuilder.Build());
         }
 
@@ -213,11 +218,11 @@
 
         public async Task StartWebApp<T>() where T : IWebAppProvider
         {
-            var host = await T.GetWebHostAsync().ConfigureAwait(false);
+            var host = await T.GetHostAsync().ConfigureAwait(false);
             await host.RunAsync().ConfigureAwait(false);
         }
 
-        public async Task StartWebApp(IWebHost host)
+        public async Task StartWebApp(IHost host)
         {
             ArgumentNullException.ThrowIfNull(host);
             await host.RunAsync().ConfigureAwait(false);
@@ -289,7 +294,6 @@
         {
             // Add common HTTP services.
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddScoped<IActionContextAccessor, ActionContextAccessor>();
 
             base.PostStartupConfigureServices(services);
 
