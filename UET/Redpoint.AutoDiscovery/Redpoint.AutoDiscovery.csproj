@@ -10,7 +10,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="System.Linq.Async" />
     <PackageReference Include="Redpoint.AutoDiscovery.Win32" Aliases="SDWin32" />
     <PackageReference Include="Redpoint.AutoDiscovery.Win64" Aliases="SDWin64" />
   </ItemGroup>

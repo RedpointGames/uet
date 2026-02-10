@@ -2,6 +2,7 @@
 {
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Microsoft.OpenApi.Writers;
     using Redpoint.CloudFramework.Abstractions;
@@ -99,7 +100,7 @@
                     return 1;
                 }
 
-                IWebHost? app;
+                IHost? app;
                 var providerType = assembly.GetExportedTypes()
                     .FirstOrDefault(x => typeof(IWebAppProvider).IsAssignableFrom(x));
                 if (providerType == null)
@@ -111,13 +112,13 @@
                     }
 
                     _logger.LogWarning("You should migrate to having either Program or another public class implement IWebAppProvider instead of relying on Program having a static public GetWebHostAsync method and --entrypoint-class.");
-                    var legacyTask = (Task<IWebHost>?)assembly
+                    var legacyTask = (Task<IHost>?)assembly
                         .GetType(entrypointClassName)
                         ?.GetMethod("GetWebHost", BindingFlags.Static | BindingFlags.Public)
                         ?.Invoke(null, Array.Empty<object>());
                     if (legacyTask == null)
                     {
-                        legacyTask = (Task<IWebHost>?)assembly
+                        legacyTask = (Task<IHost>?)assembly
                             .GetType(entrypointClassName)
                             ?.GetMethod("GetWebHostAsync", BindingFlags.Static | BindingFlags.Public)
                             ?.Invoke(null, Array.Empty<object>());
@@ -137,7 +138,7 @@
                     {
                         var interfaceMethod = interfaceMap.InterfaceMethods[i];
                         if (interfaceMethod.Name == "GetWebHostAsync" &&
-                            interfaceMethod.ReturnType == typeof(ValueTask<IWebHost>))
+                            interfaceMethod.ReturnType == typeof(ValueTask<IHost>))
                         {
                             targetMethod = interfaceMap.TargetMethods[i];
                         }
@@ -153,7 +154,7 @@
                         _logger.LogError($"The '{providerType.FullName}' class somehow returned a null value from GetWebHostAsync, even though it's return type should be a value type.");
                         return 1;
                     }
-                    var task = (ValueTask<IWebHost>)taskObject;
+                    var task = (ValueTask<IHost>)taskObject;
                     app = await task.ConfigureAwait(false);
                 }
 

@@ -3,10 +3,6 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="System.Linq.Async" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Redpoint.Concurrency\Redpoint.Concurrency.csproj" />
   </ItemGroup>
 

@@ -8,8 +8,8 @@ if (!$SkipDotNet) {
         dotnet publish -c Release -r win-x64
         if ($LastExitCode -ne 0) { exit $LastExitCode }
 
-        Copy-Item -Force ".\bin\Release\net9.0\linux-x64\publish\uet" "$PSScriptRoot\static"
-        Copy-Item -Force ".\bin\Release\net9.0\win-x64\publish\uet.exe" "$PSScriptRoot\static"
+        Copy-Item -Force ".\bin\Release\net10.0\linux-x64\publish\uet" "$PSScriptRoot\static"
+        Copy-Item -Force ".\bin\Release\net10.0\win-x64\publish\uet.exe" "$PSScriptRoot\static"
     } finally {
         Pop-Location
     }

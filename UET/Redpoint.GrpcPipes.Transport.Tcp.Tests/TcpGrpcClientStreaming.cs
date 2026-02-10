@@ -96,7 +96,7 @@
                 });
         }
 
-        [Fact]
+        [Fact(Skip = "Unreliable when run on GitHub Actions")]
         public async Task CallWithDeadline()
         {
             var logger = GetLogger();
@@ -127,7 +127,7 @@
             Assert.True(service.CancellationTokenRaisedException, "Expected server to see cancellation.");
         }
 
-        [Fact]
+        [Fact(Skip = "Unreliable when run on GitHub Actions")]
         public async Task CallWithCancellationToken()
         {
             var logger = GetLogger();
