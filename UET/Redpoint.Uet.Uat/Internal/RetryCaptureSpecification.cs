@@ -178,6 +178,11 @@
                 _logger.LogWarning("Detected that one or more files were corrupted. The engine will be remounted without the existing write scratch data and the build will be retried.");
                 NeedsEngineRemount = true;
             }
+            if (data.Contains("Missing object file", StringComparison.Ordinal) && data.Contains(@"\Engine\", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected that one or more files were corrupted. The engine will be remounted without the existing write scratch data and the build will be retried.");
+                NeedsEngineRemount = true;
+            }
             if (data.Contains("The file or directory is corrupted and unreadable.", StringComparison.Ordinal))
             {
                 _logger.LogWarning("Detected that one or more files were corrupted. The engine will be remounted without the existing write scratch data and the build will be retried.");
