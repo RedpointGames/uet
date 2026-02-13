@@ -186,7 +186,7 @@
             model.dateModifiedUtc = now;
 
             // @note: We changed this behaviour so that the schema version is only automatically set on creation. This ensures that when migrators update models, the models don't skip to the latest schema version - they must always get to the latest version via a migrator.
-            if (isCreateContext)
+            if (isCreateContext || model.schemaVersion == null)
             {
                 model.schemaVersion = model.GetSchemaVersion();
             }
