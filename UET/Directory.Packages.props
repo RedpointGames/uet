@@ -45,7 +45,7 @@
     <PackageVersion Include="System.Linq.Async" Version="7.0.0" />
     <!-- gRPC -->
     <PackageVersion Include="Google.Protobuf" Version="3.29.3" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.76.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.69.0" />
     <!-- JavaScript engine and legacy JSON libraries -->
     <PackageVersion Include="JavaScriptEngineSwitcher.Core" Version="3.24.1" />
