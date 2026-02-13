@@ -14,6 +14,7 @@
     using OpenTelemetry.Metrics;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.DataProtection;
+    using Redpoint.CloudFramework.Infrastructure;
     using Redpoint.CloudFramework.Locking;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Processor;
@@ -176,6 +177,7 @@
                             return null;
                         };
                         options.AdjustStandardEnvironmentNameCasing = false;
+                        options.Transport = new ResponseLoggingHttpTransport(options);
                     });
             }
             hostBuilder = hostBuilder.ConfigureAppConfiguration((hostingContext, config) =>
