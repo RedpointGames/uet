@@ -6,6 +6,6 @@
 
     public interface IWebAppProvider
     {
-        static abstract ValueTask<IHost> GetHostAsync();
+        static abstract ValueTask<ICloudFrameworkWebHost> GetHostAsync();
     }
 }

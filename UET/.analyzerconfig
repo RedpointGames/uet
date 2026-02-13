@@ -75,3 +75,8 @@ dotnet_diagnostic.CA1873.severity = none
 
 # This should really be addressed to mitigate potential synchronous blocking on EndOfStream access.
 dotnet_diagnostic.CA2024.severity = none
+
+# We need to migrate away from IWebHost eventually, but this is currently causing deployment issues
+# since HostBuilder does not run ConfigureServices in the same way that WebHostBuilder does.
+dotnet_diagnostic.ASPDEPR004.severity = none
+dotnet_diagnostic.ASPDEPR008.severity = none

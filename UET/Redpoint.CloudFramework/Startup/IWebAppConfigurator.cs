@@ -3,7 +3,6 @@
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Hosting;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.Processor;
     using System;
@@ -25,13 +24,13 @@
 
         IWebAppConfigurator UseKestrelOptions(Action<KestrelServerOptions> configure);
 
-        Task<IHost> GetWebApp();
+        Task<ICloudFrameworkWebHost> GetWebApp();
 
         Task StartWebApp();
 
         Task StartWebApp<T>() where T : IWebAppProvider;
 
-        Task StartWebApp(IHost host);
+        Task StartWebApp(ICloudFrameworkWebHost host);
 
         IWebAppConfigurator AddContinuousProcessor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class, IContinuousProcessor;
 
