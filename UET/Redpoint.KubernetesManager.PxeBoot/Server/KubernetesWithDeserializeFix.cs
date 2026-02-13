@@ -6,6 +6,7 @@
     using Microsoft.AspNetCore.Http;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Net;
     using System.Net.Http;
@@ -19,6 +20,7 @@
         {
         }
 
+        [SuppressMessage("Reliability", "CA2025:Do not pass 'IDisposable' instances into unawaited tasks", Justification = "We don't control this API surface.")]
         protected override Task<HttpResponseMessage> SendRequest<T>(string relativeUri, HttpMethod method, IReadOnlyDictionary<string, IReadOnlyList<string>> customHeaders, T body, CancellationToken cancellationToken)
         {
             if (body == null || body is Eventsv1Event)

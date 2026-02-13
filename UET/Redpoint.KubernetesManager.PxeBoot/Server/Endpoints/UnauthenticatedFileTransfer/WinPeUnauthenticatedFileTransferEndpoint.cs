@@ -3,6 +3,7 @@
     using Redpoint.KubernetesManager.PxeBoot.Disk;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -17,6 +18,7 @@
     {
         public string[] Prefixes => ["/winpe.bat"];
 
+        [SuppressMessage("Reliability", "CA2025:Do not pass 'IDisposable' instances into unawaited tasks", Justification = "This returns a disposable stream intentionally.")]
         public Task<Stream?> GetDownloadStreamAsync(
             UnauthenticatedFileTransferRequest request,
             CancellationToken cancellationToken)
