@@ -27,10 +27,6 @@
                 "--output-path",
                 "The path to output the OpenAPI JSON file to.");
 
-            public Option<string> EntrypointClass = new Option<string>(
-                "--entrypoint-class",
-                "The class name for the entrypoint.");
-
             public Option<string> Version = new Option<string>(
                 "--version",
                 () => "v1",
@@ -71,7 +67,6 @@
                     _logger.LogError("The output path for generating the OpenAPI JSON (--output-path) must be specified.");
                     return 1;
                 }
-                var entrypointClassName = context.ParseResult.GetValueForOption(_options.EntrypointClass);
                 var version = context.ParseResult.GetValueForOption(_options.Version);
 
                 Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
@@ -100,35 +95,13 @@
                     return 1;
                 }
 
-                IHost? app;
+                ICloudFrameworkWebHost? app;
                 var providerType = assembly.GetExportedTypes()
                     .FirstOrDefault(x => typeof(IWebAppProvider).IsAssignableFrom(x));
                 if (providerType == null)
                 {
-                    if (string.IsNullOrWhiteSpace(entrypointClassName))
-                    {
-                        _logger.LogError("The entrypoint class (--entrypoint-class) must be specified because there is no class that implements IWebAppProvider.");
-                        return 1;
-                    }
-
-                    _logger.LogWarning("You should migrate to having either Program or another public class implement IWebAppProvider instead of relying on Program having a static public GetWebHostAsync method and --entrypoint-class.");
-                    var legacyTask = (Task<IHost>?)assembly
-                        .GetType(entrypointClassName)
-                        ?.GetMethod("GetWebHost", BindingFlags.Static | BindingFlags.Public)
-                        ?.Invoke(null, Array.Empty<object>());
-                    if (legacyTask == null)
-                    {
-                        legacyTask = (Task<IHost>?)assembly
-                            .GetType(entrypointClassName)
-                            ?.GetMethod("GetWebHostAsync", BindingFlags.Static | BindingFlags.Public)
-                            ?.Invoke(null, Array.Empty<object>());
-                    }
-                    if (legacyTask == null)
-                    {
-                        _logger.LogError($"Unable to locate {entrypointClassName}.GetWebHostAsync in loaded DLL. You should have a public class implement IWebAppProvider instead of relying on --entrypoint-class search behaviour.");
-                        return 1;
-                    }
-                    app = await legacyTask.ConfigureAwait(false);
+                    _logger.LogError("There is no class that implements IWebAppProvider. Your main Program class should implement it.");
+                    return 1;
                 }
                 else
                 {
@@ -137,8 +110,8 @@
                     for (var i = 0; i < interfaceMap.InterfaceMethods.Length; i++)
                     {
                         var interfaceMethod = interfaceMap.InterfaceMethods[i];
-                        if (interfaceMethod.Name == "GetWebHostAsync" &&
-                            interfaceMethod.ReturnType == typeof(ValueTask<IHost>))
+                        if (interfaceMethod.Name == "GetHostAsync" &&
+                            interfaceMethod.ReturnType == typeof(ValueTask<ICloudFrameworkWebHost>))
                         {
                             targetMethod = interfaceMap.TargetMethods[i];
                         }
@@ -154,7 +127,7 @@
                         _logger.LogError($"The '{providerType.FullName}' class somehow returned a null value from GetWebHostAsync, even though it's return type should be a value type.");
                         return 1;
                     }
-                    var task = (ValueTask<IHost>)taskObject;
+                    var task = (ValueTask<ICloudFrameworkWebHost>)taskObject;
                     app = await task.ConfigureAwait(false);
                 }
 
