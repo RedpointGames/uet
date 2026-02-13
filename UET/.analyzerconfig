@@ -69,3 +69,9 @@ dotnet_diagnostic.CA1849.severity = none
 # Constant arrays are better supported in .NET 8 (and don't require static readonly), so we'll
 # move to using those instead of static readonly fields everywhere.
 dotnet_diagnostic.CA1861.severity = none
+
+# This requires significant refactoring of log calls.
+dotnet_diagnostic.CA1873.severity = none
+
+# This should really be addressed to mitigate potential synchronous blocking on EndOfStream access.
+dotnet_diagnostic.CA2024.severity = none
