@@ -1161,7 +1161,7 @@ return 'written'
                         var cache = _redis.GetDatabase();
                         var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, new T()).ConfigureAwait(false);
 
-                        var cacheEvaluation = keys.SelectFastAwait(async key =>
+                        var cacheEvaluation = keys.SelectFast(async key =>
                         {
                             if (key == null)
                             {
@@ -1198,7 +1198,7 @@ return 'written'
                                         transaction,
                                         metrics,
                                         cancellationToken)
-                                    .SelectFastAwait(async v =>
+                                    .SelectFast(async v =>
                                     {
                                         // Store in the cache as we get the results from Datastore.
                                         var cacheKey = GetSimpleCacheKey(v.Key);
@@ -1290,7 +1290,7 @@ return 'written'
                     var cache = _redis.GetDatabase();
                     var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, "(cross-namespace)", new T()).ConfigureAwait(false);
 
-                    var cacheEvaluation = keys.SelectFastAwait(async key =>
+                    var cacheEvaluation = keys.SelectFast(async key =>
                     {
                         if (key == null)
                         {
@@ -1325,7 +1325,7 @@ return 'written'
                                     inputs.Select(x => x.key),
                                     metrics,
                                     cancellationToken)
-                                .SelectFastAwait(async v =>
+                                .SelectFast(async v =>
                                 {
                                     // Store in the cache as we get the results from Datastore.
                                     var keyFactory = await _datastoreRepositoryLayer.GetKeyFactoryAsync<T>(v.Key.PartitionId.NamespaceId, metrics, cancellationToken).ConfigureAwait(false);

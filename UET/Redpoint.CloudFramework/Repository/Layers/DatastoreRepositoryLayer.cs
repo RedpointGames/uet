@@ -191,7 +191,7 @@
                         var ranges = S2Manager.GetGeohashRanges(latLngRect, keyLength);
 
                         var entityBatches = ranges.ToAsyncEnumerable()
-                            .SelectMany(range => QueryGeohashRange(
+                            .SelectManyFast(range => QueryGeohashRange(
                                 @namespace,
                                 referenceModel,
                                 filter!, // @note: If filter is null, then we won't be doing a geographic query anyway.

@@ -418,6 +418,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.IoBuildMonitor.Dat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.IoBuildMonitor", "Redpoint.IoBuildMonitor\Redpoint.IoBuildMonitor.csproj", "{63273CA6-C996-E77C-BFBB-411A10FF1785}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Collections.Tests", "Redpoint.Collections.Tests\Redpoint.Collections.Tests.csproj", "{55E30912-E0EF-4D02-AF8F-09630A608BD1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1144,6 +1146,10 @@ Global
 		{63273CA6-C996-E77C-BFBB-411A10FF1785}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{63273CA6-C996-E77C-BFBB-411A10FF1785}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{63273CA6-C996-E77C-BFBB-411A10FF1785}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55E30912-E0EF-4D02-AF8F-09630A608BD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55E30912-E0EF-4D02-AF8F-09630A608BD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55E30912-E0EF-4D02-AF8F-09630A608BD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55E30912-E0EF-4D02-AF8F-09630A608BD1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
