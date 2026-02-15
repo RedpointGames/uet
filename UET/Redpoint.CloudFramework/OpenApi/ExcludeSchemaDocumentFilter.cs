@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.OpenApi
 {
-    using Microsoft.OpenApi.Models;
+    using Microsoft.OpenApi;
     using Swashbuckle.AspNetCore.SwaggerGen;
     using System.Linq;
 
@@ -8,11 +8,11 @@
     {
         public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
         {
-            foreach (var kv in swaggerDoc.Components.Schemas.ToArray())
+            foreach (var kv in swaggerDoc.Components!.Schemas!.ToArray())
             {
                 if (kv.Value.Deprecated)
                 {
-                    swaggerDoc.Components.Schemas.Remove(kv.Key);
+                    swaggerDoc.Components.Schemas!.Remove(kv.Key);
                 }
             }
         }

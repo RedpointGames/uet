@@ -506,14 +506,14 @@
                                             {
                                                 Name = "uba",
                                                 Port = 7000,
-                                                TargetPort = new IntstrIntOrString("7000"),
+                                                TargetPort = "7000",
                                                 Protocol = "TCP",
                                             },
                                             new V1ServicePort
                                             {
                                                 Name = "uba-proxy",
                                                 Port = 7001,
-                                                TargetPort = new IntstrIntOrString("7001"),
+                                                TargetPort = "7001",
                                                 Protocol = "TCP",
                                             },
                                         },

@@ -5,6 +5,7 @@
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
     using Windows.Win32;
+    using Windows.Win32.Foundation;
     using Windows.Win32.Storage.FileSystem;
 
     /// <summary>
@@ -83,14 +84,15 @@
                         0,
                         (nint)reparseDataBuffer.PathBuffer,
                         target.Length);
-                };
+                }
+                ;
 
                 uint bytesReturned;
                 Windows.Win32.Foundation.BOOL result;
                 unsafe
                 {
                     result = PInvoke.DeviceIoControl(
-                        reparsePointHandle,
+                        (HANDLE)reparsePointHandle.DangerousGetHandle(),
                         PInvoke.FSCTL_SET_REPARSE_POINT,
                         &reparseDataBuffer,
                         (uint)(targetByteLength + 20),
@@ -173,14 +175,15 @@
                         0,
                         (nint)reparseDataBuffer.PathBuffer,
                         junctionRawTarget.Length);
-                };
+                }
+                ;
 
                 uint bytesReturned;
                 Windows.Win32.Foundation.BOOL result;
                 unsafe
                 {
                     result = PInvoke.DeviceIoControl(
-                        reparsePointHandle,
+                        (HANDLE)reparsePointHandle.DangerousGetHandle(),
                         PInvoke.FSCTL_SET_REPARSE_POINT,
                         &reparseDataBuffer,
                         (uint)(targetByteLength + 20),

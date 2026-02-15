@@ -155,7 +155,7 @@
                     "O:BAG:BAD:(A;;GA;;;WD)",
                     PInvoke.SDDL_REVISION_1,
                     out sd,
-                    null))
+                    out _))
                 {
                     throw new InvalidOperationException("Unable to parse security descriptor!");
                 }
@@ -198,10 +198,13 @@
                 _logger?.LogTrace($"Retrieving physical drive path of attached disk...");
                 var (getDiskResult, physicalPathStr) = GetDynamicallySizedString((char* buffer, ref uint bufferSize) =>
                 {
-                    return PInvoke.GetVirtualDiskPhysicalPath(
-                        _vhd,
-                        ref bufferSize,
-                        buffer);
+                    fixed (uint* bufferSizePtr = &bufferSize)
+                    {
+                        return PInvoke.GetVirtualDiskPhysicalPath(
+                            (HANDLE)_vhd.DangerousGetHandle(),
+                            bufferSizePtr,
+                            (PWSTR)buffer);
+                    }
                 });
                 if (getDiskResult != WIN32_ERROR.ERROR_SUCCESS)
                 {
@@ -240,7 +243,7 @@
                         // Get the volume extents.
                         global::Windows.Win32.System.Ioctl.VOLUME_DISK_EXTENTS extents;
                         if (!PInvoke.DeviceIoControl(
-                            volumeHandle,
+                            (HANDLE)volumeHandle.DangerousGetHandle(),
                             PInvoke.IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
                             null,
                             0,
@@ -253,7 +256,7 @@
                         }
 
                         // Is this the volume we're interested in?
-                        if (extents.Extents._0.DiskNumber == physicalPathDiskNumber)
+                        if (extents.Extents.e0.DiskNumber == physicalPathDiskNumber)
                         {
                             if (hasTrailingSlash)
                             {

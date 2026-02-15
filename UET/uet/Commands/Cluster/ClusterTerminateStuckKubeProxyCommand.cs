@@ -69,7 +69,7 @@
                             labelSelector: "rkm.redpoint.games/component=kube-proxy-windows",
                             cancellationToken: context.GetCancellationToken());
 
-                        foreach (var pod in pods)
+                        foreach (var pod in pods.Items)
                         {
                             if (pod == null)
                             {

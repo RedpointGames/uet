@@ -76,7 +76,7 @@
             // Apply the device map to our process.
             {
                 var status = NtdllPInvoke.NtSetInformationProcess(
-                    processInfo.hProcess.Value,
+                    (nint)processInfo.hProcess.Value,
                     PROCESS_INFORMATION_CLASS.ProcessDeviceMap,
                     &objectDirectoryHandle,
                     sizeof(nint));

@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.OpenApi
 {
     using Microsoft.AspNetCore.Mvc.Controllers;
-    using Microsoft.OpenApi.Models;
+    using Microsoft.OpenApi;
     using Swashbuckle.AspNetCore.SwaggerGen;
 
     public class OnlyApiMethodsFilter : IDocumentFilter

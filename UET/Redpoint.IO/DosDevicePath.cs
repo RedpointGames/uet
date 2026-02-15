@@ -39,21 +39,18 @@
                 var driveRoot = Path.GetPathRoot(path)!.TrimEnd('\\');
                 {
                     char[] buffer = new char[PInvoke.MAX_PATH];
-                    fixed (char* bufferPtr = buffer)
+                    uint length = PInvoke.QueryDosDevice(driveRoot, buffer);
+                    if (length == 0)
                     {
-                        uint length = PInvoke.QueryDosDevice(driveRoot, bufferPtr, (uint)buffer.Length);
-                        if (length == 0)
+                        throw new Win32Exception(Marshal.GetLastWin32Error());
+                    }
+                    int end;
+                    for (end = 0; end < buffer.Length; end++)
+                    {
+                        if (buffer[end] == '\0')
                         {
-                            throw new Win32Exception(Marshal.GetLastWin32Error());
-                        }
-                        int end;
-                        for (end = 0; end < buffer.Length; end++)
-                        {
-                            if (buffer[end] == '\0')
-                            {
-                                dosDevice = new string(buffer, 0, end);
-                                break;
-                            }
+                            dosDevice = new string(buffer, 0, end);
+                            break;
                         }
                     }
                 }

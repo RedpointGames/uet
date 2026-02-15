@@ -15,7 +15,7 @@
                 1, 2, 3, 4, 5, 6
             };
 
-            await inputs.ToAsyncEnumerable().SelectFastAwait(async input =>
+            await inputs.ToAsyncEnumerable().SelectFast(async input =>
             {
                 Assert.NotEqual(0, input);
                 await Task.Delay(input * 10).ConfigureAwait(true);

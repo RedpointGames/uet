@@ -10,10 +10,11 @@ namespace Redpoint.Windows.HandleManagement
     using System.Threading.Tasks;
     using global::Windows.Win32;
     using global::Windows.Win32.Foundation;
-    using global::Windows.Win32.System.WindowsProgramming;
     using Redpoint.Windows.VolumeManagement;
     using Redpoint.Collections;
     using System.Linq;
+    using global::Windows.Wdk.System.SystemInformation;
+    using global::Windows.Wdk.Foundation;
 
     /// <summary>
     /// Static API methods for querying and closing handles on Windows.
@@ -111,7 +112,7 @@ namespace Redpoint.Windows.HandleManagement
                 unchecked
                 {
                     uint returnLength = 0;
-                    NTSTATUS status = PInvoke.NtQuerySystemInformation(
+                    NTSTATUS status = global::Windows.Wdk.PInvoke.NtQuerySystemInformation(
                         _systemHandleInformation,
                         null,
                         0,
@@ -127,7 +128,7 @@ namespace Redpoint.Windows.HandleManagement
                         var resultHandles = new List<SYSTEM_HANDLE>();
                         try
                         {
-                            status = PInvoke.NtQuerySystemInformation(
+                            status = global::Windows.Wdk.PInvoke.NtQuerySystemInformation(
                                 _systemHandleInformation,
                                 (void*)ptr,
                                 returnLength,
@@ -210,7 +211,7 @@ namespace Redpoint.Windows.HandleManagement
                 {
                     status = NtDuplicateObject(
                         targetProcessHandle,
-                        (HANDLE)targetHandle.Handle,
+                        (HANDLE)(nint)targetHandle.Handle,
                         PInvoke.GetCurrentProcess(),
                         &duplicatedHandle,
                         0, 0, 0);
@@ -482,8 +483,8 @@ namespace Redpoint.Windows.HandleManagement
                 {
                     NTSTATUS status = NtDuplicateObject(
                         targetProcessHandle,
-                        (HANDLE)nativeHandleInternal.Handle.Handle,
-                        (HANDLE)0,
+                        (HANDLE)(nint)nativeHandleInternal.Handle.Handle,
+                        (HANDLE)(nint)0,
                         (nint*)(nint)0,
                         0,
                         0,

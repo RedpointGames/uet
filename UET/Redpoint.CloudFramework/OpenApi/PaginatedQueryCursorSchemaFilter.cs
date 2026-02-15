@@ -1,17 +1,17 @@
 ﻿namespace Redpoint.CloudFramework.OpenApi
 {
-    using Microsoft.OpenApi.Models;
+    using Microsoft.OpenApi;
     using Redpoint.CloudFramework.Repository.Pagination;
     using Swashbuckle.AspNetCore.SwaggerGen;
 
     internal class PaginatedQueryCursorSchemaFilter : ISchemaFilter
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
         {
             if (context.Type == typeof(PaginatedQueryCursor))
             {
-                schema.Properties = null;
-                schema.Type = "string";
+                ((OpenApiSchema)schema).Properties = null;
+                ((OpenApiSchema)schema).Type = JsonSchemaType.String;
             }
         }
     }

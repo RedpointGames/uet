@@ -19,7 +19,7 @@
         {
             private char[] _buffer = new char[PInvoke.MAX_PATH];
             private SystemVolume? _current;
-            private global::Windows.Win32.Storage.FileSystem.FindVolumeHandle? _iterationHandle;
+            private HANDLE? _iterationHandle;
 
             [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "Raises the IndexOutOfRangeException only when the indexer is out of range.")]
             public SystemVolume Current
@@ -61,9 +61,12 @@
                         var volumeName = GetStringFromBuffer();
 
                         var volumeIdRaw = volumeName[4..].TrimEnd('\\');
-                        if (PInvoke.QueryDosDevice(volumeIdRaw, buffer, (uint)_buffer.Length) == 0x0)
+                        fixed (char* volumeIdRawPtr = volumeIdRaw)
                         {
-                            throw new Win32Exception(Marshal.GetLastWin32Error());
+                            if (PInvoke.QueryDosDevice(volumeIdRawPtr, buffer, (uint)_buffer.Length) == 0x0)
+                            {
+                                throw new Win32Exception(Marshal.GetLastWin32Error());
+                            }
                         }
                         var deviceName = GetStringFromBuffer();
 
