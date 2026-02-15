@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.Vfs.Layer.Scratch
 {
     using BitFaster.Caching.Lru;
-    using KeyedSemaphores;
     using Microsoft.Extensions.Logging;
     using System.Collections.Generic;
     using System.IO;
