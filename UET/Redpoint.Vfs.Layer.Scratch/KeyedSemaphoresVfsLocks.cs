@@ -1,16 +1,16 @@
 ﻿namespace Redpoint.Vfs.Layer.Scratch
 {
-    using KeyedSemaphores;
+    using AsyncKeyedLock;
     using System.Collections.Concurrent;
 
     internal sealed class KeyedSemaphoresVfsLocks : IVfsLocks
     {
-        private readonly KeyedSemaphoresCollection<string> _locks;
+        private readonly StripedAsyncKeyedLocker<string> _locks;
         private readonly ConcurrentDictionary<string, string> _lockHolders;
 
         public KeyedSemaphoresVfsLocks()
         {
-            _locks = new KeyedSemaphoresCollection<string>(256);
+            _locks = new StripedAsyncKeyedLocker<string>(256);
             _lockHolders = new ConcurrentDictionary<string, string>();
         }
 
