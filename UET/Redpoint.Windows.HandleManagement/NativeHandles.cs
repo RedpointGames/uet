@@ -378,7 +378,7 @@ namespace Redpoint.Windows.HandleManagement
 
             return handles.GroupBy(x => x.ProcessId)
                 .ToAsyncEnumerable()
-                .SelectFastAwait(async handleGroup =>
+                .SelectFast(async handleGroup =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     return await Task.Run(() =>
@@ -421,7 +421,7 @@ namespace Redpoint.Windows.HandleManagement
 
             return handles.GroupBy(x => x.ProcessId)
                 .ToAsyncEnumerable()
-                .SelectFastAwait(async handleGroup =>
+                .SelectFast(async handleGroup =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     return await Task.Run(() =>
