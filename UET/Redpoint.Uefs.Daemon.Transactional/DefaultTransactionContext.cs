@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uefs.Daemon.Transactional
+namespace Redpoint.Uefs.Daemon.Transactional
 {
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using Redpoint.Uefs.Protocol;
@@ -77,6 +77,8 @@
                 @lock.Dispose();
             }
             _obtainedLocks.Clear();
+
+            _database.Dispose();
 
             return ValueTask.CompletedTask;
         }
