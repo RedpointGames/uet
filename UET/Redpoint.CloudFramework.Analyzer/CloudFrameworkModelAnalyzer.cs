@@ -16,6 +16,8 @@
         public const string InheritDiagnosticId = "CloudFrameworkModelAnalyzerInherit";
         public const string SealedDiagnosticId = "CloudFrameworkModelAnalyzerSealed";
 
+#pragma warning disable RS2008 // Enable analyzer release tracking
+
         private static readonly DiagnosticDescriptor _inheritRule = new DiagnosticDescriptor(
             InheritDiagnosticId,
             "Inheritance of Model<T> should have T match inheriting type",
@@ -33,6 +35,8 @@
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "Cloud Framework models must be sealed.");
+
+#pragma warning restore RS2008 // Enable analyzer release tracking
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {

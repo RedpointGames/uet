@@ -4,7 +4,7 @@
     using Microsoft.AspNetCore.Mvc.ApplicationModels;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
-    using Microsoft.OpenApi.Models;
+    using Microsoft.OpenApi;
     using NodaTime;
     using System;
     using System.IO;
@@ -60,7 +60,7 @@
                 {
                     return new OpenApiSchema
                     {
-                        Type = "string",
+                        Type = JsonSchemaType.String,
                         Format = "date-time",
                     };
                 });

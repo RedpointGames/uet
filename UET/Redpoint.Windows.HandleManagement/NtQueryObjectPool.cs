@@ -3,10 +3,10 @@
     using Microsoft.Win32.SafeHandles;
     using System;
     using System.Collections.Concurrent;
-    using global::Windows.Win32.System.WindowsProgramming;
     using global::Windows.Win32.Foundation;
     using System.Runtime;
     using System.Diagnostics;
+    using global::Windows.Wdk.Foundation;
 
     internal sealed class NtQueryObjectPool
     {
@@ -71,8 +71,8 @@
                         unsafe
                         {
                             uint returnLength = 0;
-                            result.ResultCode = global::Windows.Win32.PInvoke.NtQueryObject(
-                                new SafeFileHandle(result.Handle, false),
+                            result.ResultCode = global::Windows.Wdk.PInvoke.NtQueryObject(
+                                result.Handle,
                                 result.ObjectInformationClass,
                                 (void*)result.ObjectInformation,
                                 result.ObjectInformationLength,

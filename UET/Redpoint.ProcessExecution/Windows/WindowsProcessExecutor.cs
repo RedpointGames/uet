@@ -343,7 +343,7 @@
                         {
                             if (!retVal)
                             {
-                                throw new Win32Exception(errorCode, $"Result of CreateProcess was {retVal} with last Win32 error {errorCode}, hProcess handle was {processInfo.hProcess.Value}.");
+                                throw new Win32Exception(errorCode, $"Result of CreateProcess was {retVal} with last Win32 error {errorCode}, hProcess handle was {processInfo.hProcess}.");
                             }
 
                             // If we have per-process drive mappings, go and apply them to the

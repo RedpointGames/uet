@@ -4,7 +4,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Microsoft.OpenApi.Writers;
+    using Microsoft.OpenApi;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CommandLine;
     using Swashbuckle.AspNetCore.Swagger;

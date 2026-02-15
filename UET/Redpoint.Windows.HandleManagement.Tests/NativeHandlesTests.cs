@@ -52,7 +52,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         {
             Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
-            Assert.NotEmpty(await NativeHandles.GetAllHandlesAsync(CancellationToken.None).ToListAsync());
+            Assert.NotEmpty(await NativeHandles.GetAllHandlesAsync(CancellationToken.None).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact(Skip = "This test is unreliable.")]
@@ -61,7 +61,7 @@ namespace Redpoint.Windows.HandleManagement.Tests
         {
             Assert.SkipUnless(OperatingSystem.IsWindowsVersionAtLeast(6, 2), "Windows version too old.");
 
-            Assert.NotEmpty(await NativeHandles.GetAllFileHandlesAsync(CancellationToken.None).ToListAsync());
+            Assert.NotEmpty(await NativeHandles.GetAllFileHandlesAsync(CancellationToken.None).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact(Skip = "This test is unreliable.")]

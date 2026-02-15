@@ -10,9 +10,7 @@
     using Microsoft.AspNetCore.Routing;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.FileProviders;
-    using Microsoft.OpenApi.Any;
-    using Microsoft.OpenApi.Models;
-    using Microsoft.OpenApi.Writers;
+    using Microsoft.OpenApi;
     using React;
     using Redpoint.CloudFramework.OpenApi;
     using Swashbuckle.AspNetCore.Swagger;
@@ -154,16 +152,16 @@
 
             Assert.NotEmpty(swagger.Paths);
             var testPath = Assert.Contains("/api/v1/test", swagger.Paths);
-            var testGetPath = Assert.Contains(OperationType.Get, testPath.Operations);
+            var testGetPath = Assert.Contains(HttpMethod.Get, testPath.Operations!);
             Assert.Equal("Test", testGetPath.OperationId);
 
-            Assert.NotEmpty(swagger.Components.Schemas);
+            Assert.NotEmpty(swagger.Components!.Schemas!);
 
-            var testEnumSchema = Assert.Contains("TestEnum", swagger.Components.Schemas);
-            Assert.NotEmpty(testEnumSchema.Enum);
-            Assert.All(testEnumSchema.Enum, x => Assert.IsType<OpenApiString>(x));
+            var testEnumSchema = Assert.Contains("TestEnum", swagger.Components.Schemas!);
+            Assert.NotEmpty(testEnumSchema.Enum!);
+            Assert.All(testEnumSchema.Enum!, x => Assert.Equal(JsonValueKind.String, x.GetValueKind()));
 
-            var enumValues = testEnumSchema.Enum.Cast<OpenApiString>().Select(x => x.Value).ToList();
+            var enumValues = testEnumSchema.Enum!.Select(x => x.GetValue<string>()).ToList();
             Assert.Equal(2, enumValues.Count);
             Assert.Equal("test", enumValues[0]);
             Assert.Equal("anotherCamelCase", enumValues[1]);

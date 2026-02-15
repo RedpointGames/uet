@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.OpenApi
 {
     using Microsoft.AspNetCore.Http;
-    using Microsoft.OpenApi.Models;
+    using Microsoft.OpenApi;
     using Swashbuckle.AspNetCore.SwaggerGen;
     using System;
     using System.Linq;
@@ -14,14 +14,14 @@
             ArgumentNullException.ThrowIfNull(context);
 
             var fileUploadMime = "multipart/form-data";
-            if (operation.RequestBody == null || !operation.RequestBody.Content.Any(x => x.Key.Equals(fileUploadMime, StringComparison.OrdinalIgnoreCase)))
+            if (operation.RequestBody == null || !operation.RequestBody.Content!.Any(x => x.Key.Equals(fileUploadMime, StringComparison.OrdinalIgnoreCase)))
                 return;
 
             var fileParams = context.MethodInfo.GetParameters().Where(p => p.ParameterType == typeof(IFormFile));
-            operation.RequestBody.Content[fileUploadMime].Schema.Properties =
-                fileParams.ToDictionary(k => k.Name ?? string.Empty, v => new OpenApiSchema()
+            ((OpenApiSchema)operation.RequestBody.Content![fileUploadMime].Schema!).Properties =
+                fileParams.ToDictionary(k => k.Name ?? string.Empty, v => (IOpenApiSchema)new OpenApiSchema()
                 {
-                    Type = "string",
+                    Type = JsonSchemaType.String,
                     Format = "binary"
                 });
         }

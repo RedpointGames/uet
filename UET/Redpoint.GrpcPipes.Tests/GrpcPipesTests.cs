@@ -71,7 +71,7 @@ namespace Redpoint.GrpcPipes.Tests
                 GrpcPipeNamespace.User,
                 channel => new TestServiceClient(channel));
 
-            await client.TestMethodAsync(new TestRequest());
+            await client.TestMethodAsync(new TestRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
             await server.StopAsync();
 
@@ -109,7 +109,7 @@ namespace Redpoint.GrpcPipes.Tests
                 new IPEndPoint(IPAddress.Loopback, server.NetworkPort),
                 channel => new TestServiceClient(channel));
 
-            await client.TestMethodAsync(new TestRequest());
+            await client.TestMethodAsync(new TestRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
             await server.StopAsync();
 
@@ -171,7 +171,7 @@ namespace Redpoint.GrpcPipes.Tests
                 GrpcPipeNamespace.Computer,
                 channel => new TestServiceClient(channel));
 
-            await client.TestMethodAsync(new TestRequest());
+            await client.TestMethodAsync(new TestRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
             await server.StopAsync();
 
@@ -224,7 +224,7 @@ namespace Redpoint.GrpcPipes.Tests
                 GrpcPipeNamespace.Computer,
                 channel => new TestServiceClient(channel));
 
-            await client.TestMethodAsync(new TestRequest());
+            await client.TestMethodAsync(new TestRequest(), cancellationToken: TestContext.Current.CancellationToken);
 
             await server.StopAsync();
 

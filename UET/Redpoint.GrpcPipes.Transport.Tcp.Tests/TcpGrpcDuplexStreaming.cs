@@ -7,6 +7,8 @@
     using System.Net.Sockets;
     using Xunit;
 
+#pragma warning disable xUnit1051
+
     public class TcpGrpcDuplexStreaming : TcpGrpcTestBase
     {
         public TcpGrpcDuplexStreaming(ITestOutputHelper output) : base(output)
@@ -227,4 +229,7 @@
         }
 
     }
+
+#pragma warning restore xUnit1051
+
 }

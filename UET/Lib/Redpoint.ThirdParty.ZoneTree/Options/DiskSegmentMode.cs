@@ -7,13 +7,13 @@ public enum DiskSegmentMode : byte
 {
     /// <summary>
     /// Disk segments are kept in single file.
-    /// Recommended for db size < sizeof(int) x 10M
+    /// Recommended for db size &lt; sizeof(int) x 10M
     /// </summary>
     SingleDiskSegment = 0,
 
     /// <summary>
     /// Disk Segments are partitioned into several files.
-    /// Recommended for db size > sizeof(int) x 10M
+    /// Recommended for db size &gt; sizeof(int) x 10M
     /// </summary>
     MultiPartDiskSegment = 1,
 }

@@ -95,11 +95,11 @@ namespace Redpoint.Uet.Automation.Tests
             {
                 if (Debugger.IsAttached)
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TestContext.Current.CancellationToken);
                 }
                 else
                 {
-                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000), $"Expected to complete in {_timeoutSeconds} seconds");
+                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000, TestContext.Current.CancellationToken), $"Expected to complete in {_timeoutSeconds} seconds");
                 }
             }
             finally
@@ -182,11 +182,11 @@ namespace Redpoint.Uet.Automation.Tests
             {
                 if (Debugger.IsAttached)
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TestContext.Current.CancellationToken);
                 }
                 else
                 {
-                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000), $"Expected to complete in {_timeoutSeconds} seconds");
+                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000, TestContext.Current.CancellationToken), $"Expected to complete in {_timeoutSeconds} seconds");
                 }
             }
             finally
@@ -260,11 +260,11 @@ namespace Redpoint.Uet.Automation.Tests
             {
                 if (Debugger.IsAttached)
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TestContext.Current.CancellationToken);
                 }
                 else
                 {
-                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000), $"Expected to complete in {_timeoutSeconds} seconds");
+                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000, TestContext.Current.CancellationToken), $"Expected to complete in {_timeoutSeconds} seconds");
                 }
             }
             finally
@@ -337,11 +337,11 @@ namespace Redpoint.Uet.Automation.Tests
             {
                 if (Debugger.IsAttached)
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TestContext.Current.CancellationToken);
                 }
                 else
                 {
-                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000), $"Expected to complete in {_timeoutSeconds} seconds");
+                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000, TestContext.Current.CancellationToken), $"Expected to complete in {_timeoutSeconds} seconds");
                 }
             }
             finally
@@ -413,11 +413,11 @@ namespace Redpoint.Uet.Automation.Tests
             {
                 if (Debugger.IsAttached)
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(TestContext.Current.CancellationToken);
                 }
                 else
                 {
-                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000), $"Expected to complete in {_timeoutSeconds} seconds");
+                    Assert.True(await semaphore.WaitAsync(_timeoutSeconds * 1000, TestContext.Current.CancellationToken), $"Expected to complete in {_timeoutSeconds} seconds");
                 }
             }
             finally

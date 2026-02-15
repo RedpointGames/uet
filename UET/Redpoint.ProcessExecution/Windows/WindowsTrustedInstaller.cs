@@ -50,18 +50,23 @@
                 (PCWSTR)null,
                 (PCWSTR)null,
                 PInvoke.SC_MANAGER_CONNECT);
-            if (scm.Value == 0)
+            if (scm.Value == null)
             {
                 // Can't open the service manager.
                 throw new RunAsTrustedInstallerFailedException("Unable to access the Service Control Manager.");
             }
             try
             {
-                SC_HANDLE service = PInvoke.OpenService(
-                    scm,
-                    "TrustedInstaller",
-                    PInvoke.SERVICE_QUERY_STATUS);
-                if (service.Value == 0)
+                string trustedInstaller = "TrustedInstaller";
+                SC_HANDLE service;
+                fixed (char* trustedInstallerPtr = trustedInstaller)
+                {
+                    service = PInvoke.OpenService(
+                        (SC_HANDLE)(nint)scm.Value,
+                        (PCWSTR)trustedInstallerPtr,
+                        PInvoke.SERVICE_QUERY_STATUS);
+                }
+                if (service.Value == null)
                 {
                     // Can't open service.
                     throw new RunAsTrustedInstallerFailedException("Unable to access the 'TrustedInstaller' service on the Service Control Manager.");

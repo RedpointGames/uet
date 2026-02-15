@@ -71,7 +71,7 @@
                     channel => new TestServiceClient(channel));
 
                 // See if we can make a request.
-                var response = await client.TestMethodAsync(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(5));
+                var response = await client.TestMethodAsync(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.NotNull(response);
 
                 for (int i = 0; i < 3; i++)
@@ -79,11 +79,11 @@
                     // See if we can make a request with a short deadline.
                     await Assert.ThrowsAsync<RpcException>(async () =>
                     {
-                        await client.TestMethodAsync(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(1));
+                        await client.TestMethodAsync(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(1), cancellationToken: TestContext.Current.CancellationToken);
                     });
 
                     // Can we still make requests?
-                    response = await client.TestMethodAsync(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(5));
+                    response = await client.TestMethodAsync(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
                     Assert.NotNull(response);
                 }
 
@@ -92,7 +92,7 @@
                     // See if we can make a streaming request with a short deadline.
                     await Assert.ThrowsAsync<RpcException>(async () =>
                     {
-                        var streamingResponse = client.TestStreamingMethod(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(1));
+                        var streamingResponse = client.TestStreamingMethod(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(1), cancellationToken: TestContext.Current.CancellationToken);
                         while (await streamingResponse.ResponseStream.MoveNext())
                         {
                             _ = streamingResponse.ResponseStream.Current;
@@ -100,7 +100,7 @@
                     });
 
                     // Can we still make requests?
-                    var streamingResponse = client.TestStreamingMethod(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(10));
+                    var streamingResponse = client.TestStreamingMethod(new TestRequest(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: TestContext.Current.CancellationToken);
                     while (await streamingResponse.ResponseStream.MoveNext())
                     {
                         _ = streamingResponse.ResponseStream.Current;

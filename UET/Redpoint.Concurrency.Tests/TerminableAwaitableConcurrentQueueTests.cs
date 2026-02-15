@@ -18,7 +18,7 @@
             queue.Enqueue(4);
             queue.Terminate();
 
-            var list = await queue.ToListAsync();
+            var list = await queue.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(new[] { 1, 2, 3, 4 }, list);
         }
 
@@ -37,7 +37,7 @@
                     queue.Enqueue(i);
                 }
                 queue.Terminate();
-            });
+            }, TestContext.Current.CancellationToken);
             var dequeue = Task.Run(async () =>
             {
                 bool terminate;
@@ -49,7 +49,7 @@
                         Interlocked.Increment(ref seen);
                     }
                 } while (!terminate);
-            });
+            }, TestContext.Current.CancellationToken);
             await Task.WhenAll(enqueue, dequeue);
             Assert.Equal(100000, seen);
         }

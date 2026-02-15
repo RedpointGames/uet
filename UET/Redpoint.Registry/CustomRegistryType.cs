@@ -20,40 +20,45 @@
         {
             ArgumentNullException.ThrowIfNull(key);
 
-            REG_VALUE_TYPE type = REG_VALUE_TYPE.REG_NONE;
-            uint dataSize = 0;
-            var error = PInvoke.RegQueryValueEx(
-                key.Handle,
-                name,
-                &type,
-                null,
-                &dataSize);
-            if (error != WIN32_ERROR.ERROR_SUCCESS)
+            fixed (char* namePtr = name)
             {
-                throw new Win32Exception((int)error);
-            }
-
-            var buffer = Marshal.AllocHGlobal((int)dataSize);
-            try
-            {
-                error = PInvoke.RegQueryValueEx(
-                    key.Handle,
-                    name,
+                REG_VALUE_TYPE type = REG_VALUE_TYPE.REG_NONE;
+                uint dataSize = 0;
+                var error = PInvoke.RegQueryValueEx(
+                    (HKEY)key.Handle.DangerousGetHandle(),
+                    (PCWSTR)namePtr,
+                    (uint*)null,
                     &type,
-                    (byte*)buffer,
+                    (byte*)null,
                     &dataSize);
                 if (error != WIN32_ERROR.ERROR_SUCCESS)
                 {
                     throw new Win32Exception((int)error);
                 }
 
-                var data = new byte[dataSize];
-                Marshal.Copy(buffer, data, 0, (int)dataSize);
-                return ((uint)type, data);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(buffer);
+                var buffer = Marshal.AllocHGlobal((int)dataSize);
+                try
+                {
+                    error = PInvoke.RegQueryValueEx(
+                        (HKEY)key.Handle.DangerousGetHandle(),
+                        namePtr,
+                        (uint*)null,
+                        &type,
+                        (byte*)buffer,
+                        &dataSize);
+                    if (error != WIN32_ERROR.ERROR_SUCCESS)
+                    {
+                        throw new Win32Exception((int)error);
+                    }
+
+                    var data = new byte[dataSize];
+                    Marshal.Copy(buffer, data, 0, (int)dataSize);
+                    return ((uint)type, data);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buffer);
+                }
             }
         }
 
