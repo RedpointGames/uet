@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.Uefs.Daemon.Transactional
 {
-    using KeyedSemaphores;
+    using AsyncKeyedLock;
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Uefs.Daemon.Transactional.Abstractions;
     using System;
@@ -14,7 +14,7 @@
     {
         private IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultTransactionalDatabase> _logger;
-        private KeyedSemaphoresCollection<string> _semaphores;
+        private StripedAsyncKeyedLocker<string> _semaphores;
         internal string? _currentMountOperation;
 
         private readonly Concurrency.Semaphore _transactionListSemasphore;
@@ -27,7 +27,7 @@
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
-            _semaphores = new KeyedSemaphoresCollection<string>(1024);
+            _semaphores = new StripedAsyncKeyedLocker<string>(1024);
 
             _transactionListSemasphore = new Concurrency.Semaphore(1);
             _transactionList = new Dictionary<string, IWaitableTransaction>();
