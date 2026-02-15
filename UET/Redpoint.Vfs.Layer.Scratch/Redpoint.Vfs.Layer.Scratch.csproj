@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="BitFaster.Caching" />
-    <PackageReference Include="KeyedSemaphores" />
+    <PackageReference Include="AsyncKeyedLock" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
