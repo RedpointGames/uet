@@ -1,4 +1,4 @@
-﻿namespace Redpoint.Uefs.Daemon.Transactional
+namespace Redpoint.Uefs.Daemon.Transactional
 {
     using AsyncKeyedLock;
     using Microsoft.Extensions.DependencyInjection;
@@ -10,11 +10,12 @@
     using Redpoint.Concurrency;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class DefaultTransactionalDatabase : ITransactionalDatabase
+    internal sealed class DefaultTransactionalDatabase : ITransactionalDatabase, IDisposable
+      
     {
         private IServiceProvider _serviceProvider;
         private readonly ILogger<DefaultTransactionalDatabase> _logger;
-        private StripedAsyncKeyedLocker<string> _semaphores;
+        private readonly StripedAsyncKeyedLocker<string> _semaphores;
         internal string? _currentMountOperation;
 
         private readonly Concurrency.Semaphore _transactionListSemasphore;
@@ -299,6 +300,11 @@
             {
                 _transactionListSemasphore.Release();
             }
+        }
+
+        public void Dispose()
+        {
+            _semaphores.Dispose();
         }
     }
 }
