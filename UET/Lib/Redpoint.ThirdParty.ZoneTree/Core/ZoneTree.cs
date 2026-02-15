@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Threading;
 using Tenray.ZoneTree.Collections;
 using Tenray.ZoneTree.Logger;
 using Tenray.ZoneTree.Options;
@@ -31,13 +32,13 @@ public sealed partial class ZoneTree<TKey, TValue> : IZoneTree<TKey, TValue>, IZ
 
     readonly IIncrementalIdProvider IncrementalIdProvider = new IncrementalIdProvider();
 
-    readonly object AtomicUpdateLock = new();
+    readonly Lock AtomicUpdateLock = new();
 
-    readonly object LongMergerLock = new();
+    readonly Lock LongMergerLock = new();
 
-    readonly object LongBottomSegmentsMergerLock = new();
+    readonly Lock LongBottomSegmentsMergerLock = new();
 
-    readonly object ShortMergerLock = new();
+    readonly Lock ShortMergerLock = new();
 
     volatile bool IsMergingFlag;
 
