@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
+    using System.Threading;
 
     public static class UetPaths
     {
@@ -152,7 +153,7 @@
 
         private static string _uefsRootPathValue = string.Empty;
         private static bool _isUefsRootPathInitialized = false;
-        private static object _uefsRootPathInitializationLock = new object();
+        private static Lock _uefsRootPathInitializationLock = new Lock();
 
         private static (bool exists, bool mounted, string mountPoint) GetMacBuildVolumeMount()
         {
