@@ -6,8 +6,6 @@ namespace Tenray.ZoneTree.Collections.BTree;
 /// In memory B+Tree.
 /// This class is thread-safe.
 /// </summary>
-/// <typeparam name="TKey">Key Type</typeparam>
-/// <typeparam name="TValue">Value Type</typeparam>
 public sealed partial class BTree<TKey, TValue>
 {
     public bool Upsert(in TKey key, in TValue value, out long opIndex)
@@ -82,7 +80,7 @@ public sealed partial class BTree<TKey, TValue>
                 return result;
             }
         }
-        catch(Exception)
+        catch (Exception)
         {
             Root.WriteUnlock();
             throw;
@@ -176,7 +174,7 @@ public sealed partial class BTree<TKey, TValue>
             var lockTimeout = 500;
             var next = childLeaf.Next;
             var isNextLocked = true;
-            while(true)
+            while (true)
             {
                 if (next != null)
                     isNextLocked = next.TryEnterWriteLock(lockTimeout);
@@ -219,7 +217,7 @@ public sealed partial class BTree<TKey, TValue>
 
             left.Previous = pre;
             right.Next = next;
-            
+
             if (pre == null)
                 FirstLeafNode = left;
             else
@@ -325,7 +323,7 @@ public sealed partial class BTree<TKey, TValue>
     }
 
     AddOrUpdateResult TryAddOrUpdateNonFull(
-        Node node, in TKey key, AddDelegate adder, UpdateDelegate updater, 
+        Node node, in TKey key, AddDelegate adder, UpdateDelegate updater,
         out long opIndex)
     {
         while (true)

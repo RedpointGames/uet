@@ -22,14 +22,14 @@
                 await gate.WaitAsync(new CancellationTokenSource(TimeSpan.FromMilliseconds(500)).Token);
                 Assert.True(st.ElapsedMilliseconds < 500, "Expected gate WaitAsync to proceed immediately after unlock");
                 Assert.True(isOpen);
-            });
+            }, TestContext.Current.CancellationToken);
 
             var task2 = Task.Run(async () =>
             {
                 await Task.Delay(100);
                 isOpen = true;
                 gate.Open();
-            });
+            }, TestContext.Current.CancellationToken);
 
             await Task.WhenAll(task1, task2);
         }

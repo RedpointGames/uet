@@ -6,8 +6,6 @@ namespace Tenray.ZoneTree.Collections.BTree;
 /// In memory B+Tree.
 /// This class is thread-safe.
 /// </summary>
-/// <typeparam name="TKey">Key Type</typeparam>
-/// <typeparam name="TValue">Value Type</typeparam>
 public sealed partial class BTree<TKey, TValue>
 {
     public bool ContainsKey(in TKey key)

@@ -7,6 +7,8 @@
     using System.Net.Sockets;
     using Xunit;
 
+#pragma warning disable xUnit1051
+
     public class TcpGrpcUnary : TcpGrpcTestBase
     {
         public TcpGrpcUnary(ITestOutputHelper output) : base(output)
@@ -163,4 +165,7 @@
             Assert.Equal("foo bar", responseTrailers.Get("trailer")?.Value);
         }
     }
+
+#pragma warning restore xUnit1051
+
 }

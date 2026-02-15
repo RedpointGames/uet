@@ -1,24 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.MSTest" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.MSTest" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeRefactoring.Testing.MSTest" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Analyzer.Testing.MSTest" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing.MSTest" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeRefactoring.Testing.MSTest" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeRefactoring.Testing" />
+		<PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Analyzer.Testing" />
+		<PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing" />
+		<PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeRefactoring.Testing" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.CodeFixes\Redpoint.CloudFramework.Analyzer.CodeFixes.csproj" />
-    <ProjectReference Include="..\Redpoint.CloudFramework.Analyzer\Redpoint.CloudFramework.Analyzer.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.CodeFixes\Redpoint.CloudFramework.Analyzer.CodeFixes.csproj" />
+		<ProjectReference Include="..\Redpoint.CloudFramework.Analyzer\Redpoint.CloudFramework.Analyzer.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Verifiers\" />
-  </ItemGroup>
+	<ItemGroup>
+		<Folder Include="Verifiers\" />
+	</ItemGroup>
 
 </Project>

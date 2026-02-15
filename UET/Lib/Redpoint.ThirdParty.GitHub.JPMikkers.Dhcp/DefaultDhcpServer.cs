@@ -375,7 +375,7 @@ public class DefaultDhcpServer : IDhcpServer
             }
 
             _socket.Dispose();
-            _logger.LogTrace("Stopped");
+            _logger?.LogTrace("Stopped");
         }
 
         if (notify)
