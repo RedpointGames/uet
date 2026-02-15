@@ -4,11 +4,12 @@
 namespace Spekt.TestLogger.Core
 {
     using System.Collections.Generic;
+    using System.Threading;
 
     public class TestResultStore : ITestResultStore
     {
-        private readonly object messageLock = new ();
-        private readonly object resultLock = new ();
+        private readonly Lock messageLock = new ();
+        private readonly Lock resultLock = new ();
 
         private List<TestResultInfo> results;
         private List<TestMessageInfo> messages;
