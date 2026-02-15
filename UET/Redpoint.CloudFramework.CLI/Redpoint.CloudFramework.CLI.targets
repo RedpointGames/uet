@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <Target Name="RedpointCloudFrameworkGenerateOpenApi" AfterTargets="Build" BeforeTargets="RedpointCloudFrameworkBuildClientApps" Condition="'@(OpenApiJsonOutput)' != ''">
-    <Exec Command="&quot;$(NetCoreRoot)dotnet&quot; &quot;$(RedpointCloudFrameworkCliPath)&quot; generate-openapi-json --assembly-path &quot;$(ProjectDir)$(OutputPath)$(AssemblyName).dll&quot; --output-path &quot;%(OpenApiJsonOutput.FullPath)&quot; --entrypoint-class &quot;$(RootNamespace).Program&quot;" Condition="'%(OpenApiJsonOutput.Version)' == ''"  />
-    <Exec Command="&quot;$(NetCoreRoot)dotnet&quot; &quot;$(RedpointCloudFrameworkCliPath)&quot; generate-openapi-json --assembly-path &quot;$(ProjectDir)$(OutputPath)$(AssemblyName).dll&quot; --output-path &quot;%(OpenApiJsonOutput.FullPath)&quot; --entrypoint-class &quot;$(RootNamespace).Program&quot; --version &quot;%(OpenApiJsonOutput.Version)&quot;" Condition="'%(OpenApiJsonOutput.Version)' != ''"  />
+    <Exec Command="&quot;$(NetCoreRoot)dotnet&quot; &quot;$(RedpointCloudFrameworkCliPath)&quot; generate-openapi-json --assembly-path &quot;$(ProjectDir)$(OutputPath)$(AssemblyName).dll&quot; --output-path &quot;%(OpenApiJsonOutput.FullPath)&quot;" Condition="'%(OpenApiJsonOutput.Version)' == ''"  />
+    <Exec Command="&quot;$(NetCoreRoot)dotnet&quot; &quot;$(RedpointCloudFrameworkCliPath)&quot; generate-openapi-json --assembly-path &quot;$(ProjectDir)$(OutputPath)$(AssemblyName).dll&quot; --output-path &quot;%(OpenApiJsonOutput.FullPath)&quot; --version &quot;%(OpenApiJsonOutput.Version)&quot;" Condition="'%(OpenApiJsonOutput.Version)' != ''"  />
   </Target>
 
   <Target Name="RedpointCloudFrameworkBuildClientApps" AfterTargets="Build;RedpointCloudFrameworkGenerateOpenApi" Inputs="@(ClientApp)" Outputs="$(ProjectDir)wwwroot\dist\asset-manifest.json">
