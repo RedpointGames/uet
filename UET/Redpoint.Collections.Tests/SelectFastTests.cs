@@ -31,18 +31,18 @@
         }
 
         [Fact]
-        public Task SelectManyLinear()
+        public Task SelectManyFastLinear()
         {
-            return SelectMany(EnumerateSourceLinear);
+            return SelectManyFast(EnumerateSourceLinear);
         }
 
         [Fact]
-        public Task SelectManyHorizontal()
+        public Task SelectManyFastHorizontal()
         {
-            return SelectMany(EnumerateSourceHorizontal);
+            return SelectManyFast(EnumerateSourceHorizontal);
         }
 
-        private async Task SelectMany(Func<IAsyncEnumerable<IEnumerable<int>>> enumerableFactory)
+        private async Task SelectManyFast(Func<IAsyncEnumerable<IEnumerable<int>>> enumerableFactory)
         {
             var semaphores = new Dictionary<int, SemaphoreSlim>();
             var ints = await enumerableFactory().SelectMany(x => x).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
@@ -67,6 +67,22 @@
             Assert.Equal(
                 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
                 received);
+        }
+
+        [Fact]
+        public async Task SelectFast()
+        {
+            var inputs = new[]
+            {
+                1, 2, 3, 4, 5, 6
+            };
+
+            await inputs.ToAsyncEnumerable().SelectFast(async input =>
+            {
+                Assert.NotEqual(0, input);
+                await Task.Delay(input * 10).ConfigureAwait(true);
+                return input;
+            }).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
         }
     }
 }

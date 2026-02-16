@@ -21,7 +21,7 @@ namespace Redpoint.Collections
         {
             public required IAsyncEnumerator<TResult> Enumerator { get; set; }
 
-            public Task<TResult>? Current { get; set; }
+            public Task<bool>? Current { get; set; }
 
             public bool NeedsMove { get; set; } = true;
 
@@ -85,9 +85,9 @@ namespace Redpoint.Collections
                 // See if any enumerators have a result for us.
                 foreach (var fl in _inFlight)
                 {
-                    if (fl.Current != null && fl.Current.IsCompleted && !fl.NeedsMove)
+                    if (fl.Current != null && fl.Current.IsCompleted && !fl.NeedsMove && fl.Current.Result)
                     {
-                        Current = fl.Current.Result;
+                        Current = fl.Enumerator.Current;
                         fl.NeedsMove = true;
                         didSetCurrent = true;
 
@@ -153,7 +153,7 @@ namespace Redpoint.Collections
                     {
                         if (await inFlight.Enumerator.MoveNextAsync())
                         {
-                            return inFlight.Enumerator.Current;
+                            return true;
                         }
                         else
                         {
@@ -163,9 +163,8 @@ namespace Redpoint.Collections
                                 inFlight.EndOfEnumerator = true;
                             }
 
-                            // This exception won't be consumed; it just lets us get out of this task
-                            // without returning a result.
-                            throw new EndOfStreamException();
+                            // We have no more data, and Current isn't set on the enumerator.
+                            return false;
                         }
                     },
                     CancellationToken.None);
@@ -192,15 +191,9 @@ namespace Redpoint.Collections
                     tasksToAwait.Add(inFlight.Current);
                 }
             }
-            try
+            if (tasksToAwait.Count > 0)
             {
-                if (tasksToAwait.Count > 0)
-                {
-                    await Task.WhenAny(tasksToAwait);
-                }
-            }
-            catch (EndOfStreamException)
-            {
+                await Task.WhenAny(tasksToAwait);
             }
             goto retryPoll;
         }
