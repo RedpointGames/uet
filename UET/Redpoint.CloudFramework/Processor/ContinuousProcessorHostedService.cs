@@ -11,6 +11,7 @@
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<ContinuousProcessorHostedService<T>> _logger;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
 
         private CancellationTokenSource? _cancellationTokenSource = null;
         private Task? _runningTask = null;
@@ -19,10 +20,12 @@
 
         public ContinuousProcessorHostedService(
             IServiceProvider serviceProvider,
-            ILogger<ContinuousProcessorHostedService<T>> logger)
+            ILogger<ContinuousProcessorHostedService<T>> logger,
+            IHostApplicationLifetime hostApplicationLifetime)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
+            _hostApplicationLifetime = hostApplicationLifetime;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -35,10 +38,40 @@
             _logger.LogInformation($"{_typeName}.StartAsync: Starting the running task via Task.Run.");
             _runningTask = Task.Run(async () =>
             {
-                await using var scope = _serviceProvider.CreateAsyncScope();
-                var instance = scope.ServiceProvider.GetRequiredService<T>();
-                _logger.LogInformation($"{_typeName}.StartAsync: Calling ExecuteAsync inside Task.Run.");
-                await instance.ExecuteAsync(cancellationTokenSource.Token);
+                var retryDelaySeconds = 1;
+                while (!_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested &&
+                       !_hostApplicationLifetime.ApplicationStopped.IsCancellationRequested &&
+                       !cancellationTokenSource.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await using var scope = _serviceProvider.CreateAsyncScope();
+                        var instance = scope.ServiceProvider.GetRequiredService<T>();
+                        _logger.LogInformation($"{_typeName}.StartAsync: Calling ExecuteAsync inside Task.Run.");
+                        await instance.ExecuteAsync(cancellationTokenSource.Token);
+                    }
+                    catch (OperationCanceledException) when
+                        (_hostApplicationLifetime.ApplicationStopping.IsCancellationRequested ||
+                         _hostApplicationLifetime.ApplicationStopped.IsCancellationRequested ||
+                         cancellationTokenSource.IsCancellationRequested)
+                    {
+                        // Application is shutting down.
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"{_typeName}.StartAsync: Unhandled exception in continuous processor.");
+                        retryDelaySeconds *= 2;
+                        if (retryDelaySeconds > 30 * 60)
+                        {
+                            // 30 minutes is long enough.
+                            retryDelaySeconds = 30 * 60;
+                        }
+
+                        _logger.LogInformation($"{_typeName}.StartAsync: Restarting failed continuous processor in {retryDelaySeconds} seconds...");
+                        await Task.Delay(retryDelaySeconds * 1000, cancellationTokenSource.Token);
+                    }
+                }
             }, cancellationTokenSource.Token);
         }
 

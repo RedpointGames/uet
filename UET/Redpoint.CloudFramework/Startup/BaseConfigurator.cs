@@ -36,6 +36,7 @@ namespace Redpoint.CloudFramework.Startup
     using Redpoint.CloudFramework.Storage;
     using Redpoint.CloudFramework.Tracing;
     using Redpoint.Logging.SingleLine;
+    using Sentry.OpenTelemetry;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
@@ -112,14 +113,6 @@ namespace Redpoint.CloudFramework.Startup
             }
         }
 
-        protected static bool IsUsingOtelTracing
-        {
-            get
-            {
-                return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT"));
-            }
-        }
-
         protected virtual void ConfigureAppConfiguration(IHostEnvironment env, IConfigurationBuilder config)
         {
             config.Sources.Clear();
@@ -158,29 +151,8 @@ namespace Redpoint.CloudFramework.Startup
             config.AddEnvironmentVariables();
         }
 
-        private static void AddDefaultLogging(IHostEnvironment hostEnvironment, IServiceCollection services)
-        {
-            services.AddLogging(builder =>
-            {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Information);
-                builder.AddSingleLineConsoleFormatter(options =>
-                {
-                    options.OmitLogPrefix = false;
-                    options.ColorBehavior = hostEnvironment.IsProduction() ? LoggerColorBehavior.Disabled : LoggerColorBehavior.Default;
-                });
-                builder.AddSingleLineConsole();
-            });
-        }
-
         protected virtual void PreStartupConfigureServices(IHostEnvironment hostEnvironment, IConfiguration configuration, IServiceCollection services)
         {
-            if (!_isInteractiveCLIApp)
-            {
-                // Add default logging configuration.
-                AddDefaultLogging(hostEnvironment, services);
-            }
-
             // Add the core stuff that every application needs.
             if (_prefixProvider != null)
             {
@@ -188,6 +160,9 @@ namespace Redpoint.CloudFramework.Startup
             }
             services.AddSingleton(typeof(ICurrentTenantService), _currentTenantService);
             services.AddSingleton(sp => sp.GetServices<IPrefixProvider>().ToArray());
+
+            // Add Otel managed tracer. All tracing goes via Otel (including Sentry).
+            services.AddSingleton<IManagedTracer, OtelManagedTracer>();
 
             if (_googleCloudUsage != GoogleCloudUsageFlag.None)
             {
@@ -240,26 +215,33 @@ namespace Redpoint.CloudFramework.Startup
                                 {
                                     options.UriPrefixes = [prometheusPrefix];
                                 }
-                            }));
-                    var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
-                    if (IsUsingOtelTracing)
-                    {
-                        Console.WriteLine($"Enabling tracing with OTLP export endpoint: {otlpEndpoint}");
-                        telemetryBuilder = telemetryBuilder
-                            .WithTracing(tracing =>
+                            }))
+                        .WithTracing(tracing =>
+                        {
+                            tracing = tracing
+                                .AddAspNetCoreInstrumentation()
+                                .AddHttpClientInstrumentation();
+
+                            var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+                            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
                             {
-                                tracing
-                                    .AddAspNetCoreInstrumentation()
-                                    .AddHttpClientInstrumentation()
-                                    .AddOtlpExporter(otlp =>
-                                    {
-                                        otlp.Endpoint = new Uri(otlpEndpoint!);
-                                        otlp.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
-                                    })
-                                    .AddSource(OtelManagedTracer._sourceName)
-                                    .SetSampler(new TraceIdRatioBasedSampler(_tracingRate));
-                            });
-                    }
+                                Console.WriteLine($"Enabling tracing with OTLP export endpoint: {otlpEndpoint}");
+                                tracing = tracing.AddOtlpExporter(otlp =>
+                                {
+                                    otlp.Endpoint = new Uri(otlpEndpoint!);
+                                    otlp.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
+                                });
+                            }
+
+                            tracing = tracing
+                                .AddSource(OtelManagedTracer._sourceName)
+                                .SetSampler(new TraceIdRatioBasedSampler(_tracingRate));
+
+                            if (!string.IsNullOrWhiteSpace(configuration["Sentry:Dsn"]))
+                            {
+                                tracing = tracing.AddSentry();
+                            }
+                        });
                 }
             }
             catch (Exception ex)

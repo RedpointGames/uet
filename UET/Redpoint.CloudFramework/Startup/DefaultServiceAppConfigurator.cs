@@ -1,4 +1,6 @@
-﻿namespace Redpoint.CloudFramework.Startup
+﻿extern alias RDCommandLine;
+
+namespace Redpoint.CloudFramework.Startup
 {
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,8 @@
     using System.Diagnostics.CodeAnalysis;
     using OpenTelemetry.Metrics;
     using System.Reflection;
+    using Redpoint.Logging.SingleLine;
+    using RDCommandLine::Microsoft.Extensions.Logging.Console;
 
     internal class DefaultServiceAppConfigurator : BaseConfigurator<IServiceAppConfigurator>, IServiceAppConfigurator
     {
@@ -109,6 +113,29 @@
                 {
                     ConfigureAppConfiguration(hostingContext.HostingEnvironment, config);
                 })
+                .ConfigureLogging((context, logging) =>
+                {
+                    logging.AddConfiguration(context.Configuration);
+
+                    logging.ClearProviders();
+
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    logging.AddSingleLineConsoleFormatter(options =>
+                    {
+                        options.OmitLogPrefix = false;
+                        options.ColorBehavior = context.HostingEnvironment.IsProduction() ? LoggerColorBehavior.Disabled : LoggerColorBehavior.Default;
+                    });
+                    logging.AddSingleLineConsole();
+
+                    if (!string.IsNullOrWhiteSpace(context.Configuration["Sentry:Dsn"]))
+                    {
+                        logging.AddSentry(options =>
+                        {
+                            options.Dsn = context.Configuration["Sentry:Dsn"];
+                            options.EnableLogs = true;
+                        });
+                    }
+                })
                 .ConfigureServices((context, services) =>
                 {
                     var configurationBuilder = new ConfigurationBuilder()
@@ -144,15 +171,6 @@
                 })
                 .ConfigureServices((context, services) =>
                 {
-                    if (IsUsingOtelTracing)
-                    {
-                        services.AddSingleton<IManagedTracer, OtelManagedTracer>();
-                    }
-                    else
-                    {
-                        services.AddSingleton<IManagedTracer, NullManagedTracer>();
-                    }
-
                     this.PreStartupConfigureServices(context.HostingEnvironment, context.Configuration, services);
                     this._serviceConfiguration?.Invoke(services, context.Configuration, context.HostingEnvironment);
                     this.PostStartupConfigureServices(services);
