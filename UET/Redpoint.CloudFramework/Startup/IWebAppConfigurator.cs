@@ -13,12 +13,10 @@
     {
         IWebAppConfigurator UseStartup<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] T>();
 
+        [Obsolete("Automatically starting development Docker containers is no longer supported. Please use Helm and Rancher Desktop instead.", true)]
         IWebAppConfigurator UseDevelopmentDockerContainers(Func<IConfiguration, string, DevelopmentDockerContainer[]> factory);
 
         IWebAppConfigurator UseHelm(Func<IConfiguration, string, HelmConfiguration> helmConfig);
-
-        [Obsolete("This is ignored by OpenTelemetry tracing.")]
-        IWebAppConfigurator FilterPathPrefixesFromSentryPerformance(string[] prefixes);
 
         IWebAppConfigurator UseHttp2Only(bool http2Only);
 

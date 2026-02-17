@@ -13,7 +13,7 @@
     {
         private readonly IReadOnlyDictionary<string, string> _prefixes;
         private readonly IReadOnlyDictionary<string, string> _reversePrefixes;
-        private readonly IGoogleServices _googleServices;
+        private readonly IGoogleServices? _googleServices;
         private static readonly char[] _dashSeparator = new[] { '-' };
 
         private class GlobalPrefixRegistration : IPrefixRegistration
@@ -50,7 +50,7 @@
 
         public GlobalPrefix(
             IEnumerable<IPrefixProvider> prefixProviders,
-            IGoogleServices googleServices)
+            IGoogleServices? googleServices = null)
         {
             ArgumentNullException.ThrowIfNull(prefixProviders);
 
@@ -75,6 +75,11 @@
         public Key Parse(string datastoreNamespace, string identifier)
         {
             var prefix = ParsePathElement(identifier);
+
+            if (_googleServices == null)
+            {
+                throw new NotSupportedException("IGlobalPrefix.Parse can not be called if Google Cloud usage is set to None.");
+            }
 
             var k = new Key
             {
@@ -160,6 +165,11 @@
             }
             else
             {
+                if (_googleServices == null)
+                {
+                    throw new NotSupportedException("IGlobalPrefix.ParseInternal can not be called without a project ID set if Google Cloud usage is set to None.");
+                }
+
                 projectId = _googleServices.ProjectId;
                 namespaceId = datastoreNamespace;
             }

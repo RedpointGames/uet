@@ -1,4 +1,6 @@
-﻿namespace Redpoint.CloudFramework.Startup
+﻿extern alias RDCommandLine;
+
+namespace Redpoint.CloudFramework.Startup
 {
     using Counter;
     using Microsoft.AspNetCore.Builder;
@@ -11,6 +13,8 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Configuration;
+    using Microsoft.Extensions.Options;
     using OpenTelemetry.Metrics;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.DataProtection;
@@ -21,6 +25,8 @@
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Datastore;
     using Redpoint.CloudFramework.Tracing;
+    using Sentry.AspNetCore;
+    using Sentry.OpenTelemetry;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
@@ -28,6 +34,8 @@
     using System.Linq;
     using System.Net.Http;
     using System.Threading.Tasks;
+    using Redpoint.Logging.SingleLine;
+    using RDCommandLine::Microsoft.Extensions.Logging.Console;
 
 #pragma warning disable CS0612
     internal class DefaultWebAppConfigurator : BaseConfigurator<IWebAppConfigurator>, IWebAppConfigurator, IStartupConfigureServicesFilter
@@ -38,7 +46,6 @@
         private WebHostBuilderContext? _context;
         private Func<IConfiguration, string, DevelopmentDockerContainer[]>? _dockerFactory;
         private Func<IConfiguration, string, HelmConfiguration>? _helmConfig;
-        private string[] _prefixes = Array.Empty<string>();
         private readonly Dictionary<string, Action<IServiceCollection>> _processors = new Dictionary<string, Action<IServiceCollection>>();
         private bool _http2Only = false;
         private Action<KestrelServerOptions>? _kestrelConfigure = null;
@@ -78,12 +85,6 @@
         public IWebAppConfigurator UseHelm(Func<IConfiguration, string, HelmConfiguration> helmConfig)
         {
             _helmConfig = helmConfig;
-            return this;
-        }
-
-        public IWebAppConfigurator FilterPathPrefixesFromSentryPerformance(string[] prefixes)
-        {
-            _prefixes = prefixes ?? Array.Empty<string>();
             return this;
         }
 
@@ -147,42 +148,81 @@
 
                     _kestrelConfigure?.Invoke(options);
                 })
-                .UseContentRoot(Directory.GetCurrentDirectory());
-            // Don't register Sentry if this service uses OTLP endpoint for trace exporting.
-            if (!IsUsingOtelTracing)
-            {
-                hostBuilder = hostBuilder.UseSentry(options =>
-                    {
-                        options.TracesSampleRate = _tracingRate;
-                        options.TracesSampler = (ctx) =>
-                        {
-                            if (ctx.CustomSamplingContext.ContainsKey("__HttpPath") &&
-                                ctx.CustomSamplingContext["__HttpPath"] is string)
-                            {
-                                var path = (string?)ctx.CustomSamplingContext["__HttpPath"];
-                                if (path != null)
-                                {
-                                    if (path == "/healthz")
-                                    {
-                                        return 0;
-                                    }
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    ConfigureAppConfiguration(hostingContext.HostingEnvironment, config);
+                })
+                .ConfigureLogging((context, logging) =>
+                {
+                    logging.AddConfiguration(context.Configuration);
 
-                                    if (_prefixes.Any(x => path.StartsWith(x, StringComparison.Ordinal)))
+                    logging.ClearProviders();
+
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    logging.AddSingleLineConsoleFormatter(options =>
+                    {
+                        options.OmitLogPrefix = false;
+                        options.ColorBehavior = context.HostingEnvironment.IsProduction() ? LoggerColorBehavior.Disabled : LoggerColorBehavior.Default;
+                    });
+                    logging.AddSingleLineConsole();
+
+                    // We don't need to register Sentry logging here like we do for services, since UseSentry below will handle that.
+                })
+                .UseSentry((context, builder) =>
+                {
+                    builder
+                        .AddSentryOptions(options =>
+                        {
+                            // Sentry won't do anything if there's no DSN configured, but we can't conditionally
+                            // call UseSentry (or it's internals) based on whether "Sentry:Dsn" is set because
+                            // most of the classes are internal.
+
+                            List<string> excludedPathPrefixes = new();
+                            var excludedPathPrefixesSection = context.Configuration.GetSection("CloudFramework:Tracing:ExcludedPathPrefixes");
+                            if (excludedPathPrefixesSection != null)
+                            {
+                                foreach (var excludedPathPrefixSection in excludedPathPrefixesSection.GetChildren())
+                                {
+                                    if (!string.IsNullOrWhiteSpace(excludedPathPrefixSection.Value))
                                     {
-                                        return 0;
+                                        excludedPathPrefixes.Add(excludedPathPrefixSection.Value);
                                     }
                                 }
                             }
 
-                            return null;
-                        };
-                        options.AdjustStandardEnvironmentNameCasing = false;
-                        options.Transport = new ResponseLoggingHttpTransport(options);
-                    });
-            }
-            hostBuilder = hostBuilder.ConfigureAppConfiguration((hostingContext, config) =>
-                {
-                    ConfigureAppConfiguration(hostingContext.HostingEnvironment, config);
+                            options.TracesSampleRate = _tracingRate;
+                            options.TracesSampler = (ctx) =>
+                            {
+                                if (ctx.CustomSamplingContext.ContainsKey("__HttpPath") &&
+                                    ctx.CustomSamplingContext["__HttpPath"] is string)
+                                {
+                                    var path = (string?)ctx.CustomSamplingContext["__HttpPath"];
+                                    if (path != null)
+                                    {
+                                        if (path == "/healthz")
+                                        {
+                                            return 0;
+                                        }
+
+                                        if (excludedPathPrefixes.Any(x => path.StartsWith(x, StringComparison.Ordinal)))
+                                        {
+                                            return 0;
+                                        }
+                                    }
+                                }
+
+                                return null;
+                            };
+                            options.AdjustStandardEnvironmentNameCasing = false;
+                            options.Transport = new ResponseLoggingHttpTransport(options);
+
+                            options.Environment = context.HostingEnvironment.EnvironmentName;
+
+                            // We use OpenTelemetry for tracing.
+                            options.UseOpenTelemetry();
+                            options.DisableSentryHttpMessageHandler = true;
+                        });
                 })
                 .ConfigureServices((context, services) =>
                 {
@@ -305,16 +345,6 @@
                     services.AddScoped<IShardedCounter, DefaultShardedCounter>();
                 }
                 services.AddScoped<IPrefix, DefaultPrefix>();
-            }
-
-            // Register the correct tracing implementation.
-            if (IsUsingOtelTracing)
-            {
-                services.AddSingleton<IManagedTracer, OtelManagedTracer>();
-            }
-            else
-            {
-                services.AddSingleton<IManagedTracer, SentryManagedTracer>();
             }
 
             // If we don't have the HTTP client factory registered, register it now.
