@@ -17,6 +17,7 @@ namespace Redpoint.CloudFramework.Startup
     using System.Reflection;
     using Redpoint.Logging.SingleLine;
     using RDCommandLine::Microsoft.Extensions.Logging.Console;
+    using Sentry.OpenTelemetry;
 
     internal class DefaultServiceAppConfigurator : BaseConfigurator<IServiceAppConfigurator>, IServiceAppConfigurator
     {
@@ -133,6 +134,10 @@ namespace Redpoint.CloudFramework.Startup
                         {
                             options.Dsn = context.Configuration["Sentry:Dsn"];
                             options.EnableLogs = true;
+
+                            // We use OpenTelemetry for tracing.
+                            options.UseOpenTelemetry();
+                            options.DisableSentryHttpMessageHandler = true;
                         });
                     }
                 })

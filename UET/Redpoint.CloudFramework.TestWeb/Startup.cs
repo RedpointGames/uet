@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.TestWeb
 {
     using Microsoft.AspNetCore.Server.Kestrel.Core;
+    using Redpoint.CloudFramework.Tracing;
     using System.Diagnostics.CodeAnalysis;
 
     [SuppressMessage("Maintainability", "CA1724", Justification = "This is test code.")]
@@ -34,8 +35,12 @@
                 endpoints.MapGet("/", async context =>
                 {
                     var logger = context.RequestServices.GetRequiredService<ILogger<Startup>>();
+                    var managedTracer = context.RequestServices.GetRequiredService<IManagedTracer>();
 
-                    logger.LogInformation("This is an informational message.");
+                    using (var span = managedTracer.StartSpan("test-web-span"))
+                    {
+                        logger.LogInformation("This is an informational message.");
+                    }
 
                     context.Response.StatusCode = StatusCodes.Status200OK;
                     context.Response.Headers.ContentType = "text/plain";

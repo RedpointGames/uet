@@ -7,6 +7,8 @@ namespace Redpoint.CloudFramework.TestWeb
     {
         public static async Task Main(string[] args)
         {
+            Environment.SetEnvironmentVariable("REDPOINT_OTEL_USE_TELEMETRY_IN_DEVELOPMENT", "1");
+
             await CloudFramework.WebApp.StartWebApp(await GetHostAsync());
         }
 

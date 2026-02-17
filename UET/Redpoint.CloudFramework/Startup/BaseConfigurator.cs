@@ -190,7 +190,7 @@ namespace Redpoint.CloudFramework.Startup
             services.AddMetrics();
             try
             {
-                if (!hostEnvironment.IsDevelopment())
+                if (!hostEnvironment.IsDevelopment() || Environment.GetEnvironmentVariable("REDPOINT_OTEL_USE_TELEMETRY_IN_DEVELOPMENT") == "1")
                 {
                     var telemetryBuilder = services.AddOpenTelemetry();
                     var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME");
