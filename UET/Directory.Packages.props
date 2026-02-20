@@ -126,6 +126,6 @@
 		<PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
 		<PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="10.0.0" />
 		<PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="$(MicrosoftTokensPackageVersion)" />
-		<PackageVersion Include="StackExchange.Redis" Version="2.11.0" />
+		<PackageVersion Include="StackExchange.Redis" Version="2.11.3" />
 	</ItemGroup>
 </Project>
