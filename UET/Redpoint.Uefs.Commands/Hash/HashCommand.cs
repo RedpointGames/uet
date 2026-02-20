@@ -16,11 +16,6 @@
                 {
                     return new Command("hash", "Generate a hash digest for an existing package.");
                 })
-            .WithRuntimeServices(
-                (_, services, _) =>
-                {
-                    services.AddSingleton<IFileHasher, DefaultFileHasher>();
-                })
             .Build();
 
         internal sealed class Options

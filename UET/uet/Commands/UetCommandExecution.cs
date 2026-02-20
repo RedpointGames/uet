@@ -19,6 +19,10 @@
     using Redpoint.Reservation;
     using Redpoint.ServiceControl;
     using Redpoint.Tasks;
+    using Redpoint.Uefs.Commands.Hash;
+    using Redpoint.Uefs.Package;
+    using Redpoint.Uefs.Package.SparseImage;
+    using Redpoint.Uefs.Package.Vhd;
     using Redpoint.Uefs.Protocol;
     using Redpoint.Uet;
     using Redpoint.Uet.Automation;
@@ -113,6 +117,12 @@
             services.AddSingleton<ISelfLocation, DefaultSelfLocation>();
             services.AddSingleton<IGitCredentialHelperProvider, DefaultGitCredentialHelperProvider>();
             services.AddUba();
+
+            services.AddUefs();
+            services.AddUefsPackage();
+            services.AddUefsPackageVhd();
+            services.AddUefsPackageSparseImage();
+            services.AddSingleton<IFileHasher, DefaultFileHasher>();
 
             services.AddSingleton<IRkmVersionProvider, UetRkmVersionProvider>();
             services.AddSingleton<IRkmSelfUpgradeService, UetRkmSelfUpgradeService>();

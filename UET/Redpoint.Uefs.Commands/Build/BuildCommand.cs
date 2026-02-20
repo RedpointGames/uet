@@ -21,11 +21,6 @@
                 {
                     return new Command("build", "Build a UEFS package.");
                 })
-            .WithRuntimeServices(
-                (_, services, _) =>
-                {
-                    services.AddSingleton<IFileHasher, DefaultFileHasher>();
-                })
             .Build();
 
         internal sealed class Options

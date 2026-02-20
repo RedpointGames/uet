@@ -5,7 +5,7 @@
     using System.Threading.Tasks;
     using Redpoint.ProgressMonitor;
 
-    internal sealed class DefaultFileHasher : IFileHasher
+    public sealed class DefaultFileHasher : IFileHasher
     {
         private readonly IMonitorFactory _monitorFactory;
         private readonly IProgressFactory _progressFactory;
@@ -20,6 +20,8 @@
 
         public async Task<string> ComputeHashAsync(FileInfo package)
         {
+            ArgumentNullException.ThrowIfNull(package);
+
             // Compute the digest for the package first. We need it in both modes.
             var packagePath = package.FullName;
             string sha256;
