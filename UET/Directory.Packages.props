@@ -83,7 +83,7 @@
 		<PackageVersion Include="S2Geometry" Version="1.0.3" />
 		<PackageVersion Include="Sentry.AspNetCore" Version="$(SentryPackageVersion)" />
 		<PackageVersion Include="SharpZipLib" Version="1.4.2" />
-		<PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.3" />
+		<PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.4" />
 		<!-- Testing frameworks and libraries -->
 		<PackageVersion Include="xunit.v3" Version="$(XunitPackageVersion)" />
 		<PackageVersion Include="xunit.v3.extensibility.core" Version="$(XunitPackageVersion)" />
