@@ -4,6 +4,6 @@
 
     public interface IFileHasher
     {
-        Task<string> ComputeHashAsync(FileInfo packagePath);
+        Task<string> ComputeHashAsync(FileInfo package);
     }
 }
