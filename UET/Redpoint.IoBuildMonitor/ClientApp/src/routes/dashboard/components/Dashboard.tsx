@@ -1,5 +1,4 @@
-import React from "react";
-import { DashboardStats } from "../../../data/DataTypes";
+import { type DashboardStats } from "../../../data/DataTypes";
 import {
   EuiFlexGroup,
   EuiFlexItem,
@@ -7,23 +6,14 @@ import {
   EuiPanel,
   EuiSpacer,
   EuiStat,
-  useEuiTheme,
 } from "@elastic/eui";
 import RunnerTable from "./RunnerTable";
 import PipelineTable from "../../../components/pipeline/PipelineTable";
 
 export function Dashboard(props: { dashboardStats: DashboardStats }) {
-  const theme = useEuiTheme();
   return (
-    <EuiPageTemplate
-      direction="row"
-      restrictWidth={false}
-      pageHeader={{
-        iconType: "dashboardApp",
-        pageTitle: "Dashboard",
-        color: theme.colorMode
-      }}
-    >
+    <EuiPageTemplate direction="row" restrictWidth={false}>
+      <EuiPageTemplate.Header iconType="dashboardApp" pageTitle="Dashboard" />
       <EuiFlexGroup>
         <EuiFlexItem>
           <EuiPanel>

@@ -1,0 +1,15 @@
+**/bin/**
+**/obj/**
+**/publish/**
+**/node_modules/**
+**/LocalPackages/**
+**/.vs/**
+
+**/launchSettings.json
+**/*.csproj.user
+**/TestResults/
+**/UET/Lib/Container/rkm-initrd-builder/static
+**/UET/Lib/Container/rkm-initrd-builder/storage/
+**/UET/Lib/Helm/values.yaml
+
+!UET/uet/bin/*/*/*/publish/uet*

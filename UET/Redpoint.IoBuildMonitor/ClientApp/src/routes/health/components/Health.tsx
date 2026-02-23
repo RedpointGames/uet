@@ -1,11 +1,5 @@
-/**
- * @jsxRuntime classic
- * @jsx jsx
- * @jsxFrag React.Fragment
- **/
-
 import React from "react";
-import { HealthStats } from "../../../data/DataTypes";
+import type { HealthStats } from "../../../data/DataTypes";
 import {
   EuiCard,
   EuiCode,
@@ -17,7 +11,7 @@ import {
   EuiTextColor,
   useEuiTheme,
 } from "@elastic/eui";
-import { css, jsx } from "@emotion/react";
+import { css } from "@emotion/css";
 import {
   faCircle,
   faTimesCircle,
@@ -29,12 +23,11 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimesCircle as faTimesCircleRegular } from "@fortawesome/free-regular-svg-icons";
 import { faGit } from "@fortawesome/free-brands-svg-icons";
-import { useHistory, useLocation } from "react-router";
+import { useNavigate } from "react-router";
 
 export const Health = (props: { healthStats: HealthStats }) => {
   const euiTheme = useEuiTheme().euiTheme;
-  const location = useLocation();
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const cards: React.ReactNode[] = [];
   const iconCss = css`
@@ -50,7 +43,8 @@ export const Health = (props: { healthStats: HealthStats }) => {
     let linkToDashboard = false;
     let buildInfo = (
       <>
-        <FontAwesomeIcon fixedWidth icon={faCircle} css={iconCss} /> {pipelineId}
+        <FontAwesomeIcon fixedWidth icon={faCircle} className={iconCss} />{" "}
+        {pipelineId}
       </>
     );
     switch (row.status) {
@@ -58,7 +52,11 @@ export const Health = (props: { healthStats: HealthStats }) => {
         buildInfo = (
           <>
             <EuiTextColor color="danger">
-              <FontAwesomeIcon fixedWidth icon={faTimesCircle} css={iconCss} />
+              <FontAwesomeIcon
+                fixedWidth
+                icon={faTimesCircle}
+                className={iconCss}
+              />
             </EuiTextColor>{" "}
             Failed
           </>
@@ -68,7 +66,11 @@ export const Health = (props: { healthStats: HealthStats }) => {
         buildInfo = (
           <>
             <EuiTextColor color="success">
-              <FontAwesomeIcon fixedWidth icon={faCheckCircle} css={iconCss} />
+              <FontAwesomeIcon
+                fixedWidth
+                icon={faCheckCircle}
+                className={iconCss}
+              />
             </EuiTextColor>{" "}
             Passed
           </>
@@ -77,7 +79,11 @@ export const Health = (props: { healthStats: HealthStats }) => {
       case "manual":
         buildInfo = (
           <>
-            <FontAwesomeIcon fixedWidth icon={faPlayCircle} css={iconCss} /> {" "}
+            <FontAwesomeIcon
+              fixedWidth
+              icon={faPlayCircle}
+              className={iconCss}
+            />{" "}
             Waiting for Manual Input
           </>
         );
@@ -86,9 +92,13 @@ export const Health = (props: { healthStats: HealthStats }) => {
         buildInfo = (
           <>
             <EuiTextColor color="default">
-              <FontAwesomeIcon fixedWidth icon={faTimesCircleRegular} css={iconCss} />
+              <FontAwesomeIcon
+                fixedWidth
+                icon={faTimesCircleRegular}
+                className={iconCss}
+              />
             </EuiTextColor>{" "}
-           Cancelled
+            Cancelled
           </>
         );
         break;
@@ -97,7 +107,12 @@ export const Health = (props: { healthStats: HealthStats }) => {
         linkToDashboard = true;
         buildInfo = (
           <>
-            <FontAwesomeIcon fixedWidth icon={faCircleNotch} css={iconPrimaryCss} spin />{" "}
+            <FontAwesomeIcon
+              fixedWidth
+              icon={faCircleNotch}
+              className={iconPrimaryCss}
+              spin
+            />{" "}
             Running
           </>
         );
@@ -106,7 +121,11 @@ export const Health = (props: { healthStats: HealthStats }) => {
         linkToDashboard = true;
         buildInfo = (
           <>
-            <FontAwesomeIcon fixedWidth icon={faDotCircle} css={iconPrimaryCss} />{" "}
+            <FontAwesomeIcon
+              fixedWidth
+              icon={faDotCircle}
+              className={iconPrimaryCss}
+            />{" "}
             Queued
           </>
         );
@@ -118,7 +137,7 @@ export const Health = (props: { healthStats: HealthStats }) => {
         <EuiCard
           title={
             <h4
-              css={css`
+              className={css`
                 white-space: pre-line;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -133,16 +152,28 @@ export const Health = (props: { healthStats: HealthStats }) => {
           titleElement="h4"
           titleSize="xs"
           textAlign="left"
-          href={linkToDashboard ? undefined : `${row.webUrl}/-/pipelines/${row.pipelineId}`}
-          onClick={!linkToDashboard ? undefined : () => {
-            if (linkToDashboard) {
-              history.push("/");
-            }
-          }}
+          href={
+            linkToDashboard
+              ? undefined
+              : `${row.webUrl}/-/pipelines/${row.pipelineId}`
+          }
+          onClick={
+            !linkToDashboard
+              ? undefined
+              : () => {
+                  if (linkToDashboard) {
+                    navigate("/");
+                  }
+                }
+          }
           target="_blank"
         >
           <EuiText>
-            <FontAwesomeIcon fixedWidth icon={faGit} css={iconCss}></FontAwesomeIcon>{" "}
+            <FontAwesomeIcon
+              fixedWidth
+              icon={faGit}
+              className={iconCss}
+            ></FontAwesomeIcon>{" "}
             {row.sha.substring(0, 8)}
           </EuiText>
           <EuiSpacer size="xs" />
@@ -154,19 +185,16 @@ export const Health = (props: { healthStats: HealthStats }) => {
             {buildInfo}
           </EuiText>
         </EuiCard>
-      </EuiFlexItem>
+      </EuiFlexItem>,
     );
   }
 
   return (
-    <EuiPageTemplate
-      direction="row"
-      restrictWidth={false}
-      pageHeader={{
-        iconType: "monitoringApp",
-        pageTitle: "Project Health",
-      }}
-    >
+    <EuiPageTemplate direction="row" restrictWidth={false}>
+      <EuiPageTemplate.Header
+        iconType="monitoringApp"
+        pageTitle="Project Health"
+      />
       <EuiFlexGrid columns={3}>{cards}</EuiFlexGrid>
     </EuiPageTemplate>
   );
