@@ -13,3 +13,4 @@
 **/UET/Lib/Helm/values.yaml
 
 !UET/uet/bin/*/*/*/publish/uet*
+!UET/Redpoint.Uefs.Daemon/bin/*/*/*/publish/*
