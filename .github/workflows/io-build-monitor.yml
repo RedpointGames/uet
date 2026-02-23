@@ -1,0 +1,46 @@
+name: Io Build Monitor
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  publish-io-container:
+    name: "Build Container"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build Container
+      run: |
+        PLATFORM="linux/amd64"
+
+        OUTPUT_TYPE="image"
+        if [ "$GITHUB_REF" == "refs/heads/main" ] && [ "$GITHUB_REPOSITORY" == "RedpointGames/uet" ]; then
+          OUTPUT_TYPE="registry"
+        fi
+
+        docker \
+          buildx \
+          build \
+          --platform $PLATFORM \
+          --output=type=$OUTPUT_TYPE \
+          --pull \
+          -t "ghcr.io/redpointgames/uet/io-build-monitor:latest" \
+          -f UET/Lib/Container/io-build-monitor.Dockerfile \
+          .

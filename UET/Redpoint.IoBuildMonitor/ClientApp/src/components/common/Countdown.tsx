@@ -1,50 +1,81 @@
-/** 
- * @jsxRuntime classic
- * @jsx jsx 
- * @jsxFrag React.Fragment 
- **/
-
 import { DateTime } from "luxon";
-import React, { useEffect } from "react";
-import { css, jsx } from '@emotion/react';
-import { UseEuiTheme, withEuiTheme } from "@elastic/eui";
+import React from "react";
+import { css } from "@emotion/css";
+import { type UseEuiTheme, withEuiTheme } from "@elastic/eui";
 
-export const Countdown = withEuiTheme(class Countdown extends React.Component<{ target: number | null, simple?: true, theme: UseEuiTheme<{}> }> {
+export const Countdown = withEuiTheme(
+  class Countdown extends React.Component<{
+    target: number | null;
+    simple?: true;
+    theme: UseEuiTheme<{}>;
+  }> {
     private handle: any = null;
-    
-    constructor(props: { target: number | null, simple?: true, theme: UseEuiTheme<{}> }) {
-        super(props);
+
+    constructor(props: {
+      target: number | null;
+      simple?: true;
+      theme: UseEuiTheme<{}>;
+    }) {
+      super(props);
     }
 
     public componentDidMount() {
-        if (this.handle === null) {
-            this.handle = setInterval(() => {
-                this.forceUpdate();
-            }, 100);
-        }
+      if (this.handle === null) {
+        this.handle = setInterval(() => {
+          this.forceUpdate();
+        }, 100);
+      }
     }
 
     public componentWillUnmount() {
-        clearInterval(this.handle);
-        this.handle = null;
+      clearInterval(this.handle);
+      this.handle = null;
     }
 
     public render() {
-        if (this.props.target === null) {
-            return <></>;
-        }
-    
-        let target = DateTime.fromMillis(this.props.target, { zone: 'utc' });
-        let remaining = target.diff(DateTime.utc());
-    
-        if (remaining.toMillis() < 0) {
-            return <></>;
-        }
-    
-        if (this.props.simple === true) {
-            return <span css={css`color: ${this.props.theme.euiTheme.colors.subduedText}`}>{DateTime.utc().plus(remaining).toRelative({ unit: ["minutes", "seconds"], style: 'short' })?.substring(3).replace(/\./g, '')}</span>
-        }
+      if (this.props.target === null) {
+        return <></>;
+      }
 
-        return <span css={css`color: ${this.props.theme.euiTheme.colors.subduedText}; margin-left: 0.36rem;`}>({DateTime.utc().plus(remaining).toRelative({ unit: ["minutes", "seconds"], style: 'short' })?.substring(3).replace(/\./g, '')})</span>
+      let target = DateTime.fromMillis(this.props.target, { zone: "utc" });
+      let remaining = target.diff(DateTime.utc());
+
+      if (remaining.toMillis() < 0) {
+        return <></>;
+      }
+
+      if (this.props.simple === true) {
+        return (
+          <span
+            className={css`
+              color: ${this.props.theme.euiTheme.colors.subduedText};
+            `}
+          >
+            {DateTime.utc()
+              .plus(remaining)
+              .toRelative({ unit: ["minutes", "seconds"], style: "short" })
+              ?.substring(3)
+              .replace(/\./g, "")}
+          </span>
+        );
+      }
+
+      return (
+        <span
+          className={css`
+            color: ${this.props.theme.euiTheme.colors.subduedText};
+            margin-left: 0.36rem;
+          `}
+        >
+          (
+          {DateTime.utc()
+            .plus(remaining)
+            .toRelative({ unit: ["minutes", "seconds"], style: "short" })
+            ?.substring(3)
+            .replace(/\./g, "")}
+          )
+        </span>
+      );
     }
-});
+  },
+);
