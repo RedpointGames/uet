@@ -10,6 +10,7 @@
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Text.Json;
+    using System.Text.RegularExpressions;
     using UET.Commands.EngineSpec;
 
     internal sealed class DefaultReleaseVersioning : IReleaseVersioning
@@ -51,6 +52,8 @@
             }
         }
 
+        private static Regex _ciTagRegex = new Regex("^(?<date>[0-9\\.]+)-(?<hash>[0-9a-f]+)$");
+
         public async Task<(string versionName, string versionNumber)> ComputePluginVersionNameAndNumberAsync(
             BuildEngineSpecification engineSpec,
             BuildConfigPluginPackageType pluginVersioningType,
@@ -58,6 +61,27 @@
         {
             var ciCommitShortSha = Environment.GetEnvironmentVariable("CI_COMMIT_SHORT_SHA");
             var overrideDateVersion = Environment.GetEnvironmentVariable("OVERRIDE_DATE_VERSION");
+
+            var ciTag = Environment.GetEnvironmentVariable("CI_COMMIT_TAG");
+            if (!string.IsNullOrWhiteSpace(ciTag))
+            {
+                var tagMatch = _ciTagRegex.Match(ciTag);
+                if (tagMatch.Success)
+                {
+                    overrideDateVersion = tagMatch.Groups["date"].Value;
+                    if (!string.IsNullOrWhiteSpace(ciCommitShortSha) &&
+                        ciCommitShortSha != tagMatch.Groups["hash"].Value)
+                    {
+                        throw new InvalidTagException($"CI_COMMIT_SHORT_SHA is equal to '{ciCommitShortSha}', but CI_COMMIT_TAG is '{ciTag}' with hash component '{tagMatch.Groups["hash"].Value}'. The tag suffix must exactly match '{ciCommitShortSha}' for this build to run. This prevents the tag mismatching the commit it should be assigned to.");
+                    }
+                    ciCommitShortSha = tagMatch.Groups["hash"].Value;
+                }
+                else
+                {
+                    throw new InvalidTagException($"CI_COMMIT_TAG is set to '{ciTag}', but does match regex '^(?<date>[0-9\\.]+)-(?<hash>[0-9a-f]+)$'.");
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(ciCommitShortSha) &&
                 ciCommitShortSha.Length >= 8)
             {
