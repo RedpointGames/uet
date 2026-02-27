@@ -55,7 +55,7 @@
 		<!-- JavaScript engine and legacy JSON libraries -->
 		<PackageVersion Include="JavaScriptEngineSwitcher.Core" Version="3.24.1" />
 		<PackageVersion Include="JavaScriptEngineSwitcher.Extensions.MsDependencyInjection" Version="3.24.1" />
-		<PackageVersion Include="JavaScriptEngineSwitcher.V8" Version="3.29.1" />
+		<PackageVersion Include="JavaScriptEngineSwitcher.V8" Version="3.31.0" />
 		<PackageVersion Include="Microsoft.ClearScript.V8.Native.linux-x64" Version="7.5.0" />
 		<PackageVersion Include="Microsoft.ClearScript.V8.Native.win-x64" Version="7.5.0" />
 		<PackageVersion Include="JSPool" Version="4.0.0" />
