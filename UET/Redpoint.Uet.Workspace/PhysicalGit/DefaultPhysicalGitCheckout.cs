@@ -1303,13 +1303,48 @@
             return results;
         }
 
+        private static IEnumerable<FileInfo> GetFilesRecursiveSkipSymlinks(DirectoryInfo directory, string filter)
+        {
+            var queue = new Queue<DirectoryInfo>();
+            queue.Enqueue(directory);
+
+            while (queue.Count > 0)
+            {
+                var next = queue.Dequeue();
+                if (next.LinkTarget != null)
+                {
+                    continue;
+                }
+
+                foreach (var file in next.GetFiles(filter))
+                {
+                    if (file.LinkTarget != null)
+                    {
+                        continue;
+                    }
+
+                    yield return file;
+                }
+
+                foreach (var subdirectory in next.GetDirectories())
+                {
+                    if (subdirectory.LinkTarget != null)
+                    {
+                        continue;
+                    }
+
+                    queue.Enqueue(subdirectory);
+                }
+            }
+        }
+
         private static IEnumerable<FileInfo> GetPluginAndProjectFiles(DirectoryInfo directory)
         {
-            foreach (var file in directory.GetFiles("*.uproject", new EnumerationOptions { RecurseSubdirectories = true }))
+            foreach (var file in GetFilesRecursiveSkipSymlinks(directory, "*.uproject"))
             {
                 yield return file;
             }
-            foreach (var file in directory.GetFiles("*.uplugin", new EnumerationOptions { RecurseSubdirectories = true }))
+            foreach (var file in GetFilesRecursiveSkipSymlinks(directory, "*.uplugin"))
             {
                 yield return file;
             }
