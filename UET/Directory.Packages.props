@@ -114,7 +114,7 @@
 		<PackageVersion Include="KeyedSemaphores" Version="6.0.0" />
 		<PackageVersion Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="16.3.0" />
 		<PackageVersion Include="YamlDotNet" Version="16.3.0" />
-		<PackageVersion Include="KubernetesClient.Aot" Version="18.0.13" />
+		<PackageVersion Include="KubernetesClient.Aot" Version="19.0.2" />
 		<!-- Libraries for Io build monitor -->
 		<PackageVersion Include="GitLabApiClient" Version="1.8.1-beta.5" />
 		<PackageVersion Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="$(MicrosoftPackageVersion)" />
