@@ -71,7 +71,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Google.Protobuf" VersionOverride="3.33.5" />
+		<PackageReference Include="Google.Protobuf" />
 		<ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.Package\Redpoint.CloudFramework.Analyzer.Package.csproj">
 			<IncludeAssets>analyzers;build</IncludeAssets>
 			<PrivateAssets>none</PrivateAssets>

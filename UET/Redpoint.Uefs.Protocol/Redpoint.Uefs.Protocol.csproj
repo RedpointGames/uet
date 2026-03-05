@@ -1,38 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
-  <PropertyGroup>
-    <Description>The gRPC protocol specification for the UEFS service, plus dependency injection bindings to create a UEFS client.</Description>
-    <PackageTags>uefs, protocol</PackageTags>
-  </PropertyGroup>
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>The gRPC protocol specification for the UEFS service, plus dependency injection bindings to create a UEFS client.</Description>
+		<PackageTags>uefs, protocol</PackageTags>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.GrpcPipes\Redpoint.GrpcPipes.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Grpc.Tools">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Grpc.Tools">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Remove="Uefs.proto" />
-  </ItemGroup>
-  <ItemGroup>
-    <Protobuf Include="Uefs.proto">
-      <GrpcServices>Both</GrpcServices>
-    </Protobuf>
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="Uefs.proto" />
+	</ItemGroup>
+	<ItemGroup>
+		<Protobuf Include="Uefs.proto">
+			<GrpcServices>Both</GrpcServices>
+		</Protobuf>
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Google.Protobuf" VersionOverride="3.33.5" />
-    <None Update="README.md">
-      <Pack>True</Pack>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Google.Protobuf" />
+		<None Update="README.md">
+			<Pack>True</Pack>
+		</None>
+	</ItemGroup>
 
 </Project>
