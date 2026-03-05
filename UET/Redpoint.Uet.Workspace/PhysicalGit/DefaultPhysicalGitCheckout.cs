@@ -1087,6 +1087,25 @@
                     throw new GitRepositoryCorruptException();
                 }
 
+                // Run 'git update-index --really-refresh' to fix any incorrect cache data.
+                exitCode = await FaultTolerantGitAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "-C",
+                            repositoryPath,
+                            "update-index",
+                            "--really-refresh"
+                        ],
+                        WorkingDirectory = repositoryPath,
+                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                    },
+                    CaptureSpecification.Passthrough,
+                    Path.Combine(repositoryPath, ".git", "index.lock"),
+                    cancellationToken).ConfigureAwait(false);
+
                 // Checkout the commit.
                 _logger.LogInformation($"Checking out target commit {resolvedReference.TargetCommit}...");
                 exitCode = await FaultTolerantGitAsync(
@@ -1703,6 +1722,22 @@
                     _logger.LogWarning("Detected Git repository is likely corrupt.");
                     throw new GitRepositoryCorruptException();
                 }
+
+                exitCode = await FaultTolerantGitAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = gitContext.Git,
+                        Arguments =
+                        [
+                            "update-index",
+                            "--really-refresh"
+                        ],
+                        WorkingDirectory = submoduleContentPath,
+                        EnvironmentVariables = fetchEnvVars.EnvironmentVariables,
+                    },
+                    CaptureSpecification.Passthrough,
+                    null,
+                    cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation($"Checking out submodule {submodule.Path} target commit {submoduleCommit}...");
                 await VerifyNoGitLfsBreakage(submoduleContentPath, cancellationToken).ConfigureAwait(false);
