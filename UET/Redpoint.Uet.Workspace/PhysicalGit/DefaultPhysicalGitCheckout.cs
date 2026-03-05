@@ -2201,7 +2201,7 @@
         /// This is an expensive operation that verifies there are no Git LFS pointer files in
         /// the repository to diagnose what operation is causing them to appear.
         /// </summary>
-        private static async Task VerifyNoGitLfsBreakage(
+        private async Task VerifyNoGitLfsBreakage(
             string repositoryPath,
             CancellationToken cancellationToken)
         {
@@ -2210,7 +2210,10 @@
                 return;
             }
 
+            _logger.LogInformation("Verifying that there are no Git LFS pointer files present in repository...");
+
             var buffer = new char[1024];
+            long filesProcessed = 0;
             foreach (var file in new DirectoryInfo(repositoryPath).GetFiles("*", SearchOption.AllDirectories))
             {
                 if (file.Exists && file.LinkTarget == null && file.Length < 1024)
@@ -2227,6 +2230,12 @@
                     catch (Exception ex) when (ex is not GitLfsFileNotCheckedOutProperlyException)
                     {
                         // Ignore any non "Git LFS pointer detected" exceptions, which silences any errors about reading files.
+                    }
+                    filesProcessed++;
+
+                    if (filesProcessed % 1000 == 0)
+                    {
+                        _logger.LogInformation($"Verifying that there are no Git LFS pointer files present in repository... ({filesProcessed} files processed)");
                     }
                 }
             }
