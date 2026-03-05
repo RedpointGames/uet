@@ -168,8 +168,8 @@
                 var ueSdksRoot = Environment.GetEnvironmentVariable("UE_SDKS_ROOT");
                 if (string.IsNullOrWhiteSpace(ueSdksRoot))
                 {
-                    _logger.LogError("UE_SDKS_ROOT environment variable is not set.");
-                    return 1;
+                    _logger.LogWarning("UE_SDKS_ROOT environment variable is not set, so DLL integrity can not be verified. Please install SDKs using the 'install-sdks' command to enable verification.");
+                    return 0;
                 }
 
                 var envsJson = Path.Combine(ueSdksRoot, "HostWin64", "Win64", "envs.json");
