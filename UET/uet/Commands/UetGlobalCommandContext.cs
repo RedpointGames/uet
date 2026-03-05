@@ -11,7 +11,7 @@
             _commandsUsingBuildConfigUetVersion.Add(command);
         }
 
-        public bool IsGlobalCommand(Command executingCommand)
+        public bool ShouldUseUetVersionInBuildConfig(Command executingCommand)
         {
             return _commandsUsingBuildConfigUetVersion.Contains(executingCommand);
         }
