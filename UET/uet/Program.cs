@@ -37,8 +37,15 @@ if (Environment.GetEnvironmentVariable("CI") == "true")
     Crayon.Output.Enable();
 }
 
+var logGitCredentialHelperArguments = false;
 if (args.Any(x => string.Equals(x, "git-credential-helper", StringComparison.OrdinalIgnoreCase)))
 {
+    // If tracing is enabled, log the arguments.
+    if (Environment.GetEnvironmentVariable("UET_TRACE") == "1")
+    {
+        logGitCredentialHelperArguments = true;
+    }
+
     // Do not allow the automation logger pipe to be used if it looks like we're invoking the Git credential helper.
     AutomationLoggerPipe.AllowLoggerPipe = false;
 
@@ -85,6 +92,15 @@ if (!string.IsNullOrWhiteSpace(implicitCommand))
 
     // Prepend to args.
     args = new[] { "internal", implicitCommand }.Concat(args).ToArray();
+}
+
+if (logGitCredentialHelperArguments)
+{
+    Console.Error.WriteLine($"git-credential-helper {args.Length} arguments:");
+    foreach (var arg in args)
+    {
+        Console.Error.WriteLine($" - {arg}");
+    }
 }
 
 //
