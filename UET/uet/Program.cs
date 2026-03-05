@@ -99,11 +99,12 @@ if (!string.IsNullOrWhiteSpace(implicitCommand))
 
 // Parse the command line so we can inspect it.
 var parseResult = rootCommand.Parse(args);
-var isGlobalCommand = globalCommandContext.IsGlobalCommand(parseResult.CommandResult.Command);
+var shouldUseUetVersionInBuildConfig = globalCommandContext.ShouldUseUetVersionInBuildConfig(parseResult.CommandResult.Command);
 
 // If we have a BuildConfig.json file in this folder, and that file specifies a
 // UETVersion, then we must use that version specifically.
-if (!isGlobalCommand && Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") != "true" &&
+if (shouldUseUetVersionInBuildConfig &&
+    Environment.GetEnvironmentVariable("UET_RUNNING_UNDER_BUILDGRAPH") != "true" &&
     Environment.GetEnvironmentVariable("UET_VERSION_CHECK_COMPLETE") != "true")
 {
     var currentBuildConfigPath = Path.Combine(Environment.CurrentDirectory, "BuildConfig.json");
