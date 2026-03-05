@@ -2214,7 +2214,7 @@
 
             var buffer = new char[1024];
             long filesProcessed = 0;
-            foreach (var file in new DirectoryInfo(repositoryPath).GetFiles("*", SearchOption.AllDirectories))
+            foreach (var file in GetFilesRecursiveSkipSymlinks(new DirectoryInfo(repositoryPath), "*"))
             {
                 if (file.Exists && file.LinkTarget == null && file.Length < 1024)
                 {
