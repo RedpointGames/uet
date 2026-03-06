@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Components.DownstreamService
 {
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager.Signalling;
@@ -14,19 +15,23 @@
         private readonly IRkmVersionProvider _rkmVersionProvider;
         private readonly IPathProvider _pathProvider;
         private readonly ILogger _logger;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
         private readonly CancellationTokenSource _stoppingToken;
         private Task? _logTask;
+        private Task? _monitorTask;
 
         public DownstreamComponent(
             IServiceControl serviceControl,
             IRkmVersionProvider rkmVersionProvider,
             IPathProvider pathProvider,
-            ILogger logger)
+            ILogger logger,
+            IHostApplicationLifetime hostApplicationLifetime)
         {
             _serviceControl = serviceControl;
             _rkmVersionProvider = rkmVersionProvider;
             _pathProvider = pathProvider;
             _logger = logger;
+            _hostApplicationLifetime = hostApplicationLifetime;
             _stoppingToken = new CancellationTokenSource();
         }
 
@@ -120,20 +125,64 @@
                 _logger.LogInformation($"{DisplayName} service is being started...");
                 await _serviceControl.StartService(ServiceName, cancellationToken);
             }
+
+            _monitorTask = Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        while (!_stoppingToken.Token.IsCancellationRequested)
+                        {
+                            // Check every 5 minutes.
+                            await Task.Delay(5 * 60 * 1000, _stoppingToken.Token);
+
+                            if (!await _serviceControl.IsServiceRunning(ServiceName, _stoppingToken.Token))
+                            {
+                                _logger.LogWarning($"{DisplayName} service has unexpectedly stopped, restarting...");
+                                await _serviceControl.StartService(ServiceName, _stoppingToken.Token);
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException) when (_stoppingToken.Token.IsCancellationRequested)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Exception in {DisplayName} service monitoring loop: {ex.Message}");
+
+                        _logger.LogError("RKM will be stopped because it encountered an unrecoverable error.");
+                        _hostApplicationLifetime.StopApplication();
+                    }
+                },
+                _stoppingToken.Token);
         }
 
         private async Task OnStoppingAsync(IContext context, IAssociatedData? data, CancellationToken cancellationToken)
         {
+            if (!_stoppingToken.IsCancellationRequested)
+            {
+                _stoppingToken.Cancel();
+            }
+
+            if (_monitorTask != null)
+            {
+                try
+                {
+                    await _monitorTask;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+
             if (await _serviceControl.IsServiceInstalled(ServiceName))
             {
                 _logger.LogInformation($"{DisplayName} service is being stopped...");
                 await _serviceControl.StopService(ServiceName, cancellationToken);
             }
 
-            if (_logTask != null && !_stoppingToken.IsCancellationRequested)
+            if (_logTask != null)
             {
-                _stoppingToken.Cancel();
-
                 try
                 {
                     await _logTask;

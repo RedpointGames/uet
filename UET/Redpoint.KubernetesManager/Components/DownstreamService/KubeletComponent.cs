@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.KubernetesManager.Components.DownstreamService
 {
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.ServiceControl;
@@ -13,12 +14,14 @@
             IServiceControl serviceControl,
             IRkmVersionProvider rkmVersionProvider,
             IPathProvider pathProvider,
-            ILogger<KubeletComponent> logger)
+            ILogger<KubeletComponent> logger,
+            IHostApplicationLifetime hostApplicationLifetime)
             : base(
                 serviceControl,
                 rkmVersionProvider,
                 pathProvider,
-                logger)
+                logger,
+                hostApplicationLifetime)
         {
         }
 

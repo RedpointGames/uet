@@ -1,9 +1,10 @@
 ﻿namespace Redpoint.KubernetesManager.Components.DownstreamService
 {
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Redpoint.ServiceControl;
-    using Redpoint.KubernetesManager.Abstractions;
     using Redpoint.KubernetesManager;
+    using Redpoint.KubernetesManager.Abstractions;
+    using Redpoint.ServiceControl;
 
     /// <summary>
     /// The containerd component sets up and runs the containerd process.
@@ -14,12 +15,14 @@
             IServiceControl serviceControl,
             IRkmVersionProvider rkmVersionProvider,
             IPathProvider pathProvider,
-            ILogger<ContainerdComponent> logger)
+            ILogger<ContainerdComponent> logger,
+            IHostApplicationLifetime hostApplicationLifetime)
             : base(
                 serviceControl,
                 rkmVersionProvider,
                 pathProvider,
-                logger)
+                logger,
+                hostApplicationLifetime)
         {
         }
 
