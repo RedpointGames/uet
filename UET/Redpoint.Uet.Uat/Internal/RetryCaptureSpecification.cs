@@ -199,6 +199,11 @@
                 _logger.LogWarning("Detected access conflict on 'UnrealBuildTool.Env.BuildConfiguration.xml'. The build will be retried.");
                 NeedsRetry = true;
             }
+            if (data.Contains("sentry reported an error", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected temporary error in uploading debug symbols to Sentry. The build will be retried.");
+                NeedsRetry = true;
+            }
         }
 
         public void OnReceiveStandardError(string data)
