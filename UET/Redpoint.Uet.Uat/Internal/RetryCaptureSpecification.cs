@@ -163,6 +163,22 @@
                     }
                 }
             }
+            if (data.Contains("note: ", StringComparison.Ordinal) &&
+                data.Contains("/Inc/", StringComparison.Ordinal))
+            {
+                // Scenario on macOS where UHT files are corrupt and need to be regenerated.
+                var fileRegex = Regex.Match(data.Trim(), @"^\s*(?<filename>[^:]+):([0-9]+):([0-9]+):\snote:");
+                if (fileRegex.Success)
+                {
+                    var filePath = fileRegex.Groups["filename"].Value;
+                    _logger.LogWarning($"Detected that '{filePath}' is a corrupt UHT generated file. It will be deleted and the build will be retried.");
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        NeedsRetry = true;
+                    }
+                }
+            }
             if (data.Contains("The device is not ready.", StringComparison.Ordinal))
             {
                 _logger.LogWarning($"Detected that the UEFS mount for the engine is not ready to serve requests. The engine will be remounted without the existing write scratch data and the build will be retried.");
