@@ -1071,7 +1071,7 @@ jobs:
     name: "Publish UET Containers"
     runs-on: ubuntu-latest
     concurrency:
-      group: publish-uet-containers
+      group: publish-uet-containers-${{ matrix.variant }}
       cancel-in-progress: false
     permissions:
       contents: read
