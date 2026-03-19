@@ -77,7 +77,7 @@
 		<PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.Analyzer.Testing" Version="1.1.3" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing" Version="1.1.3" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.CodeRefactoring.Testing" Version="1.1.3" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.0.0" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.3.0" />
 		<PackageVersion Include="Docker.DotNet" Version="3.125.15" />
 		<PackageVersion Include="NodaTime" Version="3.3.1" />
 		<PackageVersion Include="S2Geometry" Version="1.0.3" />
