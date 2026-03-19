@@ -4,17 +4,18 @@
 
 namespace Redpoint.Windows.HandleManagement
 {
+    using global::Windows.Wdk.Foundation;
+    using global::Windows.Wdk.System.SystemInformation;
+    using global::Windows.Win32;
+    using global::Windows.Win32.Foundation;
+    using Redpoint.Collections;
+    using Redpoint.Windows.VolumeManagement;
     using System.ComponentModel;
+    using System.Linq;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
     using System.Threading.Tasks;
-    using global::Windows.Win32;
-    using global::Windows.Win32.Foundation;
-    using Redpoint.Windows.VolumeManagement;
-    using Redpoint.Collections;
-    using System.Linq;
-    using global::Windows.Wdk.System.SystemInformation;
-    using global::Windows.Wdk.Foundation;
+    using System.Xml.Linq;
 
     /// <summary>
     /// Static API methods for querying and closing handles on Windows.
@@ -239,6 +240,28 @@ namespace Redpoint.Windows.HandleManagement
                             return GetPathResultCode.PipeDisconnected;
                     }
                     throw new NTSTATUSException(status);
+                }
+                if (PInvoke.GetFileType((HANDLE)duplicatedHandle) != global::Windows.Win32.Storage.FileSystem.FILE_TYPE.FILE_TYPE_DISK)
+                {
+                    PInvoke.CloseHandle((HANDLE)duplicatedHandle);
+                    return GetPathResultCode.NotSupported;
+                }
+                HANDLE mapFile;
+                unsafe
+                {
+                    fixed (char* mapFileTemporaryName = "TestFileMap")
+                    {
+                        mapFile = PInvoke.CreateFileMapping((HANDLE)duplicatedHandle, null, global::Windows.Win32.System.Memory.PAGE_PROTECTION_FLAGS.PAGE_READONLY, 0, 1024, mapFileTemporaryName);
+                    }
+                }
+                if (!mapFile.IsNull)
+                {
+                    PInvoke.CloseHandle(mapFile);
+                }
+                else if (Marshal.GetLastWin32Error() == 193)
+                {
+                    PInvoke.CloseHandle((HANDLE)duplicatedHandle);
+                    return GetPathResultCode.NotSupported;
                 }
                 try
                 {

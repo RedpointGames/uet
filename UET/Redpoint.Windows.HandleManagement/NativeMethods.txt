@@ -4,3 +4,5 @@ UNICODE_STRING
 CloseHandle
 OpenProcess
 GetCurrentProcess
+GetFileType
+CreateFileMapping
