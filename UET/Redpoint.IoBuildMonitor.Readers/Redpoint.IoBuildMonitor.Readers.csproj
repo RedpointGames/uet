@@ -3,6 +3,7 @@
 	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
 	<ItemGroup>
+  	<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" />
 		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Database\Redpoint.IoBuildMonitor.Database.csproj" />
 		<ProjectReference Include="..\Redpoint.IoBuildMonitor.Json.Frontend\Redpoint.IoBuildMonitor.Json.Frontend.csproj" />
 	</ItemGroup>
