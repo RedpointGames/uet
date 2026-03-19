@@ -118,10 +118,13 @@
             {
                 // NtQueryObject has stalled. Kill the thread and restart it.
                 Debug.WriteLine($"Stalled requesting handle from process ID: {processId}");
-                cts.Cancel();
+                cts.CancelAfter(10);
                 var i = Array.IndexOf(_threads, request.Thread);
-                _threads[i] = new Thread(NtQueryObjectLoop);
-                _threads[i].Start();
+                if (i >= 0 && i < _threads.Length)
+                {
+                    _threads[i] = new Thread(NtQueryObjectLoop);
+                    _threads[i].Start();
+                }
                 returnLength = 0;
                 return (NTSTATUS)NTSTATUSException.NT_STATUS_CANCELLED;
             }

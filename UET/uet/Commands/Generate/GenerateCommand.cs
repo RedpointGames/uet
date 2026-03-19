@@ -8,6 +8,7 @@
     using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.SdkManagement;
+    using Redpoint.Windows.HandleManagement;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -355,6 +356,52 @@
                 if (exitCode == 0)
                 {
                     _logger.LogInformation($"Project generation finished successfully. The generated project files are located in: {outputFolder}");
+
+                    var vsDirectory = Path.Combine(workingDirectory, ".vs");
+                    if (Directory.Exists(vsDirectory))
+                    {
+                        if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
+                        {
+                            try
+                            {
+                                await foreach (var handle in NativeHandles.GetAllFileHandlesAsync(context.GetCancellationToken()))
+                                {
+                                    if (handle.FilePath.StartsWith(vsDirectory, StringComparison.OrdinalIgnoreCase) &&
+                                        (handle.FilePath.Contains("Browse.VC.db", StringComparison.OrdinalIgnoreCase) ||
+                                         handle.FilePath.Contains("Browse.VC.opendb", StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        _logger.LogInformation($"Trying to close handle to Intellisense database file at: {handle.FilePath}");
+                                        await NativeHandles.ForciblyCloseHandleAsync(handle, context.GetCancellationToken());
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        }
+                        foreach (var browseFile in new DirectoryInfo(vsDirectory).GetFiles("Browse.VC.*db*", SearchOption.AllDirectories))
+                        {
+                            _logger.LogInformation($"Trying to clear Intellisense database file at: {browseFile.FullName}");
+                            try
+                            {
+                                browseFile.Delete();
+                            }
+                            catch
+                            {
+                            }
+                            if (browseFile.Exists)
+                            {
+                                try
+                                {
+                                    browseFile.MoveTo(browseFile.FullName + ".old");
+                                }
+                                catch
+                                {
+                                }
+                            }
+                        }
+                    }
+
                     if (open)
                     {
                         if (OperatingSystem.IsWindows())
