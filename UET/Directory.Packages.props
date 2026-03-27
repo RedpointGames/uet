@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <MicrosoftPackageVersion>10.0.5</MicrosoftPackageVersion>
-    <MicrosoftTokensPackageVersion>8.16.0</MicrosoftTokensPackageVersion>
+    <MicrosoftTokensPackageVersion>8.17.0</MicrosoftTokensPackageVersion>
     <OpenTelemetryPackageVersion>1.15.0</OpenTelemetryPackageVersion>
     <SentryPackageVersion>6.2.0</SentryPackageVersion>
     <XunitPackageVersion>3.2.2</XunitPackageVersion>
