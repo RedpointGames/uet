@@ -291,68 +291,95 @@
         {
             using (_managedTracer.StartSpan($"db.datastore.query_geohash_range", $"{@namespace},{typeof(T).Name}"))
             {
-                var hashKey = S2Manager.GenerateGeohashKey(range.RangeMin, keyLength);
-                var hashKeyString = hashKey.ToString(CultureInfo.InvariantCulture);
-
-                var filtersGeographic = Filter.And(
-                    Filter.GreaterThan(geoQuery.GeoFieldName + GeoConstants.GeoHashPropertySuffix, new Value { StringValue = range.RangeMin.ToString(CultureInfo.InvariantCulture) }),
-                    Filter.LessThan(geoQuery.GeoFieldName + GeoConstants.GeoHashPropertySuffix, new Value { StringValue = range.RangeMax.ToString(CultureInfo.InvariantCulture) }),
-                    Filter.Equal(geoQuery.GeoFieldName + GeoConstants.HashKeyPropertySuffix, new Value { IntegerValue = (long)hashKey })
-                );
-
-                var query = new Query(referenceModel.GetKind());
-                if (filter == null)
+                Query query;
+                string hashKeyString;
+                using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.setup_query"))
                 {
-                    query.Filter = filtersGeographic;
+                    var hashKey = S2Manager.GenerateGeohashKey(range.RangeMin, keyLength);
+                    hashKeyString = hashKey.ToString(CultureInfo.InvariantCulture);
+
+                    var filtersGeographic = Filter.And(
+                        Filter.GreaterThan(geoQuery.GeoFieldName + GeoConstants.GeoHashPropertySuffix, new Value { StringValue = range.RangeMin.ToString(CultureInfo.InvariantCulture) }),
+                        Filter.LessThan(geoQuery.GeoFieldName + GeoConstants.GeoHashPropertySuffix, new Value { StringValue = range.RangeMax.ToString(CultureInfo.InvariantCulture) }),
+                        Filter.Equal(geoQuery.GeoFieldName + GeoConstants.HashKeyPropertySuffix, new Value { IntegerValue = (long)hashKey })
+                    );
+
+                    query = new Query(referenceModel.GetKind());
+                    if (filter == null)
+                    {
+                        query.Filter = filtersGeographic;
+                    }
+                    else
+                    {
+                        query.Filter = _expressionConverter.SimplifyFilter(Filter.And(filter, filtersGeographic));
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
                 }
-                else
+
+                DatastoreDb db;
+                using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.get_db_for_namespace"))
                 {
-                    query.Filter = _expressionConverter.SimplifyFilter(Filter.And(filter, filtersGeographic));
+                    db = GetDbForNamespace(@namespace);
                 }
-
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var db = GetDbForNamespace(@namespace);
                 AsyncLazyDatastoreQuery lazyQuery;
-                if (transaction == null)
+                using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.construct_lazy_query"))
                 {
-                    lazyQuery = db.RunQueryLazilyAsync(query);
-                }
-                else
-                {
-                    lazyQuery = transaction.Transaction.RunQueryLazilyAsync(query);
+                    if (transaction == null)
+                    {
+                        lazyQuery = db.RunQueryLazilyAsync(query);
+                    }
+                    else
+                    {
+                        lazyQuery = transaction.Transaction.RunQueryLazilyAsync(query);
+                    }
                 }
 
                 int entitiesRead = 0;
-                await foreach (var response in lazyQuery.AsResponses().WithCancellation(cancellationToken))
+                using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.iterate_lazy_query"))
                 {
-                    entitiesRead += response.Batch.EntityResults.Count;
-                    if (metrics != null)
+                    await foreach (var response in lazyQuery.AsResponses().WithCancellation(cancellationToken))
                     {
-                        metrics.DatastoreEntitiesRead += response.Batch.EntityResults.Count;
-                    }
-                    cancellationToken.ThrowIfCancellationRequested();
+                        entitiesRead += response.Batch.EntityResults.Count;
+                        if (metrics != null)
+                        {
+                            metrics.DatastoreEntitiesRead += response.Batch.EntityResults.Count;
+                        }
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                    yield return
-                        response.Batch.EntityResults
-                        .Select(x => _entityConverter.From<T>(@namespace, x.Entity))
-                        .WhereNotNull()
-                        .Where(geoQuery.ServerSideFilter)
-                        .ToList();
+                        List<T> batchResult;
+                        using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.compute_return_batch", $"{response.Batch.EntityResults.Count} entities in batch"))
+                        {
+                            batchResult =
+                                response.Batch.EntityResults
+                                .Select(x => _entityConverter.From<T>(@namespace, x.Entity))
+                                .WhereNotNull()
+                                .Where(geoQuery.ServerSideFilter)
+                                .ToList();
+                        }
+
+                        using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.yield_return_batch", $"{response.Batch.EntityResults.Count} entities in batch"))
+                        {
+                            yield return batchResult;
+                        }
+                    }
                 }
 
-                await _metricService.AddPoint(_datastoreEntityOperationCount, 1, null, new Dictionary<string, string?>
+                using (_managedTracer.StartSpan($"db.datastore.query_geohash_range.save_metrics"))
+                {
+                    await _metricService.AddPoint(_datastoreEntityOperationCount, 1, null, new Dictionary<string, string?>
                     {
                         { "operation", "querygeo" },
                         { "hashkey", hashKeyString },
                         { "kind", referenceModel.GetKind() },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
-                await _metricService.AddPoint(_datastoreEntityEntityReadCount, entitiesRead, null, new Dictionary<string, string?>
+                    await _metricService.AddPoint(_datastoreEntityEntityReadCount, entitiesRead, null, new Dictionary<string, string?>
                     {
                         { "kind", referenceModel.GetKind() },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
+                }
             }
         }
 
