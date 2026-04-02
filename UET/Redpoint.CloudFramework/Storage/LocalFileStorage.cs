@@ -131,7 +131,14 @@
             ArgumentNullException.ThrowIfNull(profile);
 
             var results = new List<CloudFile>();
-            foreach (var fileInfo in new DirectoryInfo(Path.Combine(_storageNameFolder, profile.Name)).GetFiles())
+
+            var folder = new DirectoryInfo(Path.Combine(_storageNameFolder, profile.Name));
+            if (!folder.Exists)
+            {
+                return Task.FromResult(results);
+            }
+
+            foreach (var fileInfo in folder.GetFiles())
             {
                 var filename = File.ReadAllText(fileInfo.FullName).Trim();
                 if (!filename.StartsWith(prefix, StringComparison.Ordinal))
@@ -145,6 +152,7 @@
                     Filename = filename,
                 });
             }
+
             return Task.FromResult(results);
         }
     }
