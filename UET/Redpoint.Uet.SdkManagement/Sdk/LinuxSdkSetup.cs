@@ -45,6 +45,8 @@
 
         public string CommonPlatformNameForPackageId => "Linux";
 
+        public bool SupportsTemporaryFolderSwapOnInstall => true;
+
         public Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             return _versionNumberResolver.For<ILinuxVersionNumbers>(unrealEnginePath).GetClangToolchainVersion(unrealEnginePath);

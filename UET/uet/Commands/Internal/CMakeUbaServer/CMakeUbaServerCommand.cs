@@ -54,7 +54,6 @@
                     parseArgument: EngineSpec.ParseEngineSpecContextless(),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ExactlyOne;
             }
         }
 

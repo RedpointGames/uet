@@ -88,6 +88,8 @@
 
         public string CommonPlatformNameForPackageId => "Android";
 
+        public bool SupportsTemporaryFolderSwapOnInstall => true;
+
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
             var jdkInfo = GetJdkInfo();

@@ -84,7 +84,6 @@
                     parseArgument: EngineSpec.ParseEngineSpec(Path, null),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ExactlyOne;
 
                 Prefix = new Option<string>(
                     "--prefix",

@@ -8,6 +8,7 @@
     using Redpoint.Reservation;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.SdkManagement;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -45,22 +46,22 @@
         {
             private readonly Options _options;
             private readonly ILogger<InstallXcodeCommandInstance> _logger;
-            private readonly IEnumerable<ISdkSetup> _sdkSetups;
             private readonly IProcessExecutor _processExecutor;
             private readonly IPathResolver _pathResolver;
+            private readonly IServiceProvider _serviceProvider;
 
             public InstallXcodeCommandInstance(
                 Options options,
                 ILogger<InstallXcodeCommandInstance> logger,
-                IEnumerable<ISdkSetup> sdkSetups,
                 IProcessExecutor processExecutor,
-                IPathResolver pathResolver)
+                IPathResolver pathResolver,
+                IServiceProvider serviceProvider)
             {
                 _options = options;
                 _logger = logger;
-                _sdkSetups = sdkSetups;
                 _processExecutor = processExecutor;
                 _pathResolver = pathResolver;
+                _serviceProvider = serviceProvider;
             }
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
@@ -78,7 +79,7 @@
                     return 1;
                 }
 
-                var macSdkSetup = _sdkSetups.OfType<MacSdkSetup>().First();
+                var macSdkSetup = MacSdkSetup.ConstructFromServiceProvider(_serviceProvider);
                 var packageId = $"Mac-{version}-iOS";
                 var sdksPath = UetPaths.UetDefaultMacSdkStoragePath;
 

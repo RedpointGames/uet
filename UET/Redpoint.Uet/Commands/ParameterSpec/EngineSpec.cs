@@ -360,7 +360,7 @@
                 }
             }
 
-            if ((flags & EngineParseFlags.LauncherInstalled) != 0)
+            if ((flags & EngineParseFlags.LauncherInstalled) != 0 && !string.IsNullOrWhiteSpace(engine))
             {
                 // This matches the path behaviour specified by the engine in:
                 //
@@ -417,7 +417,7 @@
                 }
             }
 
-            if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(engine))
             {
                 if ((flags & EngineParseFlags.WindowsUserRegistry) != 0)
                 {
@@ -525,16 +525,33 @@
                 // path is passed in on the command line (usually escaping a quote " ...)
                 engine = engine.TrimEnd('\\');
 
-                // If this is an absolute path to an engine, use that.
-                if (System.IO.Path.IsPathRooted(engine) &&
-                    Directory.Exists(engine))
+                if (string.IsNullOrWhiteSpace(engine) || engine == ".")
                 {
-                    return new EngineSpec
+                    // If the current directory contains an engine, use that.
+                    var currentDirectory = Environment.CurrentDirectory;
+                    if (Directory.Exists(System.IO.Path.Combine(currentDirectory, "Engine")))
                     {
-                        Type = EngineSpecType.Path,
-                        OriginalSpec = engine,
-                        Path = engine,
-                    };
+                        return new EngineSpec
+                        {
+                            Type = EngineSpecType.Path,
+                            OriginalSpec = currentDirectory,
+                            Path = currentDirectory,
+                        };
+                    }
+                }
+                else
+                {
+                    // If this is an absolute path to an engine, use that.
+                    if (System.IO.Path.IsPathRooted(engine) &&
+                        Directory.Exists(engine))
+                    {
+                        return new EngineSpec
+                        {
+                            Type = EngineSpecType.Path,
+                            OriginalSpec = engine,
+                            Path = engine,
+                        };
+                    }
                 }
             }
 

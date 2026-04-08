@@ -14,6 +14,7 @@
     using Redpoint.Uet.Configuration.Plugin;
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.SdkManagement;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
     using System;
     using System.Collections.Generic;
     using System.CommandLine;
@@ -72,7 +73,6 @@
                     parseArgument: EngineSpec.ParseEngineSpec(Path, null),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ExactlyOne;
 
                 DryRun = new Option<bool>(
                     "--dry-run",
@@ -94,6 +94,7 @@
             private readonly IServiceProvider _serviceProvider;
             private readonly IPathResolver _pathResolver;
             private readonly IDotnetLocator _dotnetLocator;
+            private readonly ISdkSetupDiscovery _sdkSetupDiscovery;
             private readonly Options _options;
 
             public FormatCommandInstance(
@@ -103,6 +104,7 @@
                 IServiceProvider serviceProvider,
                 IPathResolver pathResolver,
                 IDotnetLocator dotnetLocator,
+                ISdkSetupDiscovery sdkSetupDiscovery,
                 Options options)
             {
                 _logger = logger;
@@ -111,6 +113,7 @@
                 _serviceProvider = serviceProvider;
                 _pathResolver = pathResolver;
                 _dotnetLocator = dotnetLocator;
+                _sdkSetupDiscovery = sdkSetupDiscovery;
                 _options = options;
             }
 
@@ -169,13 +172,17 @@
                     return 0;
                 }
 
+                var sdkSetups = await _sdkSetupDiscovery
+                    .DiscoverApplicableSdkSetups(engine.Path!)
+                    .ToHashSetAsync();
+
                 // Install the relevant Windows SDK if needed, and locate clang-format.exe.
                 var packagePath = UetPaths.UetDefaultWindowsSdkStoragePath;
                 Directory.CreateDirectory(packagePath);
                 var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                     engine.Path!,
                     packagePath,
-                    _serviceProvider.GetServices<ISdkSetup>().ToHashSet(),
+                    sdkSetups,
                     context.GetCancellationToken()).ConfigureAwait(false);
                 var clangFormatPath = Path.Combine(envVars["UE_SDKS_ROOT"], "HostWin64", "Win64", "VS2022", "VC", "Tools", "Llvm", "x64", "bin", "clang-format.exe");
                 if (!File.Exists(clangFormatPath))

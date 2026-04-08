@@ -21,6 +21,10 @@
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? MustExistAfterInstall { get; set; }
 
+        [JsonPropertyName("BeforeInstallDeleteDirectory")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public string[]? BeforeInstallDeleteDirectory { get; set; }
+
         [JsonPropertyName("BeforeInstallSetRegistryValue")]
         public Dictionary<string, Dictionary<string, JsonElement>>? BeforeInstallSetRegistryValue { get; set; }
 

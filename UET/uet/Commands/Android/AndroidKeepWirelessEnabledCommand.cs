@@ -21,6 +21,7 @@
     using Redpoint.PathResolution;
     using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.CommandLine;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
 
     internal sealed class AndroidKeepWirelessEnabledCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
     {
@@ -37,7 +38,6 @@
                     parseArgument: EngineSpec.ParseEngineSpecContextless(),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ExactlyOne;
 
                 Once = new Option<bool>("--once")
                 {
@@ -67,6 +67,7 @@
             private readonly IServiceProvider _serviceProvider;
             private readonly IProcessExecutor _processExecutor;
             private readonly IPathResolver _pathResolver;
+            private readonly ISdkSetupDiscovery _sdkSetupDiscovery;
             private readonly ILoopbackPortReservationManager _loopbackPortReservationManager;
             private readonly Options _options;
 
@@ -78,6 +79,7 @@
                 IReservationManagerFactory reservationManagerFactory,
                 IProcessExecutor processExecutor,
                 IPathResolver pathResolver,
+                ISdkSetupDiscovery sdkSetupDiscovery,
                 Options options)
             {
                 _logger = logger;
@@ -86,6 +88,7 @@
                 _serviceProvider = serviceProvider;
                 _processExecutor = processExecutor;
                 _pathResolver = pathResolver;
+                _sdkSetupDiscovery = sdkSetupDiscovery;
                 _loopbackPortReservationManager = reservationManagerFactory.CreateLoopbackPortReservationManager();
                 _options = options;
             }
@@ -110,12 +113,17 @@
                         .AsAsyncDisposable(out var engineWorkspace)
                         .ConfigureAwait(false))
                 {
+                    var sdkSetups = await _sdkSetupDiscovery
+                        .DiscoverApplicableSdkSetups(engineWorkspace.Path)
+                        .Where(x => x.PlatformNames.Contains("Android"))
+                        .ToHashSetAsync();
+
                     var packagePath = UetPaths.UetDefaultWindowsSdkStoragePath;
                     Directory.CreateDirectory(packagePath);
                     var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                         engineWorkspace.Path,
                         packagePath,
-                        _serviceProvider.GetServices<ISdkSetup>().Where(x => x.PlatformNames.Contains("Android")).ToHashSet(),
+                        sdkSetups,
                         context.GetCancellationToken()).ConfigureAwait(false);
 
                     await using ((await _loopbackPortReservationManager.ReserveAsync().ConfigureAwait(false))

@@ -10,6 +10,8 @@
     using Redpoint.Uet.SdkManagement.AutoSdk;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
+    using Redpoint.Uet.SdkManagement.Sdk.MsiExtract;
 
     public static class SdkManagementServiceExtensions
     {
@@ -27,49 +29,13 @@
             services.AddSingleton<IAndroidVersionNumbers, EmbeddedAndroidVersionNumbers>();
             services.AddSingleton<IAndroidVersionNumbers, JsonAndroidVersionNumbers>();
 
+            services.AddSingleton<ISdkSetupDiscovery, DefaultSdkSetupDiscovery>();
+
+            services.AddSingleton<IMsiExtraction, DefaultMsiExtraction>();
+
             if (OperatingSystem.IsWindows())
             {
                 services.AddSingleton<WindowsSdkInstaller, WindowsSdkInstaller>();
-                services.AddSingleton<ISdkSetup, WindowsSdkSetup>();
-                services.AddSingleton<ISdkSetup, AndroidSdkSetup>();
-                services.AddSingleton<ISdkSetup, LinuxSdkSetup>();
-
-                // Register confidential implementations.
-                foreach (var environmentVariableName in Environment.GetEnvironmentVariables()
-                    .Keys
-                    .OfType<string>()
-                    .Where(x => x.StartsWith("UET_PLATFORM_SDK_CONFIG_PATH_", StringComparison.Ordinal)))
-                {
-                    var platform = environmentVariableName["UET_PLATFORM_SDK_CONFIG_PATH_".Length..];
-                    var configPath = Environment.GetEnvironmentVariable(environmentVariableName)!;
-                    var config = JsonSerializer.Deserialize(
-                        File.ReadAllText(configPath),
-                        new ConfidentialPlatformJsonSerializerContext(new JsonSerializerOptions
-                        {
-                            Converters =
-                            {
-                                new JsonStringEnumConverter(),
-                            }
-                        }).ConfidentialPlatformConfig)!;
-                    services.AddSingleton<ISdkSetup>(sp =>
-                    {
-                        if (OperatingSystem.IsWindows())
-                        {
-                            return new ConfidentialSdkSetup(
-                                platform,
-                                config!,
-                                sp.GetRequiredService<IProcessExecutor>(),
-                                sp.GetRequiredService<IStringUtilities>(),
-                                sp.GetRequiredService<WindowsSdkInstaller>(),
-                                sp.GetRequiredService<ILogger<ConfidentialSdkSetup>>());
-                        }
-                        throw new PlatformNotSupportedException();
-                    });
-                }
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                services.AddSingleton<ISdkSetup, MacSdkSetup>();
             }
         }
     }

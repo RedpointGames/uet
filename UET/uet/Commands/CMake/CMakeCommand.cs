@@ -92,7 +92,6 @@
                     parseArgument: EngineSpec.ParseEngineSpecContextless(),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ZeroOrOne;
 
                 CommandArgs = new Argument<string[]>("command-and-arguments", "The command to run, followed by any arguments to pass to it.");
                 CommandArgs.Arity = ArgumentArity.ZeroOrMore;
