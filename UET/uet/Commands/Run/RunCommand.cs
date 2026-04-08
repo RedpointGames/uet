@@ -21,6 +21,7 @@
     using Redpoint.Uet.Configuration.Project;
     using Redpoint.Uet.Core;
     using Redpoint.Uet.SdkManagement;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
     using Redpoint.Uet.Workspace;
     using System;
     using System.CommandLine;
@@ -93,7 +94,6 @@
                     parseArgument: EngineSpec.ParseEngineSpec(Path, null),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ExactlyOne;
 
                 Distribution = new Option<DistributionSpec?>(
                     "--distribution",
@@ -149,6 +149,7 @@
             private readonly IServiceProvider _serviceProvider;
             private readonly IGlobalMutexReservationManager _globalMutexReservationManager;
             private readonly IPackageManager _packageManager;
+            private readonly ISdkSetupDiscovery _sdkSetupDiscovery;
 
             public RunCommandInstance(
                 ILogger<RunCommandInstance> logger,
@@ -158,7 +159,8 @@
                 ILocalSdkManager localSdkManager,
                 IServiceProvider serviceProvider,
                 IReservationManagerFactory reservationManagerFactory,
-                IPackageManager packageManager)
+                IPackageManager packageManager,
+                ISdkSetupDiscovery sdkSetupDiscovery)
             {
                 _logger = logger;
                 _options = options;
@@ -168,6 +170,7 @@
                 _serviceProvider = serviceProvider;
                 _globalMutexReservationManager = reservationManagerFactory.CreateGlobalMutexReservationManager();
                 _packageManager = packageManager;
+                _sdkSetupDiscovery = sdkSetupDiscovery;
             }
 
             private static string ParameterisedArgument(string argumentName, string argumentValue)
@@ -254,6 +257,11 @@
                         IDictionary<string, string>? hostEnvVars = null;
                         if (OperatingSystem.IsMacOS() && target != "adb")
                         {
+                            var sdkSetups = await _sdkSetupDiscovery
+                                .DiscoverApplicableSdkSetups(engine.Path!)
+                                .Where(x => x.PlatformNames.Contains("Mac"))
+                                .ToHashSetAsync();
+
                             // We need to grab SDK environment variables on macOS because UET always resets the DEVELOPER_DIR environment
                             // variable, and this interferes with the editor starting up (as it requires an actual Xcode install).
                             var packagePath = UetPaths.UetDefaultMacSdkStoragePath;
@@ -261,9 +269,7 @@
                             hostEnvVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                                 engineWorkspace.Path,
                                 packagePath,
-                                _serviceProvider.GetServices<ISdkSetup>()
-                                    .Where(x => x.PlatformNames.Contains("Mac"))
-                                    .ToHashSet(),
+                                sdkSetups,
                                 context.GetCancellationToken()).ConfigureAwait(false);
                             if (hostEnvVars != null)
                             {
@@ -660,14 +666,17 @@
                                 }
                             case "adb":
                                 {
+                                    var sdkSetups = await _sdkSetupDiscovery
+                                        .DiscoverApplicableSdkSetups(engine.Path!)
+                                        .Where(x => x.PlatformNames.Contains("Android"))
+                                        .ToHashSetAsync();
+
                                     var packagePath = OperatingSystem.IsWindows() ? UetPaths.UetDefaultWindowsSdkStoragePath : UetPaths.UetDefaultMacSdkStoragePath;
                                     Directory.CreateDirectory(packagePath);
                                     var androidEnvVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                                         engineWorkspace.Path,
                                         packagePath,
-                                        _serviceProvider.GetServices<ISdkSetup>()
-                                            .Where(x => x.PlatformNames.Contains("Android"))
-                                            .ToHashSet(),
+                                        sdkSetups,
                                         context.GetCancellationToken()).ConfigureAwait(false);
 
                                     var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;

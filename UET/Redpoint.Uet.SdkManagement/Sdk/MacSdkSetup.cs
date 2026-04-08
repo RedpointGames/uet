@@ -8,6 +8,7 @@
     using System.IO;
     using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
     using Redpoint.PackageManagement;
+    using Microsoft.Extensions.DependencyInjection;
 
     [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
@@ -18,6 +19,18 @@
         private readonly IMonitorFactory _monitorFactory;
         private readonly IVersionNumberResolver _versionNumberResolver;
         private readonly IPackageManager _packageManager;
+
+        public static MacSdkSetup ConstructFromServiceProvider(
+            IServiceProvider serviceProvider)
+        {
+            return new MacSdkSetup(
+                serviceProvider.GetRequiredService<ILogger<MacSdkSetup>>(),
+                serviceProvider.GetRequiredService<IProcessExecutor>(),
+                serviceProvider.GetRequiredService<IProgressFactory>(),
+                serviceProvider.GetRequiredService<IMonitorFactory>(),
+                serviceProvider.GetRequiredService<IVersionNumberResolver>(),
+                serviceProvider.GetRequiredService<IPackageManager>());
+        }
 
         public MacSdkSetup(
             ILogger<MacSdkSetup> logger,
@@ -38,6 +51,8 @@
         public IReadOnlyList<string> PlatformNames => new[] { "Mac", "IOS" };
 
         public string CommonPlatformNameForPackageId => "Mac";
+
+        public bool SupportsTemporaryFolderSwapOnInstall => true;
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {

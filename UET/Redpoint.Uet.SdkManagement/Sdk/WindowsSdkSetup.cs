@@ -28,6 +28,8 @@
 
         public string CommonPlatformNameForPackageId => "Windows";
 
+        public bool SupportsTemporaryFolderSwapOnInstall => true;
+
         private const string _installLogicVersion = "v5";
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)

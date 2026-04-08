@@ -4,6 +4,7 @@
     using Redpoint.IO;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor.Utils;
+    using Redpoint.Uet.SdkManagement.Sdk.MsiExtract;
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
@@ -24,17 +25,20 @@
         private readonly ISimpleDownloadProgress _simpleDownloadProgress;
         private readonly IProcessExecutor _processExecutor;
         private readonly ILogger<WindowsSdkInstaller> _logger;
+        private readonly IMsiExtraction _msiExtraction;
         private InternetManifest? _cachedManifest;
         private string? _cachedClangManifest;
 
         public WindowsSdkInstaller(
             ISimpleDownloadProgress simpleDownloadProgress,
             IProcessExecutor processExecutor,
-            ILogger<WindowsSdkInstaller> logger)
+            ILogger<WindowsSdkInstaller> logger,
+            IMsiExtraction msiExtraction)
         {
             _simpleDownloadProgress = simpleDownloadProgress;
             _processExecutor = processExecutor;
             _logger = logger;
+            _msiExtraction = msiExtraction;
             _cachedManifest = null;
             _cachedClangManifest = null;
         }
@@ -918,36 +922,11 @@
                     throw new SdkSetupPackageGenerationFailedException($"Missing expected MSI file: {Path.Combine(sdkPackagePath, "__Installers", msiFile)}");
                 }
 
-            retryExtract:
-                _logger.LogInformation($"Extracting MSI: {msiFile}");
-                var msiexecOutput = new StringBuilder();
-                await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = @"C:\WINDOWS\system32\msiexec.exe",
-                        Arguments = new LogicalProcessArgument[]
-                        {
-                            "/a",
-                            msiFile,
-                            "/quiet",
-                            "/qn",
-                            $"TARGETDIR={windowsKitsPath}",
-                        },
-                        WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
-                    },
-                    CaptureSpecification.CreateFromStdoutStringBuilder(msiexecOutput),
-                    cancellationToken).ConfigureAwait(false);
-                if (msiexecOutput.ToString().Contains("Another program is being installed.", StringComparison.Ordinal))
-                {
-                    _logger.LogWarning("Another instance of msiexec is currently running; retrying extraction in 2 seconds...");
-                    await Task.Delay(2000, cancellationToken);
-                    goto retryExtract;
-                }
-                if (!File.Exists(Path.Combine(windowsKitsPath, msiFile)))
-                {
-                    throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
-                }
-                File.Delete(Path.Combine(windowsKitsPath, msiFile));
+                await _msiExtraction.ExtractMsiAsync(
+                    Path.Combine(sdkPackagePath, "__Installers"),
+                    msiFile,
+                    windowsKitsPath,
+                    cancellationToken);
             }
 
             // Clean up the installers folder that we no longer need.
@@ -1101,26 +1080,11 @@
                     throw new SdkSetupPackageGenerationFailedException($"Missing expected MSI file: {Path.Combine(sdkPackagePath, "__Installers", msiFile)}");
                 }
 
-                _logger.LogInformation($"Extracting MSI: {msiFile}");
-                await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = @"C:\WINDOWS\system32\msiexec.exe",
-                        Arguments = new LogicalProcessArgument[]
-                        {
-                            "/a",
-                            msiFile,
-                            "/quiet",
-                            "/qn",
-                            $"TARGETDIR={windowsKitsPath}",
-                        },
-                        WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
-                    }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
-                if (!File.Exists(Path.Combine(windowsKitsPath, msiFile)))
-                {
-                    throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
-                }
-                File.Delete(Path.Combine(windowsKitsPath, msiFile));
+                await _msiExtraction.ExtractMsiAsync(
+                    Path.Combine(sdkPackagePath, "__Installers"),
+                    msiFile,
+                    windowsKitsPath,
+                    cancellationToken);
             }
 
             // Clean up the installers folder that we no longer need.
@@ -1156,26 +1120,11 @@
             Directory.CreateDirectory(setupPath);
             foreach (var msiFile in msiNames)
             {
-                _logger.LogInformation($"Extracting MSI: {msiFile}");
-                await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = @"C:\WINDOWS\system32\msiexec.exe",
-                        Arguments = new LogicalProcessArgument[]
-                        {
-                            "/a",
-                            msiFile,
-                            "/quiet",
-                            "/qn",
-                            $"TARGETDIR={setupPath}",
-                        },
-                        WorkingDirectory = Path.Combine(sdkPackagePath, "__Installers")
-                    }, CaptureSpecification.Passthrough, cancellationToken).ConfigureAwait(false);
-                if (!File.Exists(Path.Combine(setupPath, msiFile)))
-                {
-                    throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFile}");
-                }
-                File.Delete(Path.Combine(setupPath, msiFile));
+                await _msiExtraction.ExtractMsiAsync(
+                    Path.Combine(sdkPackagePath, "__Installers"),
+                    msiFile,
+                    setupPath,
+                    cancellationToken);
             }
             // Clean up the installers folder that we no longer need.
             await DirectoryAsync.DeleteAsync(Path.Combine(sdkPackagePath, "__Installers"), true).ConfigureAwait(false);

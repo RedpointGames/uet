@@ -10,6 +10,7 @@
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.SdkManagement;
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -35,23 +36,22 @@
         internal sealed class Options
         {
             public Option<EngineSpec> Engine;
-            public Option<string[]> ConsolePlatforms;
+            public Option<bool> SkipPermissionUpdate;
 
             public Options()
             {
                 Engine = new Option<EngineSpec>(
                     "--engine",
                     description: "The engine to install all of the available SDKs for.",
-                    parseArgument: EngineSpec.ParseEngineSpecWithoutPath);
+                    parseArgument: EngineSpec.ParseEngineSpecWithoutPath,
+                    isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ExactlyOne;
-                Engine.IsRequired = true;
 
-                ConsolePlatforms = new Option<string[]>(
-                    "--console",
-                    description: "Map an additional platform using a confidential platform JSON file, specified in the form 'PlatformName=Path/To/Json/File.json'. You can pass this option multiple times.");
-                ConsolePlatforms.AddAlias("-c");
-                ConsolePlatforms.Arity = ArgumentArity.ZeroOrMore;
+                SkipPermissionUpdate = new Option<bool>(
+                    "--skip-permissions",
+                    description: "Skip updating permissions on SDKs.");
+                SkipPermissionUpdate.AddAlias("-s");
+                SkipPermissionUpdate.SetDefaultValue(false);
             }
         }
 
@@ -60,21 +60,21 @@
             private readonly ILogger<InstallSdksCommandInstance> _logger;
             private readonly Options _options;
             private readonly ILocalSdkManager _localSdkManager;
-            private readonly IServiceProvider _serviceProvider;
             private readonly IWorldPermissionApplier _worldPermissionApplier;
+            private readonly ISdkSetupDiscovery _sdkSetupDiscovery;
 
             public InstallSdksCommandInstance(
                 ILogger<InstallSdksCommandInstance> logger,
                 Options options,
                 ILocalSdkManager localSdkManager,
-                IServiceProvider serviceProvider,
-                IWorldPermissionApplier worldPermissionApplier)
+                IWorldPermissionApplier worldPermissionApplier,
+                ISdkSetupDiscovery sdkSetupDiscovery)
             {
                 _logger = logger;
                 _options = options;
                 _localSdkManager = localSdkManager;
-                _serviceProvider = serviceProvider;
                 _worldPermissionApplier = worldPermissionApplier;
+                _sdkSetupDiscovery = sdkSetupDiscovery;
             }
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
@@ -93,38 +93,9 @@
                     return 1;
                 }
 
-                var sdkSetups = _serviceProvider.GetServices<ISdkSetup>().ToList();
-                foreach (var configEntry in context.ParseResult.GetValueForOption(_options.ConsolePlatforms) ?? Array.Empty<string>())
-                {
-                    var kv = configEntry.Split('=', 2, StringSplitOptions.TrimEntries);
-                    if (kv.Length != 2)
-                    {
-                        _logger.LogWarning($"The console platform specifier '{configEntry}' is not in a valid format. It will be ignored.");
-                        continue;
-                    }
-                    if (!File.Exists(kv[1]))
-                    {
-                        _logger.LogWarning($"The confidential platform JSON file does not exist at path '{kv[1]}'. It will be ignored.");
-                        continue;
-                    }
-                    var config = JsonSerializer.Deserialize(
-                        File.ReadAllText(kv[1]),
-                        new ConfidentialPlatformJsonSerializerContext(new JsonSerializerOptions
-                        {
-                            Converters =
-                            {
-                                new JsonStringEnumConverter(),
-                            }
-                        }).ConfidentialPlatformConfig)!;
-                    sdkSetups.Add(
-                        new ConfidentialSdkSetup(
-                            kv[0],
-                            config!,
-                            _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                            _serviceProvider.GetRequiredService<IStringUtilities>(),
-                            _serviceProvider.GetRequiredService<WindowsSdkInstaller>(),
-                            _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>()));
-                }
+                var sdkSetups = await _sdkSetupDiscovery
+                    .DiscoverApplicableSdkSetups(engine.Path!)
+                    .ToListAsync();
 
                 _logger.LogInformation("The following platforms will have their SDKs configured:");
                 foreach (var platform in sdkSetups.Select(x => x.CommonPlatformNameForPackageId).ToHashSet())
@@ -141,8 +112,11 @@
                     sdkSetups.ToHashSet(),
                     context.GetCancellationToken()).ConfigureAwait(false);
 
-                _logger.LogInformation("Updating permissions on SDK directories so all users have read/write access...");
-                await _worldPermissionApplier.GrantEveryonePermissionAsync(packagePath, context.GetCancellationToken()).ConfigureAwait(false);
+                if (!context.ParseResult.GetValueForOption(_options.SkipPermissionUpdate))
+                {
+                    _logger.LogInformation("Updating permissions on SDK directories so all users have read/write access...");
+                    await _worldPermissionApplier.GrantEveryonePermissionAsync(packagePath, context.GetCancellationToken()).ConfigureAwait(false);
+                }
 
                 _logger.LogInformation("Setting environment variables to user scope...");
                 foreach (var kv in envVars)

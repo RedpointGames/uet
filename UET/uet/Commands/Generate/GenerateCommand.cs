@@ -8,6 +8,7 @@
     using Redpoint.Uet.Commands.ParameterSpec;
     using Redpoint.Uet.CommonPaths;
     using Redpoint.Uet.SdkManagement;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
     using Redpoint.Windows.HandleManagement;
     using System;
     using System.Collections.Generic;
@@ -92,7 +93,6 @@
                     parseArgument: EngineSpec.ParseEngineSpec(Path, null),
                     isDefault: true);
                 Engine.AddAlias("-e");
-                Engine.Arity = ArgumentArity.ZeroOrOne;
 
                 Open = new Option<bool>(
                     "--open",
@@ -106,20 +106,20 @@
             private readonly ILogger<GenerateCommandInstance> _logger;
             private readonly IProcessExecutor _processExecutor;
             private readonly ILocalSdkManager _localSdkManager;
-            private readonly IServiceProvider _serviceProvider;
+            private readonly ISdkSetupDiscovery _sdkSetupDiscovery;
             private readonly Options _options;
 
             public GenerateCommandInstance(
                 ILogger<GenerateCommandInstance> logger,
                 IProcessExecutor processExecutor,
                 ILocalSdkManager localSdkManager,
-                IServiceProvider serviceProvider,
+                ISdkSetupDiscovery sdkSetupDiscovery,
                 Options options)
             {
                 _logger = logger;
                 _processExecutor = processExecutor;
                 _localSdkManager = localSdkManager;
-                _serviceProvider = serviceProvider;
+                _sdkSetupDiscovery = sdkSetupDiscovery;
                 _options = options;
             }
 
@@ -179,6 +179,11 @@
                 var open = context.ParseResult.GetValueForOption(_options.Open);
                 var automationPaths = context.ParseResult.GetValueForOption(_options.AutomationPath) ?? [];
 
+                var sdkSetups = await _sdkSetupDiscovery
+                    .DiscoverApplicableSdkSetups(engine.Path!)
+                    .Where(x => x.PlatformNames.Contains("Mac"))
+                    .ToHashSetAsync();
+
                 // We need to grab SDK environment variables on macOS because UET always resets the DEVELOPER_DIR environment
                 // variable, and this interferes with project generation (as it requires an actual Xcode install).
                 IDictionary<string, string>? hostEnvVars = null;
@@ -189,9 +194,7 @@
                     hostEnvVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
                         engine.Path!,
                         packagePath,
-                        _serviceProvider.GetServices<ISdkSetup>()
-                            .Where(x => x.PlatformNames.Contains("Mac"))
-                            .ToHashSet(),
+                        sdkSetups,
                         context.GetCancellationToken()).ConfigureAwait(false);
                     if (hostEnvVars != null)
                     {

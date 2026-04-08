@@ -11,6 +11,9 @@
         [JsonPropertyName("CommonPlatformName")]
         public string? CommonPlatformName { get; set; }
 
+        [JsonPropertyName("SupportsTemporaryFolderSwapOnInstall")]
+        public bool? SupportsTemporaryFolderSwapOnInstall { get; set; }
+
         [JsonPropertyName("Installers")]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public ConfidentialPlatformConfigInstaller[]? Installers { get; set; }
@@ -31,5 +34,9 @@
 
         [JsonPropertyName("RequiredWindowsSdk")]
         public ConfidentialPlatformRequiredWindowsSdk? RequiredWindowsSdk { get; set; }
+
+        [JsonPropertyName("Messages")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public string[]? Messages { get; set; }
     }
 }

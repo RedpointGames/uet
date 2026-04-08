@@ -6,6 +6,8 @@
 
         string CommonPlatformNameForPackageId { get; }
 
+        bool SupportsTemporaryFolderSwapOnInstall { get; }
+
         Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken);
 
         Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken);

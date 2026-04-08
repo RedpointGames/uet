@@ -69,7 +69,6 @@
                 parseArgument: EngineSpec.ParseEngineSpec(Path, Distribution),
                 isDefault: true);
             Engine.AddAlias("-e");
-            Engine.Arity = ArgumentArity.ExactlyOne;
 
             Test = new Option<string[]>(
                 "--test",

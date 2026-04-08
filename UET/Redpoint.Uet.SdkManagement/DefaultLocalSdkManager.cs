@@ -11,36 +11,28 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Threading.Tasks;
+    using Redpoint.Uet.SdkManagement.Sdk.Discovery;
 
     internal class DefaultLocalSdkManager : ILocalSdkManager
     {
         private readonly IReservationManagerFactory _reservationManagerFactory;
         private readonly ILogger<DefaultLocalSdkManager> _logger;
         private readonly IStringUtilities _stringUtilities;
-        private readonly Dictionary<string, ISdkSetup> _sdkSetupsByPlatformName;
+        private readonly ISdkSetupDiscovery _sdkSetupDiscovery;
         private ConcurrentDictionary<string, IReservationManager> _reservationManagers;
 
         public DefaultLocalSdkManager(
             IReservationManagerFactory reservationManagerFactory,
             IServiceProvider serviceProvider,
             ILogger<DefaultLocalSdkManager> logger,
-            IStringUtilities stringUtilities)
+            IStringUtilities stringUtilities,
+            ISdkSetupDiscovery sdkSetupDiscovery)
         {
             _reservationManagers = new ConcurrentDictionary<string, IReservationManager>(StringComparer.InvariantCultureIgnoreCase);
             _reservationManagerFactory = reservationManagerFactory;
             _logger = logger;
             _stringUtilities = stringUtilities;
-            _sdkSetupsByPlatformName = new Dictionary<string, ISdkSetup>(StringComparer.InvariantCultureIgnoreCase);
-            foreach (var sdkSetup in serviceProvider.GetServices<ISdkSetup>())
-            {
-                foreach (var platform in sdkSetup.PlatformNames)
-                {
-                    if (!_sdkSetupsByPlatformName.ContainsKey(platform))
-                    {
-                        _sdkSetupsByPlatformName[platform] = sdkSetup;
-                    }
-                }
-            }
+            _sdkSetupDiscovery = sdkSetupDiscovery;
         }
 
         public async Task<Dictionary<string, string>> SetupEnvironmentForBuildGraphNode(
@@ -51,6 +43,15 @@
         {
             _logger.LogInformation($"Determining SDKs required for build graph node '{buildGraphNodeName}'...");
 
+            var availableSdkSetups = new Dictionary<string, ISdkSetup>();
+            await foreach (var availableSdkSetup in _sdkSetupDiscovery.DiscoverApplicableSdkSetups(enginePath))
+            {
+                foreach (var platformName in availableSdkSetup.PlatformNames)
+                {
+                    availableSdkSetups.Add(platformName, availableSdkSetup);
+                }
+            }
+
             var sdkSetups = new HashSet<ISdkSetup>();
             var environmentVariableName = $"UET_PLATFORMS_FOR_BUILD_GRAPH_NODE_{buildGraphNodeName.Replace(" ", "_", StringComparison.Ordinal)}";
             var overriddenPlatforms = Environment.GetEnvironmentVariable(environmentVariableName);
@@ -60,7 +61,7 @@
                 var platforms = overriddenPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var platform in platforms)
                 {
-                    if (_sdkSetupsByPlatformName.TryGetValue(platform, out var sdkSetup))
+                    if (availableSdkSetups.TryGetValue(platform, out var sdkSetup))
                     {
                         sdkSetups.Add(sdkSetup);
                     }
@@ -74,7 +75,7 @@
                 var components = buildGraphNodeName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (var component in components)
                 {
-                    if (_sdkSetupsByPlatformName.TryGetValue(component, out var sdkSetup))
+                    if (availableSdkSetups.TryGetValue(component, out var sdkSetup))
                     {
                         sdkSetups.Add(sdkSetup);
                     }
@@ -112,49 +113,63 @@
             var allPackageIds = new List<string>();
             foreach (var sdkSetup in sdkSetups)
             {
-                _logger.LogInformation($"Requesting SDK for platform {sdkSetup.CommonPlatformNameForPackageId}...");
+                var packageIdSuffix = await sdkSetup.ComputeSdkPackageId(enginePath, cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation($"Requesting SDK {packageIdSuffix} for platform {sdkSetup.CommonPlatformNameForPackageId}...");
 
-                var packageId = $"{sdkSetup.CommonPlatformNameForPackageId}-{await sdkSetup.ComputeSdkPackageId(enginePath, cancellationToken).ConfigureAwait(false)}";
+                var packageId = $"{sdkSetup.CommonPlatformNameForPackageId}-{packageIdSuffix}";
                 allPackageIds.Add(packageId);
                 await using ((await reservationManager.ReserveExactAsync(packageId, cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var reservation).ConfigureAwait(false))
                 {
                     if (!File.Exists(Path.Combine(reservation.ReservedPath, "sdk-ready")))
                     {
-                        var packageWorkingPath = Path.Combine(sdksPath, $"{packageId}-tmp-{Environment.ProcessId}");
-                        var packageOldPath = Path.Combine(sdksPath, $"{packageId}-old-{Environment.ProcessId}");
-                        if (Directory.Exists(packageWorkingPath))
+                        if (sdkSetup.SupportsTemporaryFolderSwapOnInstall)
                         {
-                            await DirectoryAsync.DeleteAsync(packageWorkingPath, true).ConfigureAwait(false);
-                        }
-                        if (Directory.Exists(packageOldPath))
-                        {
-                            await DirectoryAsync.DeleteAsync(packageOldPath, true).ConfigureAwait(false);
-                        }
-                        Directory.CreateDirectory(packageWorkingPath);
-                        await sdkSetup.GenerateSdkPackage(enginePath, packageWorkingPath, cancellationToken).ConfigureAwait(false);
-                        await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", cancellationToken).ConfigureAwait(false);
-                        try
-                        {
-                            if (Directory.Exists(reservation.ReservedPath))
+                            var packageWorkingPath = Path.Combine(sdksPath, $"{packageId}-tmp-{Environment.ProcessId}");
+                            var packageOldPath = Path.Combine(sdksPath, $"{packageId}-old-{Environment.ProcessId}");
+                            if (Directory.Exists(packageWorkingPath))
                             {
-                                await DirectoryAsync.MoveAsync(reservation.ReservedPath, packageOldPath).ConfigureAwait(false);
+                                await DirectoryAsync.DeleteAsync(packageWorkingPath, true).ConfigureAwait(false);
                             }
-                            await DirectoryAsync.MoveAsync(packageWorkingPath, reservation.ReservedPath).ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            if (!Directory.Exists(reservation.ReservedPath) &&
-                                Directory.Exists(packageOldPath))
-                            {
-                                await DirectoryAsync.MoveAsync(packageOldPath, reservation.ReservedPath).ConfigureAwait(false);
-                            }
-                        }
-                        finally
-                        {
                             if (Directory.Exists(packageOldPath))
                             {
                                 await DirectoryAsync.DeleteAsync(packageOldPath, true).ConfigureAwait(false);
                             }
+                            Directory.CreateDirectory(packageWorkingPath);
+                            await sdkSetup.GenerateSdkPackage(enginePath, packageWorkingPath, cancellationToken).ConfigureAwait(false);
+                            await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                if (Directory.Exists(reservation.ReservedPath))
+                                {
+                                    await DirectoryAsync.MoveAsync(reservation.ReservedPath, packageOldPath).ConfigureAwait(false);
+                                }
+                                await DirectoryAsync.MoveAsync(packageWorkingPath, reservation.ReservedPath).ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                if (!Directory.Exists(reservation.ReservedPath) &&
+                                    Directory.Exists(packageOldPath))
+                                {
+                                    await DirectoryAsync.MoveAsync(packageOldPath, reservation.ReservedPath).ConfigureAwait(false);
+                                }
+                            }
+                            finally
+                            {
+                                if (Directory.Exists(packageOldPath))
+                                {
+                                    await DirectoryAsync.DeleteAsync(packageOldPath, true).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (Directory.Exists(reservation.ReservedPath))
+                            {
+                                await DirectoryAsync.DeleteAsync(reservation.ReservedPath, true).ConfigureAwait(false);
+                            }
+                            Directory.CreateDirectory(reservation.ReservedPath);
+                            await sdkSetup.GenerateSdkPackage(enginePath, reservation.ReservedPath, cancellationToken).ConfigureAwait(false);
+                            await File.WriteAllTextAsync(Path.Combine(reservation.ReservedPath, "sdk-ready"), "ready", cancellationToken).ConfigureAwait(false);
                         }
                     }
 
