@@ -231,7 +231,13 @@
 
             foreach (var extractor in _config.Extractors ?? Array.Empty<ConfidentialPlatformConfigExtractor>())
             {
-                foreach (var file in Directory.GetFiles(Substitute(extractor.MsiSourceDirectory!, sdkPackagePath), Substitute(extractor.MsiFilenameFilter ?? "*.msi", sdkPackagePath)))
+                var msiSourceDirectory = Substitute(extractor.MsiSourceDirectory!, sdkPackagePath);
+                var msiFilenameFilter = Substitute(extractor.MsiFilenameFilter ?? "*.msi", sdkPackagePath);
+
+                _logger.LogInformation($"Searching for {msiFilenameFilter} files to extract in: {msiSourceDirectory}");
+
+                var filesFound = 0;
+                foreach (var file in Directory.GetFiles(msiSourceDirectory, msiFilenameFilter))
                 {
                     var targetDirectory = Path.Combine(sdkPackagePath, Substitute(extractor.ExtractionSubdirectoryPath!.Replace('/', '\\'), sdkPackagePath));
                     await _msiExtraction.ExtractMsiAsync(
@@ -239,6 +245,12 @@
                         file,
                         targetDirectory,
                         cancellationToken);
+                    filesFound++;
+                }
+
+                if (filesFound == 0)
+                {
+                    throw new SdkSetupPackageGenerationFailedException($"Confidential platform process did not find any {msiFilenameFilter} files inside {msiSourceDirectory}.");
                 }
             }
 
