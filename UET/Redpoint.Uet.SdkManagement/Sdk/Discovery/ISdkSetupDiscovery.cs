@@ -8,5 +8,12 @@
     public interface ISdkSetupDiscovery
     {
         IAsyncEnumerable<ISdkSetup> DiscoverApplicableSdkSetups(string enginePath);
+
+        Task<Dictionary<string, HashSet<ISdkSetup>>> DiscoverApplicableSdkSetupsByPlatformName(string enginePath);
+
+        void ApplySdkSetupsBasedOnPlatformNames(
+            HashSet<ISdkSetup> sdkSetups,
+            IEnumerable<string> platformNames,
+            Dictionary<string, HashSet<ISdkSetup>> availableSdkSetups);
     }
 }

@@ -204,5 +204,40 @@
                 }
             }
         }
+
+        public async Task<Dictionary<string, HashSet<ISdkSetup>>> DiscoverApplicableSdkSetupsByPlatformName(string enginePath)
+        {
+            var availableSdkSetups = new Dictionary<string, HashSet<ISdkSetup>>();
+            await foreach (var availableSdkSetup in DiscoverApplicableSdkSetups(enginePath))
+            {
+                foreach (var platformName in availableSdkSetup.PlatformNames)
+                {
+                    if (!availableSdkSetups.TryGetValue(platformName, out var sdkSetupList))
+                    {
+                        sdkSetupList = new();
+                        availableSdkSetups.Add(platformName, sdkSetupList);
+                    }
+                    sdkSetupList.Add(availableSdkSetup);
+                }
+            }
+            return availableSdkSetups;
+        }
+
+        public void ApplySdkSetupsBasedOnPlatformNames(
+            HashSet<ISdkSetup> sdkSetups,
+            IEnumerable<string> platformNames,
+            Dictionary<string, HashSet<ISdkSetup>> availableSdkSetups)
+        {
+            foreach (var platform in platformNames)
+            {
+                if (availableSdkSetups.TryGetValue(platform, out var sdkSetupList))
+                {
+                    foreach (var sdkSetup in sdkSetupList)
+                    {
+                        sdkSetups.Add(sdkSetup);
+                    }
+                }
+            }
+        }
     }
 }

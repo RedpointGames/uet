@@ -43,14 +43,7 @@
         {
             _logger.LogInformation($"Determining SDKs required for build graph node '{buildGraphNodeName}'...");
 
-            var availableSdkSetups = new Dictionary<string, ISdkSetup>();
-            await foreach (var availableSdkSetup in _sdkSetupDiscovery.DiscoverApplicableSdkSetups(enginePath))
-            {
-                foreach (var platformName in availableSdkSetup.PlatformNames)
-                {
-                    availableSdkSetups.Add(platformName, availableSdkSetup);
-                }
-            }
+            var availableSdkSetups = await _sdkSetupDiscovery.DiscoverApplicableSdkSetupsByPlatformName(enginePath);
 
             var sdkSetups = new HashSet<ISdkSetup>();
             var environmentVariableName = $"UET_PLATFORMS_FOR_BUILD_GRAPH_NODE_{buildGraphNodeName.Replace(" ", "_", StringComparison.Ordinal)}";
@@ -59,13 +52,7 @@
             {
                 // Platforms are determined by environment variable.
                 var platforms = overriddenPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                foreach (var platform in platforms)
-                {
-                    if (availableSdkSetups.TryGetValue(platform, out var sdkSetup))
-                    {
-                        sdkSetups.Add(sdkSetup);
-                    }
-                }
+                _sdkSetupDiscovery.ApplySdkSetupsBasedOnPlatformNames(sdkSetups, platforms, availableSdkSetups);
 
                 _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on environment variable '{environmentVariableName}'.");
             }
@@ -73,13 +60,7 @@
             {
                 // Platforms are determined by detecting them being mentioned in the BuildGraph node name.
                 var components = buildGraphNodeName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                foreach (var component in components)
-                {
-                    if (availableSdkSetups.TryGetValue(component, out var sdkSetup))
-                    {
-                        sdkSetups.Add(sdkSetup);
-                    }
-                }
+                _sdkSetupDiscovery.ApplySdkSetupsBasedOnPlatformNames(sdkSetups, components, availableSdkSetups);
 
                 _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
             }
