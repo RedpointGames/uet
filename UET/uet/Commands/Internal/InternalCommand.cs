@@ -21,6 +21,7 @@
     using UET.Commands.Internal.InstallPackage;
     using UET.Commands.Internal.InstallPlatformSdk;
     using UET.Commands.Internal.ListCustomObjects;
+    using UET.Commands.Internal.OpenFirewallPort;
     using UET.Commands.Internal.Patch;
     using UET.Commands.Internal.PxeBoot;
     using UET.Commands.Internal.RegisterGitLabRunner;
@@ -102,6 +103,7 @@
                     builder.AddCommand<ListCustomObjectsCommand>();
                     builder.AddCommand<DumpEnvironmentCommand>();
                     builder.AddCommand<BuildMultiPlatformContainerCommand>();
+                    builder.AddCommand<OpenFirewallPortCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
                     command.IsHidden = true;
