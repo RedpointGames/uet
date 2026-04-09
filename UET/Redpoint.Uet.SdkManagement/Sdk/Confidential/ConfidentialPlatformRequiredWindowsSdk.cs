@@ -17,5 +17,8 @@
 
         [JsonPropertyName("SubdirectoryName")]
         public string? SubdirectoryName { get; set; }
+
+        [JsonPropertyName("InheritDefaults")]
+        public bool InheritDefaults { get; set; } = true;
     }
 }

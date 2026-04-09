@@ -178,6 +178,7 @@
                                     _serviceProvider.GetRequiredService<IProcessExecutor>(),
                                     _serviceProvider.GetRequiredService<IStringUtilities>(),
                                     _serviceProvider.GetRequiredService<WindowsSdkInstaller>(),
+                                    _serviceProvider.GetRequiredService<IVersionNumberResolver>(),
                                     _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>(),
                                     _serviceProvider.GetRequiredService<IMsiExtraction>());
                             }

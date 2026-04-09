@@ -54,7 +54,7 @@
                 var platforms = overriddenPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 _sdkSetupDiscovery.ApplySdkSetupsBasedOnPlatformNames(sdkSetups, platforms, availableSdkSetups);
 
-                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on environment variable '{environmentVariableName}'.");
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.CommonPlatformNameForPackageId}'"))} based on environment variable '{environmentVariableName}'.");
             }
             else
             {
@@ -62,7 +62,7 @@
                 var components = buildGraphNodeName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 _sdkSetupDiscovery.ApplySdkSetupsBasedOnPlatformNames(sdkSetups, components, availableSdkSetups);
 
-                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.PlatformNames[0]}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
+                _logger.LogInformation($"Selected SDK platforms {string.Join(", ", sdkSetups.Select(x => $"'{x.CommonPlatformNameForPackageId}'"))} based on BuildGraph node name '{buildGraphNodeName}'.");
             }
 
             if (sdkSetups.Count == 0)

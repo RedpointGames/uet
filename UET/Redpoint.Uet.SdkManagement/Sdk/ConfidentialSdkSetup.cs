@@ -8,6 +8,7 @@
     using Redpoint.Uet.SdkManagement.AutoSdk.WindowsSdk;
     using Redpoint.Uet.SdkManagement.Sdk.GenericPlatform;
     using Redpoint.Uet.SdkManagement.Sdk.MsiExtract;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
     using System;
     using System.Globalization;
     using System.Runtime.Versioning;
@@ -25,6 +26,7 @@
         private readonly IProcessExecutor _processExecutor;
         private readonly IStringUtilities _stringUtilities;
         private readonly WindowsSdkInstaller _windowsSdkInstaller;
+        private readonly IVersionNumberResolver _versionNumberResolver;
         private readonly ILogger<ConfidentialSdkSetup> _logger;
         private readonly IMsiExtraction _msiExtraction;
 
@@ -35,6 +37,7 @@
             IProcessExecutor processExecutor,
             IStringUtilities stringUtilities,
             WindowsSdkInstaller windowsSdkInstaller,
+            IVersionNumberResolver versionNumberResolver,
             ILogger<ConfidentialSdkSetup> logger,
             IMsiExtraction msiExtraction)
         {
@@ -45,6 +48,7 @@
             _processExecutor = processExecutor;
             _stringUtilities = stringUtilities;
             _windowsSdkInstaller = windowsSdkInstaller;
+            _versionNumberResolver = versionNumberResolver;
             _logger = logger;
             _msiExtraction = msiExtraction;
         }
@@ -255,12 +259,36 @@
 
             if (_config.RequiredWindowsSdk != null)
             {
-                var windowsSdkPreferredVersion = VersionNumber.Parse(Substitute(_config.RequiredWindowsSdk.WindowsSdkPreferredVersion!, sdkPackagePath));
-                var visualCppMinimumVersion = VersionNumber.Parse(Substitute(_config.RequiredWindowsSdk.VisualCppMinimumVersion!, sdkPackagePath));
-                var suggestedComponents = _config.RequiredWindowsSdk.SuggestedComponents ?? Array.Empty<string>();
+                WindowsSdkInstallerTarget windowsVersions;
+                if (_config.RequiredWindowsSdk.InheritDefaults)
+                {
+                    windowsVersions = await _versionNumberResolver
+                        .For<IWindowsVersionNumbers>(unrealEnginePath)
+                        .GetWindowsVersionNumbersAsync(unrealEnginePath)
+                        .ConfigureAwait(false);
 
-                await _windowsSdkInstaller.InstallSdkToPath(
-                    new WindowsSdkInstallerTarget
+                    if (_config.RequiredWindowsSdk.WindowsSdkPreferredVersion != null)
+                    {
+                        windowsVersions.WindowsSdkPreferredVersion = VersionNumber.Parse(Substitute(_config.RequiredWindowsSdk.WindowsSdkPreferredVersion, sdkPackagePath));
+                    }
+
+                    if (_config.RequiredWindowsSdk.VisualCppMinimumVersion != null)
+                    {
+                        windowsVersions.MinimumVisualCppVersion = VersionNumber.Parse(Substitute(_config.RequiredWindowsSdk.VisualCppMinimumVersion, sdkPackagePath));
+                    }
+
+                    windowsVersions.SuggestedComponents =
+                        windowsVersions.SuggestedComponents
+                            .Concat(_config.RequiredWindowsSdk.SuggestedComponents ?? [])
+                            .ToArray();
+                }
+                else
+                {
+                    var windowsSdkPreferredVersion = VersionNumber.Parse(Substitute(_config.RequiredWindowsSdk.WindowsSdkPreferredVersion!, sdkPackagePath));
+                    var visualCppMinimumVersion = VersionNumber.Parse(Substitute(_config.RequiredWindowsSdk.VisualCppMinimumVersion!, sdkPackagePath));
+                    var suggestedComponents = _config.RequiredWindowsSdk.SuggestedComponents ?? Array.Empty<string>();
+
+                    windowsVersions = new WindowsSdkInstallerTarget
                     {
                         WindowsSdkPreferredVersion = windowsSdkPreferredVersion,
                         MinimumVisualCppVersion = visualCppMinimumVersion,
@@ -268,8 +296,14 @@
                         BannedVisualCppVersions = new(),
                         SuggestedComponents = suggestedComponents.Select(x => Substitute(x, sdkPackagePath)).ToArray(),
                         MinimumRequiredClangVersions = [],
-                    },
-                    string.IsNullOrWhiteSpace(_config.RequiredWindowsSdk.SubdirectoryName) ? sdkPackagePath : Path.Combine(sdkPackagePath, Substitute(_config.RequiredWindowsSdk.SubdirectoryName, sdkPackagePath)),
+                    };
+                }
+
+                await _windowsSdkInstaller.InstallSdkToPath(
+                    windowsVersions,
+                    string.IsNullOrWhiteSpace(_config.RequiredWindowsSdk.SubdirectoryName)
+                        ? sdkPackagePath
+                        : Path.Combine(sdkPackagePath, Substitute(_config.RequiredWindowsSdk.SubdirectoryName, sdkPackagePath)),
                     cancellationToken).ConfigureAwait(false);
             }
         }
