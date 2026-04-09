@@ -24,8 +24,16 @@
             string targetPath,
             CancellationToken cancellationToken)
         {
+            if (Path.GetFileName(msiFilename) != msiFilename)
+            {
+                throw new InvalidOperationException($"{msiFilename} should be a filename only.");
+            }
+
+            var msiFullPath = Path.Combine(msiSourceDirectory, msiFilename);
+            var msiTargetRedundantPath = Path.Combine(targetPath, msiFilename);
+
         retryExtract:
-            _logger.LogInformation($"Extracting MSI: {msiFilename}");
+            _logger.LogInformation($"Extracting MSI: {msiFullPath}");
             var msiexecOutput = new StringBuilder();
             await _processExecutor.ExecuteAsync(
                 new ProcessSpecification
@@ -49,11 +57,16 @@
                 await Task.Delay(2000, cancellationToken);
                 goto retryExtract;
             }
-            if (!File.Exists(Path.Combine(targetPath, msiFilename)))
+            if (!File.Exists(msiFullPath))
+            {
+                throw new SdkSetupPackageGenerationFailedException($"MSI extraction unexpectedly deleted source MSI file: {msiFullPath}");
+            }
+            if (!File.Exists(msiTargetRedundantPath))
             {
                 throw new SdkSetupPackageGenerationFailedException($"MSI extraction failed for: {msiFilename}");
             }
-            File.Delete(Path.Combine(targetPath, msiFilename));
+            _logger.LogInformation($"Deleting unneeded MSI file that was copied during install: {msiTargetRedundantPath}");
+            File.Delete(msiTargetRedundantPath);
         }
     }
 

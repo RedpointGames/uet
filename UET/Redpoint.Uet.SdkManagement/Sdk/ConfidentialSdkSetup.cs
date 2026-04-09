@@ -242,7 +242,7 @@
                     var targetDirectory = Path.Combine(sdkPackagePath, Substitute(extractor.ExtractionSubdirectoryPath!.Replace('/', '\\'), sdkPackagePath));
                     await _msiExtraction.ExtractMsiAsync(
                         Substitute(extractor.MsiSourceDirectory!, sdkPackagePath),
-                        file,
+                        Path.GetFileName(file),
                         targetDirectory,
                         cancellationToken);
                     filesFound++;
