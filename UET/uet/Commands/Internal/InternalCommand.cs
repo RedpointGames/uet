@@ -4,6 +4,7 @@
     using Redpoint.KubernetesManager.HostedService.Rkm;
     using Redpoint.KubernetesManager.PxeBoot;
     using System.CommandLine;
+    using UET.Commands.Internal.BuildMultiPlatformContainer;
     using UET.Commands.Internal.CIBuild;
     using UET.Commands.Internal.CMakeUbaRun;
     using UET.Commands.Internal.CMakeUbaServer;
@@ -100,6 +101,7 @@
                     builder.AddCommandWithoutGlobalContext<PxeBootCommand>();
                     builder.AddCommand<ListCustomObjectsCommand>();
                     builder.AddCommand<DumpEnvironmentCommand>();
+                    builder.AddCommand<BuildMultiPlatformContainerCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
                     command.IsHidden = true;
