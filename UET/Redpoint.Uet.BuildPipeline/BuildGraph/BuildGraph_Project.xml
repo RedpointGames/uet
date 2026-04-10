@@ -47,6 +47,7 @@
 
   <EnvVar Name="AppData" />
   <EnvVar Name="HOME" />
+  <EnvVar Name="UET_ZEN_PUBLISH_HOST" />
 
   <Property Name="GameBinaries" Value="" />
   <Property Name="ClientBinaries" Value="" />
@@ -115,6 +116,7 @@
         <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
         <Compile Target="ShaderCompileWorker" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
         <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="Shipping" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
+        <Compile Target="ZenLaunch" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true' and '$(UET_ZEN_PUBLISH_HOST)' != ''" />
         <Expand
           Name="IntegrityCheckNewDllFilesAfterCompile"
           FileList="#EditorBinaries;#BuildToolBinaries"
@@ -207,6 +209,25 @@
           Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
           Versioned="True"
           Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
+        <Copy
+          From="$(ProjectRoot)/Binaries/Win64/ZenLaunch.exe"
+          To="$(EnginePath)/Engine/Binaries/Win64/ZenLaunch.exe"
+          If="'$(UET_ZEN_PUBLISH_HOST)' != '' and !Exists('$(EnginePath)/Engine/Binaries/Win64/ZenLaunch.exe')" />
+        <ZenExportSnapshot
+          Project="$(UProjectPath)"
+          Platform="$(CookPlatform)"
+          DestinationStorageType="Zen"
+          DestinationZenHost="$(UET_ZEN_PUBLISH_HOST)"
+          DestinationIdentifier="$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)_$(Timestamp)"
+          SnapshotDescriptorFile="$(ProjectRoot)/Saved/Cooked/$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)-zen.json"
+          If="'$(UET_ZEN_PUBLISH_HOST)' != ''" />
+        <Tag
+          Files="$(ProjectRoot)/Saved/Cooked/$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)-zen.json"
+          With="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
+          If="'$(UET_ZEN_PUBLISH_HOST)' != ''" />
+        <Log
+          Message="Creating Zen snapshot descriptor file at: $(ProjectRoot)/Saved/Cooked/$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)-zen.json"
+          If="'$(UET_ZEN_PUBLISH_HOST)' != ''" />
       </Node>
       <Property Name="$(TargetType)CookedContent" Value="$($(TargetType)CookedContent)#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);"/>
     </Agent>
@@ -527,6 +548,18 @@
 
         <!-- Run our reparenting hook, which is necessary to fix up Android UPL paths when not building against a source engine. -->
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal reparent-additional-properties-in-targets --project-directory-path &quot;$(ProjectRoot)&quot;" />
+
+        <!-- Import Zen snapshot if needed. -->
+        <Property Name="ZenLaunchName" Value="ZenLaunch.exe" />
+        <Property Name="ZenLaunchName" Value="ZenLaunch" If="'$(HostPlatform)' == 'Mac'" />
+        <Copy
+          From="$(ProjectRoot)$(Slash)Binaries$(Slash)$(HostPlatform)$(Slash)$(ZenLaunchName)"
+          To="$(EnginePath)$(Slash)Engine$(Slash)Binaries$(Slash)$(HostPlatform)$(Slash)$(ZenLaunchName)"
+          If="'$(UET_ZEN_PUBLISH_HOST)' != '' and !Exists('$(EnginePath)$(Slash)Engine$(Slash)Binaries$(Slash)$(HostPlatform)$(Slash)$(ZenLaunchName)')" />
+        <ZenImportSnapshot
+          Project="$(UProjectPath)"
+          SnapshotDescriptorFile="$(ProjectRoot)$(Slash)Saved$(Slash)Cooked$(Slash)$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)-zen.json"
+          If="'$(UET_ZEN_PUBLISH_HOST)' != ''" />
 
         <!-- Execute the BuildCookRun command with all the desired arguments. -->
         <Command Name="BuildCookRun" Arguments="&quot;-project=$(UProjectPath)&quot; -nop4 -SkipCook -cook -pak -stage &quot;-stagingdirectory=$(StageDirectory)&quot; -unattended -stdlog -target=$(TargetName) $(BCRArgs)" />
