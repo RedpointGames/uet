@@ -116,7 +116,7 @@
         <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
         <Compile Target="ShaderCompileWorker" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
         <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="Shipping" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Compile Target="ZenLaunch" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(UET_ZEN_PUBLISH_HOST)' != ''" />
+        <Compile Target="ZenLaunch" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true' and '$(UET_ZEN_PUBLISH_HOST)' != ''" />
         <Expand
           Name="IntegrityCheckNewDllFilesAfterCompile"
           FileList="#EditorBinaries;#BuildToolBinaries"
@@ -209,7 +209,7 @@
           Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
           Versioned="True"
           Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
-        <Do If="'$(UET_ZEN_PUBLISH_HOST)' != ''">
+        <Do If="'$(IsUnrealEngineInstalled)' != 'true' and '$(UET_ZEN_PUBLISH_HOST)' != ''">
           <Copy
             From="$(ProjectRoot)/Binaries/Win64/ZenLaunch.exe"
             To="$(EnginePath)/Engine/Binaries/Win64/ZenLaunch.exe"
@@ -549,7 +549,7 @@
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal reparent-additional-properties-in-targets --project-directory-path &quot;$(ProjectRoot)&quot;" />
 
         <!-- Import Zen snapshot if needed. -->
-        <Do If="'$(UET_ZEN_PUBLISH_HOST)' != ''">
+        <Do If="'$(IsUnrealEngineInstalled)' != 'true' and '$(UET_ZEN_PUBLISH_HOST)' != ''">
           <Property Name="ZenLaunchName" Value="ZenLaunch.exe" />
           <Property Name="ZenLaunchName" Value="ZenLaunch" If="'$(HostPlatform)' == 'Mac'" />
           <Copy
