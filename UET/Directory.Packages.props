@@ -91,7 +91,7 @@
     <PackageVersion Include="coverlet.collector" Version="8.0.1" />
     <PackageVersion Include="MartinCostello.Logging.XUnit.v3" Version="0.7.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
-    <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Version="18.3.0" />
+    <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Version="18.4.0" />
     <!-- Default versions for CsWin32 -->
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.269" />
     <PackageVersion Include="Microsoft.Windows.SDK.Win32Docs" Version="0.1.42-alpha" />
