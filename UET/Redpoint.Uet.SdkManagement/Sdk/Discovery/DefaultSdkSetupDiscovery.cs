@@ -191,18 +191,15 @@
                 }
             }
 
-            if (OperatingSystem.IsMacOS())
+            if (File.Exists(appleConfigPath))
             {
-                if (File.Exists(appleConfigPath))
-                {
-                    yield return new MacSdkSetup(
-                        _serviceProvider.GetRequiredService<ILogger<MacSdkSetup>>(),
-                        _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                        _serviceProvider.GetRequiredService<IProgressFactory>(),
-                        _serviceProvider.GetRequiredService<IMonitorFactory>(),
-                        _serviceProvider.GetRequiredService<IVersionNumberResolver>(),
-                        _serviceProvider.GetRequiredService<IPackageManager>());
-                }
+                yield return new MacSdkSetup(
+                    _serviceProvider.GetRequiredService<ILogger<MacSdkSetup>>(),
+                    _serviceProvider.GetRequiredService<IProcessExecutor>(),
+                    _serviceProvider.GetRequiredService<IProgressFactory>(),
+                    _serviceProvider.GetRequiredService<IMonitorFactory>(),
+                    _serviceProvider.GetRequiredService<IVersionNumberResolver>(),
+                    _serviceProvider.GetRequiredService<IPackageManager>());
             }
         }
 

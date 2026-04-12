@@ -46,5 +46,10 @@
                 "ApplePlatformSDK.Versions.cs")).ConfigureAwait(false);
             return await ParseXcodeVersion(applePlatformSdk).ConfigureAwait(false);
         }
+
+        public async Task<string> GetITunesVersion(string unrealEnginePath)
+        {
+            return string.Empty;
+        }
     }
 }
