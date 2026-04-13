@@ -32,6 +32,7 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 		<PackageReference Include="NodaTime" />
+		<PackageReference Include="NSec.Cryptography" />
 		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore">
 			<NoWarn>NU5104</NoWarn>
 		</PackageReference>
