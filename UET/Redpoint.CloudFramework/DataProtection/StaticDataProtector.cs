@@ -4,6 +4,7 @@
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using NSec.Cryptography;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
@@ -16,14 +17,13 @@
     /// We don't protect anything sensitive (ASP.NET Core just needs some encryption for the session key
     /// that it stores in cookies), and all of the built-in data protection mechanisms are unreliable.
     /// 
-    /// You need to create AES key/IV settings to your appsettings.json:
+    /// You need to create XChaCha20Poly1305 key settings to your appsettings.json:
     /// 
     /// {
     ///   "CloudFramework": {
     ///     "Security": {
-    ///       "AES": {
-    ///         "Key": "",
-    ///         "IV": ""
+    ///       "XChaCha20Poly1305": {
+    ///         "Key": ""
     ///       }
     ///     }
     ///   }
@@ -34,9 +34,8 @@
     /// </summary>
     public class StaticDataProtector : IDataProtector
     {
-        private readonly Aes _aes;
-        private readonly byte[] _aesKey;
-        private readonly byte[] _aesIV;
+        private readonly AeadAlgorithm _algorithm = AeadAlgorithm.XChaCha20Poly1305;
+        private readonly Key _aeadKey;
 
         private static T CreatePath<T>(JsonObject current, string name, T newValue) where T : JsonNode
         {
@@ -58,19 +57,10 @@
         {
             ArgumentNullException.ThrowIfNull(configuration);
 
-            _aes = Aes.Create();
-            _aes.BlockSize = 128;
-            _aes.Mode = CipherMode.CBC;
-            _aes.Padding = PaddingMode.PKCS7;
-
-            // If the developer is running their app unconfigured, generate the key and IV and throw an exception with
+            // If the developer is running their app unconfigured, generate the key and throw an exception with
             // the values to make it easy to set values into appsettings.json
-            if (string.IsNullOrEmpty(configuration["CloudFramework:Security:AES:Key"]) ||
-                string.IsNullOrEmpty(configuration["CloudFramework:Security:AES:IV"]))
+            if (string.IsNullOrEmpty(configuration["CloudFramework:Security:XChaCha20Poly1305:Key"]))
             {
-                _aes.GenerateIV();
-                _aes.GenerateKey();
-
                 bool needsThrow = true;
                 if (hostEnvironment.IsDevelopment())
                 {
@@ -80,22 +70,20 @@
 #pragma warning restore IL3000 // Avoid accessing Assembly file path when publishing as a single file
                     if (File.Exists(filePath))
                     {
+                        _aeadKey = Key.Create(_algorithm, new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
+
                         var parentJson = JsonObject.Parse(File.ReadAllText(filePath))!.AsObject();
                         var json = CreatePath(parentJson, "CloudFramework", new JsonObject());
                         json = CreatePath(json, "Security", new JsonObject());
-                        json = CreatePath(json, "AES", new JsonObject());
-                        CreatePath(json, "Key", JsonValue.Create(Convert.ToBase64String(_aes.Key)));
-                        CreatePath(json, "IV", JsonValue.Create(Convert.ToBase64String(_aes.IV)));
+                        json = CreatePath(json, "XChaCha20Poly1305", new JsonObject());
+                        CreatePath(json, "Key", JsonValue.Create(Convert.ToBase64String(_aeadKey.Export(KeyBlobFormat.NSecSymmetricKey))));
                         File.WriteAllText(
                             filePath,
                             JsonSerializer.Serialize(
-                                parentJson, 
+                                parentJson,
                                 _indentedJsonSerializerOptions));
 
-                        logger.LogInformation("Automatically updated your appsettings.json file with the requires AES key/IV settings.");
-
-                        _aesKey = _aes.Key;
-                        _aesIV = _aes.IV;
+                        logger.LogInformation("Automatically updated your appsettings.json file with the requires XChaCha20Poly1305 key settings.");
 
                         // We've updated appsettings. We don't need to restart because we're already set our settings, and next time the app starts it will be using the settings we just persisted.
                         needsThrow = false;
@@ -104,20 +92,19 @@
 
                 if (needsThrow)
                 {
-                    var message = "You haven't set the AES key/IV in appsettings.json. Here are newly generated values for you. Key: '" + Convert.ToBase64String(_aes.Key) + "', IV: '" + Convert.ToBase64String(_aes.IV) + "'. Refer to documentation on how to set this up.";
+                    var message = "You haven't set the XChaCha20Poly1305 key in appsettings.json. Here are newly generated values for you. Key: '" + Convert.ToBase64String(Key.Create(_algorithm).Export(KeyBlobFormat.NSecSymmetricKey)) + "'. Refer to documentation on how to set this up.";
                     logger.LogError(message);
                     throw new InvalidOperationException(message);
                 }
             }
             else
             {
-                _aesKey = Convert.FromBase64String(configuration["CloudFramework:Security:AES:Key"] ?? string.Empty);
-                _aesIV = Convert.FromBase64String(configuration["CloudFramework:Security:AES:IV"] ?? string.Empty);
+                _aeadKey = Key.Import(_algorithm, Convert.FromBase64String(configuration["CloudFramework:Security:XChaCha20Poly1305:Key"] ?? string.Empty), KeyBlobFormat.NSecSymmetricKey);
             }
 
-            if (_aesKey == null || _aesIV == null)
+            if (_aeadKey == null)
             {
-                throw new InvalidOperationException("AES key/IV not loaded; this code path should not be hit.");
+                throw new InvalidOperationException("XChaCha20Poly1305 key not loaded; this code path should not be hit.");
             }
         }
 
@@ -130,49 +117,39 @@
         {
             ArgumentNullException.ThrowIfNull(plaintext);
 
-            // We must have the IV the same every time, or the content can't be decrypted.
-#pragma warning disable CA5401
-            using var encryptor = _aes.CreateEncryptor(_aesKey, _aesIV);
-#pragma warning restore CA5401
-            using var result = new MemoryStream();
+            var nonce = RandomNumberGenerator.GetBytes(_algorithm.NonceSize);
+            var encrypted = _algorithm.Encrypt(
+                _aeadKey,
+                nonce,
+                [],
+                plaintext);
 
-            using (var stream = new CryptoStream(result, encryptor, CryptoStreamMode.Write, true))
-            {
-                stream.Write(plaintext, 0, plaintext.Length);
-            }
-
-            var l = new byte[result.Position];
-            result.Seek(0, SeekOrigin.Begin);
-            result.Read(l, 0, l.Length);
-            return l;
+            byte[] result = [.. nonce, .. encrypted];
+            return result;
         }
 
         public byte[] Unprotect(byte[] protectedData)
         {
             ArgumentNullException.ThrowIfNull(protectedData);
 
-            try
+            if (protectedData.Length < _algorithm.NonceSize)
             {
-                // We must have the IV the same every time, or the content can't be decrypted.
-#pragma warning disable CA5401
-                using var decryptor = _aes.CreateDecryptor(_aesKey, _aesIV);
-#pragma warning restore CA5401
-                using var result = new MemoryStream();
-
-                using (var stream = new CryptoStream(result, decryptor, CryptoStreamMode.Write, true))
-                {
-                    stream.Write(protectedData, 0, protectedData.Length);
-                }
-
-                var l = new byte[result.Position];
-                result.Seek(0, SeekOrigin.Begin);
-                result.Read(l, 0, l.Length);
-                return l;
+                throw new ArgumentException("Protected data must include nonce.", nameof(protectedData));
             }
-            catch (CryptographicException)
+
+            var nonce = protectedData.AsSpan(0, _algorithm.NonceSize);
+            var encrypted = protectedData.AsSpan(_algorithm.NonceSize);
+
+            var decrypted = _algorithm.Decrypt(
+                _aeadKey,
+                nonce,
+                [],
+                encrypted);
+            if (decrypted == null)
             {
-                return Array.Empty<byte>();
+                throw new InvalidOperationException("Failed to decrypt data.");
             }
+            return decrypted;
         }
     }
 }
