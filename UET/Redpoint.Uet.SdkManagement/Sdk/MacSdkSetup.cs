@@ -1,16 +1,13 @@
 ﻿namespace Redpoint.Uet.SdkManagement
 {
-    using Redpoint.ProcessExecution;
-    using System.Threading.Tasks;
-    using System.Runtime.Versioning;
-    using Microsoft.Extensions.Logging;
-    using Redpoint.ProgressMonitor;
-    using System.IO;
-    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
-    using Redpoint.PackageManagement;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+    using Redpoint.PackageManagement;
+    using Redpoint.ProcessExecution;
+    using Redpoint.ProgressMonitor;
+    using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
+    using System.Runtime.Versioning;
 
-    [SupportedOSPlatform("macos")]
     public class MacSdkSetup : ISdkSetup
     {
         private readonly ILogger<MacSdkSetup> _logger;
@@ -56,10 +53,23 @@
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {
-            var versionNumber = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
-            return $"{versionNumber}-iOS";
+            if (OperatingSystem.IsMacOS())
+            {
+                var versionNumber = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+                return $"{versionNumber}-iOS";
+            }
+            else if (OperatingSystem.IsWindows())
+            {
+                var versionNumber = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetITunesVersion(unrealEnginePath).ConfigureAwait(false);
+                return $"{versionNumber}-iOS";
+            }
+            else
+            {
+                throw new PlatformNotSupportedException();
+            }
         }
 
+        [SupportedOSPlatform("macos")]
         public async Task InstallXcode(string xcodeVersion, string sdkPackagePath, CancellationToken cancellationToken)
         {
             // Check that the required environment variables have been set.
@@ -225,8 +235,15 @@
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            var xcodeVersion = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
-            await InstallXcode(xcodeVersion, sdkPackagePath, cancellationToken);
+            if (OperatingSystem.IsMacOS())
+            {
+                var xcodeVersion = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+                await InstallXcode(xcodeVersion, sdkPackagePath, cancellationToken);
+            }
+            else
+            {
+                await _packageManager.InstallOrUpgradePackageToLatestAsync("Apple.AppleMobileDeviceSupport", cancellationToken: cancellationToken);
+            }
         }
 
         public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
@@ -236,46 +253,56 @@
 
         public async Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
-            // Accept the Xcode license agreement on this machine.
-            await _processExecutor.ExecuteAsync(
-                new ProcessSpecification
-                {
-                    FilePath = "/usr/bin/sudo",
-                    Arguments = new LogicalProcessArgument[]
+            if (OperatingSystem.IsMacOS())
+            {
+                // Accept the Xcode license agreement on this machine.
+                await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
                     {
-                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin", "xcodebuild"),
-                        "-license",
-                        "accept"
+                        FilePath = "/usr/bin/sudo",
+                        Arguments = new LogicalProcessArgument[]
+                        {
+                            Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin", "xcodebuild"),
+                            "-license",
+                            "accept"
+                        },
+                        EnvironmentVariables = new Dictionary<string, string>()
+                        {
+                            { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
+                        }
                     },
-                    EnvironmentVariables = new Dictionary<string, string>()
-                    {
-                        { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
-                    }
-                },
-                CaptureSpecification.Passthrough,
-                cancellationToken).ConfigureAwait(false);
+                    CaptureSpecification.Passthrough,
+                    cancellationToken).ConfigureAwait(false);
 
-            // Emit the environment variable required to use Xcode from the package directory.
-            var envs = new Dictionary<string, string>
-            {
-                { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
-            };
-            var currentPath = Environment.GetEnvironmentVariable("PATH");
-            if (currentPath != null)
-            {
-                envs["PATH"] = string.Join(
-                    Path.PathSeparator,
-                    new[]
-                    {
-                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin"),
-                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "libexec"),
-                        currentPath
-                    });
+                // Emit the environment variable required to use Xcode from the package directory.
+                var envs = new Dictionary<string, string>
+                {
+                    { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
+                };
+                var currentPath = Environment.GetEnvironmentVariable("PATH");
+                if (currentPath != null)
+                {
+                    envs["PATH"] = string.Join(
+                        Path.PathSeparator,
+                        new[]
+                        {
+                            Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "bin"),
+                            Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "usr", "libexec"),
+                            currentPath
+                        });
+                }
+                return new EnvironmentForSdkUsage
+                {
+                    EnvironmentVariables = envs
+                };
             }
-            return new EnvironmentForSdkUsage
+            else
             {
-                EnvironmentVariables = envs
-            };
+                return new EnvironmentForSdkUsage
+                {
+                    EnvironmentVariables = new(),
+                };
+            }
         }
     }
 }

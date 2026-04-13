@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.SdkManagement.Sdk.VersionNumbers
 {
     using Microsoft.Extensions.Logging;
+    using System.Runtime.Versioning;
     using System.Text.Json;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
@@ -29,6 +30,7 @@
                 "Apple_SDK.json"));
         }
 
+        [SupportedOSPlatform("macos")]
         public async Task<string> GetXcodeVersion(string unrealEnginePath)
         {
             var json = await File.ReadAllTextAsync(Path.Combine(
@@ -125,6 +127,37 @@
             }
 
             throw new InvalidOperationException("Unable to read Apple SDK versions from either 'MaxVersion' or 'MainVersion' in Apple_SDK.json!");
+        }
+
+        [SupportedOSPlatform("windows")]
+        public async Task<string> GetITunesVersion(string unrealEnginePath)
+        {
+            var json = await File.ReadAllTextAsync(Path.Combine(
+                unrealEnginePath,
+                "Engine",
+                "Config",
+                "Apple",
+                "Apple_SDK.json")).ConfigureAwait(false);
+            var dictionary = JsonSerializer.Deserialize(
+                json,
+                new JsonConfigJsonSerializerContext(new JsonSerializerOptions
+                {
+                    AllowTrailingCommas = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip,
+                }).DictionaryStringJsonElement);
+            if (dictionary == null)
+            {
+                throw new InvalidOperationException("Unable to read Apple SDK versions from Apple_SDK.json!");
+            }
+
+            if (dictionary.TryGetValue("MinVersion_Win64", out var minVersion))
+            {
+                return minVersion.GetString() ?? "Unspecified";
+            }
+            else
+            {
+                return "Unspecified";
+            }
         }
     }
 }
