@@ -2,7 +2,7 @@
   <Import Project="$(MSBuildThisFileDirectory)Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <MicrosoftPackageVersion>10.0.5</MicrosoftPackageVersion>
+    <MicrosoftPackageVersion>10.0.6</MicrosoftPackageVersion>
     <MicrosoftTokensPackageVersion>8.17.0</MicrosoftTokensPackageVersion>
     <OpenTelemetryPackageVersion>1.15.0</OpenTelemetryPackageVersion>
     <SentryPackageVersion>6.2.0</SentryPackageVersion>
