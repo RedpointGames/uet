@@ -9,3 +9,12 @@ updates:
     directory: "/UET/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/UET/Redpoint.Uefs.Daemon.Integration.Kubernetes/go-forward"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/UET/Redpoint.IoBuildMonitor/ClientApp"
+    schedule:
+      interval: "weekly"
+
