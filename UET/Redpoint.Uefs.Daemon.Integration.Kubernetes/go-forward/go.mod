@@ -1,6 +1,6 @@
 module src.redpoint.games/redpointgames/uefs/lib/go-forward
 
-go 1.20
+go 1.23.0
 
 require (
 	github.com/gogo/protobuf v1.3.2
@@ -10,9 +10,9 @@ require (
 )
 
 require (
-	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 )
 
