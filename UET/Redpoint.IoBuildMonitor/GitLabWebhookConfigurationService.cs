@@ -1,8 +1,5 @@
 ﻿namespace Io
 {
-    using GitLabApiClient;
-    using GitLabApiClient.Internal.Paths;
-    using GitLabApiClient.Models.Webhooks.Requests;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -28,6 +25,8 @@
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            // This code relied on the GitLabClient package, which is no longer being maintained.
+#if UNSUPPORTED
             if (!_hostEnvironment.IsProduction())
             {
                 return Task.CompletedTask;
@@ -85,6 +84,7 @@
                     _logger.LogError(ex, ex.Message);
                 }
             }, cancellationToken);
+#endif
             return Task.CompletedTask;
         }
 
