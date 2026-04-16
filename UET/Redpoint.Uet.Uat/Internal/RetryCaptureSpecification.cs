@@ -10,16 +10,19 @@
         private readonly ILogger _logger;
         private readonly ICaptureSpecification _baseCaptureSpecification;
         private readonly string[] _forceRetryMessages;
+        private readonly string _enginePath;
         private bool _isCurrentlySilenced;
 
         public RetryCaptureSpecification(
             ILogger logger,
             ICaptureSpecification baseCaptureSpecification,
-            string[] forceRetryMessages)
+            string[] forceRetryMessages,
+            string enginePath)
         {
             _logger = logger;
             _baseCaptureSpecification = baseCaptureSpecification;
             _forceRetryMessages = forceRetryMessages;
+            _enginePath = enginePath;
         }
 
         public bool NeedsRetry { get; private set; } = false;
@@ -218,6 +221,35 @@
             if (data.Contains("sentry reported an error", StringComparison.Ordinal))
             {
                 _logger.LogWarning("Detected temporary error in uploading debug symbols to Sentry. The build will be retried.");
+                NeedsRetry = true;
+            }
+            if (data.Contains("fatal error C1853:", StringComparison.Ordinal))
+            {
+                // Scenario on Windows where precompiled files are out-of-date or corrupt and need to be regenerated.
+                var fileRegex = Regex.Match(data.Trim(), @"fatal error C1853: '(?<filename>[^']+)'");
+                if (fileRegex.Success)
+                {
+                    var filePath = fileRegex.Groups["filename"].Value;
+                    if (!Path.IsPathRooted(filePath))
+                    {
+                        filePath = Path.Combine(
+                            _enginePath,
+                            "Engine",
+                            "Source",
+                            filePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar));
+                    }
+                    _logger.LogWarning($"Detected that '{filePath}' is an out-of-date precompiled header file. It will be deleted and the build will be retried.");
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        NeedsRetry = true;
+                    }
+                }
+            }
+            if (data.Contains("ld.lld", StringComparison.Ordinal) &&
+                data.Contains("unspecified system_category error", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected temporary error in Clang linker. The build will be retried.");
                 NeedsRetry = true;
             }
         }

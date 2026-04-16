@@ -286,7 +286,8 @@
                 var retryCaptureSpecification = new RetryCaptureSpecification(
                     _logger,
                     captureSpecification,
-                    forceRetryMessages);
+                    forceRetryMessages,
+                    enginePath);
 
                 // Execute UAT.
                 reportedExitCode = await _processExecutor.ExecuteAsync(
