@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 
-	go_forward_proto "src.redpoint.games/redpointgames/uefs/lib/go-forward/proto"
+	go_forward_proto "github.com/RedpointGames/uet/UET/Redpoint.Uefs.Daemon.Integration.Kubernetes/go-forward/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
