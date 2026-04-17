@@ -4,7 +4,6 @@
     using Microsoft.EntityFrameworkCore;
     using Io.Database;
     using System.Text.Json.Serialization;
-    using Newtonsoft.Json.Linq;
     using System.Threading.Tasks;
     using System.Linq;
     using System.IO;
@@ -49,8 +48,8 @@
 
             _logger.LogInformation("Received webhook message from GitLab");
 
-            var obj = JObject.Parse(json);
-            var objectKind = obj["object_kind"]?.Value<string>();
+            var obj = JsonDocument.Parse(json).RootElement;
+            var objectKind = obj.GetProperty("object_kind").GetString();
             _logger.LogInformation($"Received object is '{objectKind}'");
             if (objectKind == "pipeline")
             {
@@ -112,11 +111,6 @@
             }
 
             return Ok();
-        }
-
-        private void HandleDeserializationError(object sender, Newtonsoft.Json.Serialization.ErrorEventArgs e)
-        {
-            _logger.LogError($"Failed to deserialize at JSON path '{e.ErrorContext.Path}'", e.ErrorContext.Error.Message);
         }
     }
 }

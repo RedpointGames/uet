@@ -21,7 +21,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GitLabApiClient" />
 		<PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
 			<PrivateAssets>all</PrivateAssets>
