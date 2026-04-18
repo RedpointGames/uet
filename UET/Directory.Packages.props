@@ -88,7 +88,7 @@
 		<PackageVersion Include="xunit.v3" Version="$(XunitPackageVersion)" />
 		<PackageVersion Include="xunit.v3.extensibility.core" Version="$(XunitPackageVersion)" />
 		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-		<PackageVersion Include="coverlet.collector" Version="8.0.1" />
+		<PackageVersion Include="coverlet.collector" Version="10.0.0" />
 		<PackageVersion Include="MartinCostello.Logging.XUnit.v3" Version="0.7.1" />
 		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
 		<PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Version="18.4.0" />
