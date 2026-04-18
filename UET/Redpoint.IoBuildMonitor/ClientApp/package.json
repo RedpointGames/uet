@@ -12,7 +12,7 @@
   "dependencies": {
     "@elastic/charts": "^71.1.2",
     "@elastic/datemath": "^5.0.3",
-    "@elastic/eui": "^113.0.0",
+    "@elastic/eui": "^114.1.0",
     "@elastic/eui-theme-borealis": "^6.0.0",
     "@emotion/css": "^11.13.5",
     "@emotion/react": "^11.14.0",
