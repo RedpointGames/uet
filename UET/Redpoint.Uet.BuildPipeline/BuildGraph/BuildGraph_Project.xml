@@ -321,6 +321,12 @@
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -package" />
 
+        <!-- Specify the -crashreporter flag if we're using a source build of the engine. -->
+        <Property
+				  If="'$(IsUnrealEngineInstalled)' != 'true'"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) -crashreporter" />
+
         <!-- Specify the -distribution flag if we're targeting iOS or Android AND the configuration is Shipping. -->
         <Property
 				  If="(('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')) and '$(TargetConfiguration)' == 'Shipping'"
