@@ -267,28 +267,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@elastic/eui-theme-borealis@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "@elastic/eui-theme-borealis@npm:6.0.0"
+"@elastic/eui-theme-borealis@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "@elastic/eui-theme-borealis@npm:7.0.0"
   dependencies:
-    "@elastic/eui-theme-common": "npm:8.0.0"
+    "@elastic/eui-theme-common": "npm:9.0.0"
     chroma-js: "npm:^2.4.2"
-  checksum: 10c0/56dea9f972eebffdb00247f070b676f1a6ac0f4aa49e89e11fca369750f76d29ee9a559998eab3ebb5ebe75eb810141a25ff11129c440c0fb420daadcceaab8e
-  languageName: node
-  linkType: hard
-
-"@elastic/eui-theme-common@npm:8.0.0":
-  version: 8.0.0
-  resolution: "@elastic/eui-theme-common@npm:8.0.0"
-  dependencies:
-    "@types/lodash": "npm:^4.14.202"
-    chroma-js: "npm:^2.4.2"
-    lodash: "npm:^4.17.21"
-  peerDependencies:
-    "@emotion/react": 11.x
-    react: ^17.0 || ^18.0
-    react-dom: ^17.0 || ^18.0
-  checksum: 10c0/abbbc6c7b12fa7620bcfd4d99a5dc63158107267e93a8ca5277ed3a458db46a50224d6484df91ba6895d36d709448271b4bbac0b4f306d66ca56c3f57cff9348
+  checksum: 10c0/2e33c9a85930192c905f978f0f74e75bf8c8cd8f87df3f7133f4367da69b1aa8b42fff6e4a203b12b4f2a67546427cd426a83885d596a4870c08989f3bc410c5
   languageName: node
   linkType: hard
 
@@ -3281,7 +3266,7 @@ __metadata:
     "@elastic/charts": "npm:^71.1.2"
     "@elastic/datemath": "npm:^5.0.3"
     "@elastic/eui": "npm:^114.1.0"
-    "@elastic/eui-theme-borealis": "npm:^6.0.0"
+    "@elastic/eui-theme-borealis": "npm:^7.0.0"
     "@emotion/css": "npm:^11.13.5"
     "@emotion/react": "npm:^11.14.0"
     "@eslint/js": "npm:^9.39.1"
