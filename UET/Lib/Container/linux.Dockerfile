@@ -3,11 +3,11 @@ FROM ubuntu:latest
 # note: We also install iptables here because this image is used by RKM for running flannel.
 RUN apt-get update && \
     apt-get install -y wget apt-transport-https software-properties-common && \
-    bash -c 'source /etc/os-release && wget -q https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb' && \
-    dpkg -i packages-microsoft-prod.deb && \
-    rm packages-microsoft-prod.deb && \
+    wget https://github.com/PowerShell/PowerShell/releases/download/v7.5.6/powershell_7.5.6-1.deb_amd64.deb && \
+    apt-get install -y ./powershell_7.5.6-1.deb_amd64.deb && \
+    rm powershell_7.5.6-1.deb_amd64.deb && \
     apt-get update && \
-    apt-get install -y powershell iptables
+    apt-get install -y iptables
     
 ARG UET_TARGET_FRAMEWORK
 
