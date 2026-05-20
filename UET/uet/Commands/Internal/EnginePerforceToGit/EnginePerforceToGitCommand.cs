@@ -823,6 +823,37 @@
                         return exitCode;
                     }
 
+                    _logger.LogInformation("Counting the number of deleted files...");
+                    long deletedFileCount = 0;
+                    var gitStatus = new StringBuilder();
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = git,
+                            Arguments = ["status", "--porcelain"],
+                            WorkingDirectory = gitWorkspacePath.FullName,
+                            EnvironmentVariables = gitEnvs,
+                        },
+                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitStatus),
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to run 'git status'.");
+                        return exitCode;
+                    }
+                    foreach (var line in gitStatus.ToString().Replace("\r", "", StringComparison.Ordinal).Split('\n'))
+                    {
+                        if (line.StartsWith('D'))
+                        {
+                            deletedFileCount++;
+                        }
+                    }
+                    if (deletedFileCount > 1000)
+                    {
+                        _logger.LogError($"Too many deleted files ({deletedFileCount})! This indicates that either Perforce or the file copy deleted more files than expected and would generate a bad commit.");
+                        return 1;
+                    }
+
                     _logger.LogInformation("Getting revision information from Perforce...");
                     var perforceMessage = new StringBuilder();
                     exitCode = await _processExecutor.ExecuteAsync(
