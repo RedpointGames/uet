@@ -122,6 +122,33 @@
                                 File.ReadAllText(platformConfigPath),
                                 ConfidentialPlatformJsonSerializerContext.Default.GenericPlatformConfig)!;
 
+                            if (platformConfig.IncludeSDKFile != null)
+                            {
+                                platformConfigPath = platformConfig.IncludeSDKFile
+                                    .Replace("$(EngineDir)", Path.Combine(enginePath, "Engine"), StringComparison.Ordinal)
+                                    .Replace('/', '\\');
+                                if (File.Exists(platformConfigPath))
+                                {
+                                    var oldPlatformConfig = platformConfig;
+                                    platformConfig = JsonSerializer.Deserialize(
+                                        File.ReadAllText(platformConfigPath),
+                                        ConfidentialPlatformJsonSerializerContext.Default.GenericPlatformConfig)!;
+
+                                    if (platformConfig.MainVersion == null && oldPlatformConfig.MainVersion != null)
+                                    {
+                                        platformConfig.MainVersion = oldPlatformConfig.MainVersion;
+                                    }
+                                    if (platformConfig.MinVersion == null && oldPlatformConfig.MinVersion != null)
+                                    {
+                                        platformConfig.MinVersion = oldPlatformConfig.MinVersion;
+                                    }
+                                    if (platformConfig.MaxVersion == null && oldPlatformConfig.MaxVersion != null)
+                                    {
+                                        platformConfig.MaxVersion = oldPlatformConfig.MaxVersion;
+                                    }
+                                }
+                            }
+
                             if (platformConfig.MaxVersion == null ||
                                 platformConfig.MinVersion == null ||
                                 platformConfig.MainVersion == null)

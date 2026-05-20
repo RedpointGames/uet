@@ -7,6 +7,9 @@
 
     public class GenericPlatformConfig
     {
+        [JsonPropertyName("IncludeSDKFile")]
+        public string? IncludeSDKFile { get; set; }
+
         [JsonPropertyName("MainVersion")]
         public string? MainVersion { get; set; }
 
