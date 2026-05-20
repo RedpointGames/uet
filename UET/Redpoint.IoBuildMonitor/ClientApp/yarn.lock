@@ -2209,12 +2209,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react-refresh@npm:^0.4.24":
-  version: 0.4.26
-  resolution: "eslint-plugin-react-refresh@npm:0.4.26"
+"eslint-plugin-react-refresh@npm:^0.5.2":
+  version: 0.5.2
+  resolution: "eslint-plugin-react-refresh@npm:0.5.2"
   peerDependencies:
-    eslint: ">=8.40"
-  checksum: 10c0/11c2b25b7a7025e621b02970c4cf3815b0b77486027df9f8bb731cc52972156804fd163b0f99404b33e36a3c60cd1a1be8199ba64c66b5276da3173bbb5ab6e7
+    eslint: ^9 || ^10
+  checksum: 10c0/6e5b1b8ad673535ea1134fa16ecda986c389a045b87ca935e6c5f69070b1889218f3116bfb8b793ec10f37c286f28904d0b5b1d62a76760e465aa32e73e6010e
   languageName: node
   linkType: hard
 
@@ -3298,7 +3298,7 @@ __metadata:
     "@vitejs/plugin-react": "npm:^5.1.1"
     eslint: "npm:^9.39.1"
     eslint-plugin-react-hooks: "npm:^7.0.1"
-    eslint-plugin-react-refresh: "npm:^0.4.24"
+    eslint-plugin-react-refresh: "npm:^0.5.2"
     globals: "npm:^16.5.0"
     luxon: "npm:^3.7.2"
     moment: "npm:^2.30.1"
