@@ -18,5 +18,14 @@
 
         [JsonPropertyName("MaxVersion")]
         public string? MaxVersion { get; set; }
+
+        [JsonPropertyName("MainGDKVersion")]
+        public string? MainGDKVersion { get; set; }
+
+        [JsonPropertyName("MinGDKVersion")]
+        public string? MinGDKVersion { get; set; }
+
+        [JsonPropertyName("MaxGDKVersion")]
+        public string? MaxGDKVersion { get; set; }
     }
 }

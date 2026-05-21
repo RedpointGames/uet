@@ -149,6 +149,19 @@
                                 }
                             }
 
+                            if (platformConfig.MainVersion == null && platformConfig.MainGDKVersion != null)
+                            {
+                                platformConfig.MainVersion = platformConfig.MainGDKVersion;
+                            }
+                            if (platformConfig.MinVersion == null && platformConfig.MinGDKVersion != null)
+                            {
+                                platformConfig.MinVersion = platformConfig.MinGDKVersion;
+                            }
+                            if (platformConfig.MaxVersion == null && platformConfig.MaxGDKVersion != null)
+                            {
+                                platformConfig.MaxVersion = platformConfig.MaxGDKVersion;
+                            }
+
                             if (platformConfig.MaxVersion == null ||
                                 platformConfig.MinVersion == null ||
                                 platformConfig.MainVersion == null)
