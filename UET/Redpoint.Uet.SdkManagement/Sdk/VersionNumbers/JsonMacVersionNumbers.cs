@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.SdkManagement.Sdk.GenericPlatform;
+    using System.Globalization;
     using System.Runtime.Versioning;
     using System.Text.Json;
     using System.Text.RegularExpressions;
@@ -195,8 +196,10 @@
             // for Unreal Engine 5.5. I am waiting on Fab support to give me a full list of engine version -> Xcode
             // versions that they use, given that it doesn't seem to be based on the SDK version files
             // in the engine itself.
-            mainVersion = ClampVersion(mainVersion, 15, 4);
-            minVersion = ClampVersion(mainVersion, 15, 4);
+            var clampVersionMajor = int.Parse(Environment.GetEnvironmentVariable("UET_APPLE_XCODE_CLAMP_VERSION_MAJOR") ?? "15", CultureInfo.InvariantCulture);
+            var clampVersionMinor = int.Parse(Environment.GetEnvironmentVariable("UET_APPLE_XCODE_CLAMP_VERSION_MINOR") ?? "4", CultureInfo.InvariantCulture);
+            mainVersion = ClampVersion(mainVersion, clampVersionMajor, clampVersionMinor);
+            minVersion = ClampVersion(mainVersion, clampVersionMajor, clampVersionMinor);
 
             if (!string.IsNullOrWhiteSpace(appleXcodeStoragePath))
             {
