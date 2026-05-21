@@ -395,7 +395,7 @@
                                 Arguments = ["-I", "sync", "-q"],
                                 EnvironmentVariables = p4Envs,
                             },
-                            new PerforceSyncCaptureSpecification(),
+                            CaptureSpecification.Passthrough,
                             context.GetCancellationToken());
                         if (exitCode != 0)
                         {
