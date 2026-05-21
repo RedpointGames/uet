@@ -136,7 +136,7 @@
                     }
                     else
                     {
-                        yield return nextValue.current;
+                        yield return nextValue.current!;
                         enumerators[nextValue.enumerator] = ClassifyingEnumerable<TIn, TOut>.MoveNextAndGetCurrentAsync(nextValue.enumerator);
                     }
                 }

@@ -15,6 +15,7 @@
     using UET.Commands.Internal.DynamicReentrantTask;
     using UET.Commands.Internal.EngineCheckout;
     using UET.Commands.Internal.EnginePerforceToGit;
+    using UET.Commands.Internal.FixPath;
     using UET.Commands.Internal.GenerateJsonSchema;
     using UET.Commands.Internal.GitCredentialHelper;
     using UET.Commands.Internal.InspectSnmp;
@@ -104,6 +105,7 @@
                     builder.AddCommand<DumpEnvironmentCommand>();
                     builder.AddCommand<BuildMultiPlatformContainerCommand>();
                     builder.AddCommand<OpenFirewallPortCommand>();
+                    builder.AddCommand<FixPathCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
                     command.IsHidden = true;
