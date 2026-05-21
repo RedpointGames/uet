@@ -386,19 +386,39 @@
                 _logger.LogInformation("Syncing latest Perforce content to client...");
                 if (Environment.GetEnvironmentVariable("UET_SIMPLE_P4_SYNC") == "1" && isIntact)
                 {
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = p4,
-                            Arguments = ["-I", "sync", "--parallel=24"],
-                            EnvironmentVariables = p4Envs,
-                        },
-                        new PerforceSyncCaptureSpecification(),
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
+                    if (Environment.GetEnvironmentVariable("UET_P4_PREFER_CLI_PROGRESS") == "1")
                     {
-                        _logger.LogError("Failed to sync Perforce content.");
-                        return exitCode;
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = p4,
+                                Arguments = ["-I", "sync", "-q"],
+                                EnvironmentVariables = p4Envs,
+                            },
+                            new PerforceSyncCaptureSpecification(),
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError("Failed to sync Perforce content.");
+                            return exitCode;
+                        }
+                    }
+                    else
+                    {
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = p4,
+                                Arguments = ["-I", "sync", "--parallel=24"],
+                                EnvironmentVariables = p4Envs,
+                            },
+                            new PerforceSyncCaptureSpecification(),
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
+                        {
+                            _logger.LogError("Failed to sync Perforce content.");
+                            return exitCode;
+                        }
                     }
                 }
                 else
