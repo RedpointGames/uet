@@ -44,6 +44,7 @@
             public Option<string> P4User;
             public Option<string> P4Trust;
             public Option<DirectoryInfo> P4WorkspacePath;
+            public Option<FileInfo> P4IntactPath;
 
             public Option<string> GitRepositoryUri;
             public Option<DirectoryInfo> GitWorkspacePath;
@@ -99,6 +100,13 @@
                 P4WorkspacePath = new Option<DirectoryInfo>(
                     "--p4-workspace-path",
                     description: "The path that the workspace in P4CLIENT is configured to check out to on the 'local machine'. This is typically a network share. You must have set up the workspace ahead of time in P4V.")
+                {
+                    IsRequired = true,
+                };
+
+                P4IntactPath = new Option<FileInfo>(
+                    "--p4-intact-path",
+                    description: "The path to the file that indicates whether the last P4 operation completed successfully.")
                 {
                     IsRequired = true,
                 };
@@ -219,6 +227,7 @@
                 var p4User = context.ParseResult.GetValueForOption(_options.P4User) ?? string.Empty;
                 var p4Trust = context.ParseResult.GetValueForOption(_options.P4Trust) ?? string.Empty;
                 var p4WorkspacePath = context.ParseResult.GetValueForOption(_options.P4WorkspacePath)!;
+                var p4IntactPath = context.ParseResult.GetValueForOption(_options.P4IntactPath)!;
                 var gitRepositoryUri = context.ParseResult.GetValueForOption(_options.GitRepositoryUri) ?? string.Empty;
                 var gitWorkspacePath = context.ParseResult.GetValueForOption(_options.GitWorkspacePath)!;
 
@@ -246,6 +255,7 @@
                 _logger.LogInformation($"--p4-user:                 {p4User}");
                 _logger.LogInformation($"--p4-trust:                {p4Trust}");
                 _logger.LogInformation($"--p4-workspace-path:       {p4WorkspacePath.FullName}");
+                _logger.LogInformation($"--p4-intact-path:          {p4IntactPath.FullName}");
                 _logger.LogInformation($"--git-repository-uri:      {gitRepositoryUri}");
                 _logger.LogInformation($"--git-workspace-path:      {gitWorkspacePath.FullName}");
 
@@ -361,7 +371,7 @@
                     return exitCode;
                 }
 
-                var intactFile = Path.GetFullPath(".p4intact");
+                var intactFile = p4IntactPath.FullName;
                 var isIntact = File.Exists(intactFile);
                 if (isIntact)
                 {
