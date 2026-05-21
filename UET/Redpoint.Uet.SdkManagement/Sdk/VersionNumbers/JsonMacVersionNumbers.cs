@@ -199,7 +199,7 @@
             var clampVersionMajor = int.Parse(Environment.GetEnvironmentVariable("UET_APPLE_XCODE_CLAMP_VERSION_MAJOR") ?? "15", CultureInfo.InvariantCulture);
             var clampVersionMinor = int.Parse(Environment.GetEnvironmentVariable("UET_APPLE_XCODE_CLAMP_VERSION_MINOR") ?? "4", CultureInfo.InvariantCulture);
             mainVersion = ClampVersion(mainVersion, clampVersionMajor, clampVersionMinor);
-            minVersion = ClampVersion(mainVersion, clampVersionMajor, clampVersionMinor);
+            minVersion = ClampVersion(minVersion, clampVersionMajor, clampVersionMinor);
 
             if (!string.IsNullOrWhiteSpace(appleXcodeStoragePath))
             {
