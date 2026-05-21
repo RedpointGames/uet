@@ -170,6 +170,45 @@
                 }
             }
 
+            private class PerforceSyncCaptureSpecification : ICaptureSpecification
+            {
+                private long _filesAdded = 0;
+
+                public bool InterceptStandardInput => false;
+
+                public bool InterceptStandardOutput => true;
+
+                public bool InterceptStandardError => true;
+
+                private void ProcessLine(string data)
+                {
+                    if (data.Contains(" added as ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _filesAdded++;
+                    }
+
+                    if (_filesAdded % 1000 == 0)
+                    {
+                        Console.WriteLine($"{_filesAdded} files synced from Perforce.");
+                    }
+                }
+
+                public void OnReceiveStandardError(string data)
+                {
+                    ProcessLine(data);
+                }
+
+                public void OnReceiveStandardOutput(string data)
+                {
+                    ProcessLine(data);
+                }
+
+                public string? OnRequestStandardInputAtStartup()
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
                 var p4Client = context.ParseResult.GetValueForOption(_options.P4Client) ?? string.Empty;
@@ -335,35 +374,55 @@
                 }
 
                 _logger.LogInformation("Syncing latest Perforce content to client...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = p4,
-                        Arguments = ["-I", "sync", "--parallel=24", $"//{p4Client}/..."],
-                        EnvironmentVariables = p4Envs,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
-                if (exitCode != 0)
+                if (Environment.GetEnvironmentVariable("UET_SIMPLE_P4_SYNC") == "1" && isIntact)
                 {
-                    _logger.LogError("Failed to sync Perforce content (phase 1).");
-                    return exitCode;
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = p4,
+                            Arguments = ["-I", "sync", "--parallel=24"],
+                            EnvironmentVariables = p4Envs,
+                        },
+                        new PerforceSyncCaptureSpecification(),
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to sync Perforce content.");
+                        return exitCode;
+                    }
                 }
-
-                _logger.LogInformation("Syncing latest Perforce content to workspace path...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = p4,
-                        Arguments = ["-I", "sync", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#head"],
-                        EnvironmentVariables = p4Envs,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
-                if (exitCode != 0)
+                else
                 {
-                    _logger.LogError("Failed to sync Perforce content (phase 2).");
-                    return exitCode;
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = p4,
+                            Arguments = ["-I", "sync", "--parallel=24", $"//{p4Client}/..."],
+                            EnvironmentVariables = p4Envs,
+                        },
+                        new PerforceSyncCaptureSpecification(),
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to sync Perforce content (phase 1).");
+                        return exitCode;
+                    }
+
+                    _logger.LogInformation("Syncing latest Perforce content to workspace path...");
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = p4,
+                            Arguments = ["-I", "sync", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#head"],
+                            EnvironmentVariables = p4Envs,
+                        },
+                        new PerforceSyncCaptureSpecification(),
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to sync Perforce content (phase 2).");
+                        return exitCode;
+                    }
                 }
 
                 if (!isIntact)
