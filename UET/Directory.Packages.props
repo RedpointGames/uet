@@ -103,7 +103,7 @@
 		<PackageVersion Include="ZstdNet" Version="1.5.7" />
 		<!-- Assorted dependencies that don't fit anywhere else -->
 		<PackageVersion Include="Octokit" Version="14.0.0" />
-		<PackageVersion Include="BitFaster.Caching" Version="2.5.4" />
+		<PackageVersion Include="BitFaster.Caching" Version="2.6.0" />
 		<PackageVersion Include="System.IO.Hashing" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="Crayon" Version="2.0.69" />
 		<PackageVersion Include="Sentry" Version="$(SentryPackageVersion)" />
