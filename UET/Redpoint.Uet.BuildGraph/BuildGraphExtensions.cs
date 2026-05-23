@@ -134,6 +134,10 @@
             {
                 await writer.WriteAttributeStringAsync(null, "If", null, props.If).ConfigureAwait(false);
             }
+            if (props.Arguments != null)
+            {
+                await writer.WriteAttributeStringAsync(null, "Arguments", null, props.Arguments).ConfigureAwait(false);
+            }
             await writer.WriteEndElementAsync().ConfigureAwait(false);
         }
 

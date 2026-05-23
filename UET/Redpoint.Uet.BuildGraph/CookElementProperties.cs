@@ -7,5 +7,7 @@
         public required string Platform { get; set; }
 
         public required string Tag { get; set; }
+
+        public string Arguments { get; set; } = string.Empty;
     }
 }

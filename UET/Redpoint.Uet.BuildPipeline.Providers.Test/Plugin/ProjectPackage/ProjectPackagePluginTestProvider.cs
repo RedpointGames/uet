@@ -217,7 +217,8 @@
                             {
                                 Project = $"$(TempPath)/{assembledProjectName}/{assembledProjectName}.uproject",
                                 Platform = cookPlatform,
-                                Tag = $"#ProjectPackage_{uniqueHash}_CookedContent"
+                                Tag = $"#ProjectPackage_{uniqueHash}_CookedContent",
+                                Arguments = "-SkipZenStore"
                             }).ConfigureAwait(false);
                     }).ConfigureAwait(false);
                 additionalPackageDependencies.Add($"#ProjectPackage_{uniqueHash}_CookedContent");
