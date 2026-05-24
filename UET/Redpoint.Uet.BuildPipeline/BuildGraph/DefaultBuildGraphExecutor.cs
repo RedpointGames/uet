@@ -398,7 +398,25 @@
                 if (System.Environment.GetEnvironmentVariable("UET_ALLOW_UNIFIED_BUILDGRAPH") == "1")
                 {
                     var installedBuildPath = Path.Combine(engineWorkspacePath, "Engine", "Build", "InstalledBuild.txt");
+                    var versionPath = Path.Combine(engineWorkspacePath, "Engine", "Build", "Build.version");
                     var isInstalled = File.Exists(installedBuildPath);
+                    int majorVersion = 0, minorVersion = 0;
+                    try
+                    {
+                        var engineVersion = JsonSerializer.Deserialize(
+                            File.ReadAllText(versionPath),
+                            EngineBuildVersionJsonSerializerContext.Default.EngineBuildVersion);
+                        majorVersion = engineVersion!.MajorVersion;
+                        minorVersion = engineVersion.MinorVersion;
+                    }
+                    catch
+                    {
+                    }
+                    if (majorVersion >= 5 && minorVersion >= 6)
+                    {
+                        // Allow unified BuildGraph for 5.6 and above.
+                        allowUnifiedBuildGraph = true;
+                    }
                     if (allowUnifiedBuildGraph)
                     {
                         var hordeEnabled = false;
