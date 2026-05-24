@@ -5,6 +5,7 @@
     using System.Text.Json;
 
     [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
+    [JsonSerializable(typeof(EngineBuildVersion))]
     internal partial class JsonConfigJsonSerializerContext : JsonSerializerContext
     {
     }

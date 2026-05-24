@@ -6,7 +6,7 @@
     using System.Text;
     using System.Text.RegularExpressions;
 
-    internal class GenericPlatformVersion
+    internal class GenericPlatformVersion : IEquatable<GenericPlatformVersion?>
     {
         public long[] Components = [];
         public long Major => Components.Length > 0 ? Components[0] : 0;
@@ -70,8 +70,13 @@
             }
         }
 
-        public static long operator -(GenericPlatformVersion a, GenericPlatformVersion b)
+        public static long operator -(GenericPlatformVersion? a, GenericPlatformVersion? b)
         {
+            if (a == null || b == null)
+            {
+                return 0;
+            }
+
             return
                 ((a.Major - b.Major) * 1_000_000_000L) +
                 ((a.Minor - b.Minor) * 1_000_000L) +
@@ -79,9 +84,48 @@
                 ((a.Hotfix - b.Hotfix) * 1L);
         }
 
+        public static bool operator <(GenericPlatformVersion? left, GenericPlatformVersion? right)
+        {
+            return (left - right) < 0;
+        }
+
+        public static bool operator >(GenericPlatformVersion? left, GenericPlatformVersion? right)
+        {
+            return (left - right) > 0;
+        }
+
+        public static bool operator ==(GenericPlatformVersion? left, GenericPlatformVersion? right)
+        {
+            return EqualityComparer<GenericPlatformVersion>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(GenericPlatformVersion? left, GenericPlatformVersion? right)
+        {
+            return !(left == right);
+        }
+
         public static bool IsCandidateWithinBounds(GenericPlatformVersion candidate, GenericPlatformVersion min, GenericPlatformVersion max)
         {
             return candidate - min >= 0 && max - candidate >= 0;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return Equals(obj as GenericPlatformVersion);
+        }
+
+        public bool Equals(GenericPlatformVersion? other)
+        {
+            return other is not null &&
+                   Major == other.Major &&
+                   Minor == other.Minor &&
+                   Patch == other.Patch &&
+                   Hotfix == other.Hotfix;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Major, Minor, Patch, Hotfix);
         }
     }
 }

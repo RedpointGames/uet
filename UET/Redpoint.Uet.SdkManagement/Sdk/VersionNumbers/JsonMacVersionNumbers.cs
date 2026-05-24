@@ -192,10 +192,54 @@
             var minVersion = ParseVersionFromDictionary(dictionary, "MinVersion");
             var maxVersion = ParseVersionFromDictionary(dictionary, "MaxVersion");
 
-            // Fab compiles with 15.4 even for engines that specify 15.2 as their MainVersion, at least
-            // for Unreal Engine 5.5. I am waiting on Fab support to give me a full list of engine version -> Xcode
-            // versions that they use, given that it doesn't seem to be based on the SDK version files
-            // in the engine itself.
+            // Fab compiles with Xcode versions that differ from MainVersion/MinVersion/MaxVersion. If the engine
+            // version is provided, override MainVersion/MinVersion/MaxVersion so that builds match the Fab
+            // CI/CD infrastructure.
+            var fabKnownVersions = new Dictionary<GenericPlatformVersion, GenericPlatformVersion>
+            {
+                { GenericPlatformVersion.Parse("5.1")!, GenericPlatformVersion.Parse("13")! },
+                { GenericPlatformVersion.Parse("5.2")!, GenericPlatformVersion.Parse("14")! },
+                { GenericPlatformVersion.Parse("5.3")!, GenericPlatformVersion.Parse("14.2")! },
+                { GenericPlatformVersion.Parse("5.4")!, GenericPlatformVersion.Parse("14.2")! },
+                { GenericPlatformVersion.Parse("5.5")!, GenericPlatformVersion.Parse("15.4")! },
+                { GenericPlatformVersion.Parse("5.6")!, GenericPlatformVersion.Parse("16.1")! },
+                { GenericPlatformVersion.Parse("5.7")!, GenericPlatformVersion.Parse("16.1")! },
+                // Version guessed at the moment; need to confirm with Fab once this engine version is stable.
+                { GenericPlatformVersion.Parse("5.8")!, GenericPlatformVersion.Parse("16.3")! },
+            };
+            var engineBuildVersionPath = Path.Combine(unrealEnginePath, "Engine", "Build", "Build.version");
+            if (File.Exists(engineBuildVersionPath))
+            {
+                EngineBuildVersion? engineBuildVersion = null;
+                try
+                {
+                    engineBuildVersion = JsonSerializer.Deserialize(
+                        await File.ReadAllTextAsync(engineBuildVersionPath),
+                        JsonConfigJsonSerializerContext.Default.EngineBuildVersion);
+                }
+                catch
+                {
+                }
+                if (engineBuildVersion != null)
+                {
+                    var targetedEngineVersion = new GenericPlatformVersion { Components = [engineBuildVersion.MajorVersion, engineBuildVersion.MinorVersion] };
+                    if (fabKnownVersions.TryGetValue(targetedEngineVersion, out var targetedXcodeVersion))
+                    {
+                        _logger.LogInformation($"Detected that the version of Xcode that Fab builds with for Unreal Engine {engineBuildVersion.MajorVersion}.{engineBuildVersion.MinorVersion} is {targetedXcodeVersion}. The detected versions will be adjusted to prioritize this version.");
+                        mainVersion = targetedXcodeVersion;
+                        if (minVersion > mainVersion)
+                        {
+                            minVersion = mainVersion;
+                        }
+                        if (maxVersion < mainVersion)
+                        {
+                            maxVersion = mainVersion;
+                        }
+                    }
+                }
+            }
+
+            // Allow developers to additionally clamp the minimum version of Xcode through environment variables.
             var clampVersionMajor = int.Parse(Environment.GetEnvironmentVariable("UET_APPLE_XCODE_CLAMP_VERSION_MAJOR") ?? "15", CultureInfo.InvariantCulture);
             var clampVersionMinor = int.Parse(Environment.GetEnvironmentVariable("UET_APPLE_XCODE_CLAMP_VERSION_MINOR") ?? "4", CultureInfo.InvariantCulture);
             mainVersion = ClampVersion(mainVersion, clampVersionMajor, clampVersionMinor);
