@@ -398,31 +398,11 @@
                 if (System.Environment.GetEnvironmentVariable("UET_ALLOW_UNIFIED_BUILDGRAPH") == "1")
                 {
                     var installedBuildPath = Path.Combine(engineWorkspacePath, "Engine", "Build", "InstalledBuild.txt");
-                    var versionPath = Path.Combine(engineWorkspacePath, "Engine", "Build", "Build.version");
                     var isInstalled = File.Exists(installedBuildPath);
-                    int majorVersion = 0, minorVersion = 0;
-                    try
-                    {
-                        var engineVersion = JsonSerializer.Deserialize(
-                            File.ReadAllText(versionPath),
-                            EngineBuildVersionJsonSerializerContext.Default.EngineBuildVersion);
-                        majorVersion = engineVersion!.MajorVersion;
-                        minorVersion = engineVersion.MinorVersion;
-                    }
-                    catch
-                    {
-                    }
-                    if (majorVersion >= 5 && minorVersion >= 6)
-                    {
-                        // We allow unified BuildGraph from 5.6 and above, except for 5.7 if it is an installed
-                        // build of the engine since we expect that to contain a regression that prevents UBA
-                        // from working correctly on Windows containers.
-                        allowUnifiedBuildGraph = (minorVersion != 7 || !isInstalled);
-                    }
                     if (allowUnifiedBuildGraph)
                     {
                         var hordeEnabled = false;
-                        if (string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable("UE_HORDE_URL")))
+                        if (!string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable("UE_HORDE_URL")))
                         {
                             hordeEnabled = true;
                         }
