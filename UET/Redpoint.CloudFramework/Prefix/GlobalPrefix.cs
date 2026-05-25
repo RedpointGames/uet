@@ -131,12 +131,13 @@
                     _ => new T().GetKind()));
         }
 
-        public bool IsType<T>(string datastoreNamespace, string identifier) where T : class, IModel, new()
+        public bool IsType<T>(string identifier) where T : class, IModel, new()
         {
             try
             {
                 ParseLimited(
-                    datastoreNamespace,
+                    // Namespace does not matter because we don't use the key result.
+                    string.Empty,
                     identifier,
                     _kindCache.GetOrAdd(
                         typeof(T),
