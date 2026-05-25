@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.Prefix
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
@@ -15,6 +16,7 @@
         private readonly IReadOnlyDictionary<string, string> _reversePrefixes;
         private readonly IGoogleServices? _googleServices;
         private static readonly char[] _dashSeparator = new[] { '-' };
+        private ConcurrentDictionary<Type, string> _kindCache = new();
 
         private class GlobalPrefixRegistration : IPrefixRegistration
         {
@@ -121,7 +123,30 @@
         /// <returns>A key object.</returns>
         public Key ParseLimited<T>(string datastoreNamespace, string identifier) where T : class, IModel, new()
         {
-            return ParseLimited(datastoreNamespace, identifier, new T().GetKind());
+            return ParseLimited(
+                datastoreNamespace,
+                identifier,
+                _kindCache.GetOrAdd(
+                    typeof(T),
+                    _ => new T().GetKind()));
+        }
+
+        public bool IsType<T>(string datastoreNamespace, string identifier) where T : class, IModel, new()
+        {
+            try
+            {
+                ParseLimited(
+                    datastoreNamespace,
+                    identifier,
+                    _kindCache.GetOrAdd(
+                        typeof(T),
+                        _ => new T().GetKind()));
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
