@@ -72,7 +72,10 @@
                     {
                         _aeadKey = Key.Create(_algorithm, new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
 
-                        var parentJson = JsonObject.Parse(File.ReadAllText(filePath))!.AsObject();
+                        var parentJson = JsonObject.Parse(File.ReadAllText(filePath), documentOptions: new JsonDocumentOptions
+                        {
+                            CommentHandling = JsonCommentHandling.Allow,
+                        })!.AsObject();
                         var json = CreatePath(parentJson, "CloudFramework", new JsonObject());
                         json = CreatePath(json, "Security", new JsonObject());
                         json = CreatePath(json, "XChaCha20Poly1305", new JsonObject());
