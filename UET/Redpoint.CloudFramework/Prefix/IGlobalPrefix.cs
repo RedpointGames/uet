@@ -12,5 +12,6 @@
         Key ParseLimited(string datastoreNamespace, string identifier, string kind);
         Key ParseLimited<T>(string datastoreNamespace, string identifier) where T : class, IModel, new();
         bool IsType<T>(string identifier) where T : class, IModel, new();
+        bool TryParseLimited<T>(string datastoreNamespace, string identifier, out Key validatedKey) where T : class, IModel, new();
     }
 }

@@ -150,6 +150,25 @@
             }
         }
 
+        public bool TryParseLimited<T>(string datastoreNamespace, string identifier, out Key validatedKey) where T : class, IModel, new()
+        {
+            try
+            {
+                validatedKey = ParseLimited(
+                    datastoreNamespace,
+                    identifier,
+                    _kindCache.GetOrAdd(
+                        typeof(T),
+                        _ => new T().GetKind()));
+                return true;
+            }
+            catch
+            {
+                validatedKey = null!;
+                return false;
+            }
+        }
+
         /// <summary>
         /// Parse an internal or public identifier into a Google Datastore key.
         /// </summary>
