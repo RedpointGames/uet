@@ -3,6 +3,7 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Transaction;
+    using Redpoint.CloudFramework.Tracing;
     using StackExchange.Redis;
     using System;
     using System.Collections.Generic;
@@ -13,6 +14,7 @@
     internal class DefaultGlobalShardedCounter : IGlobalShardedCounter
     {
         private readonly IGlobalRepository _globalRepository;
+        private readonly IManagedTracer _managedTracer;
         private readonly IDatabase? _redisDatabase;
 
         // This can only ever be increased; not decreased.
@@ -20,11 +22,13 @@
 
         public DefaultGlobalShardedCounter(
             IGlobalRepository globalRepository,
+            IManagedTracer managedTracer,
             IConnectionMultiplexer? connectionMultiplexer = null)
         {
             ArgumentNullException.ThrowIfNull(connectionMultiplexer);
 
             _globalRepository = globalRepository;
+            _managedTracer = managedTracer;
             if (connectionMultiplexer != null)
             {
                 _redisDatabase = connectionMultiplexer.GetDatabase();
@@ -56,90 +60,99 @@
 
         public async Task<long> GetAsync(string @namespace, string name)
         {
-            long total;
-            if (_redisDatabase != null)
+            using (_managedTracer.StartSpan("db.counter.get", name))
             {
-                var shardCache = await _redisDatabase.StringGetAsync(GetShardRedisName(@namespace, name)).ConfigureAwait(false);
-                if (!(!shardCache.HasValue || !shardCache.IsInteger || !shardCache.TryParse(out total)))
+                long total;
+                if (_redisDatabase != null)
                 {
-                    return total;
+                    var shardCache = await _redisDatabase.StringGetAsync(GetShardRedisName(@namespace, name)).ConfigureAwait(false);
+                    if (!(!shardCache.HasValue || !shardCache.IsInteger || !shardCache.TryParse(out total)))
+                    {
+                        return total;
+                    }
                 }
-            }
 
-            total =
-                await _globalRepository.LoadAsync<DefaultShardedCounterModel>(
-                    @namespace,
-                    GetAllKeys(@namespace, name))
-                .Where(x => x.Value != null)
-                .Select(x => x.Value!.value)
-                .SumAsync().ConfigureAwait(false);
-            if (_redisDatabase != null)
-            {
-                await _redisDatabase.StringSetAsync(
-                    GetShardRedisName(@namespace, name),
-                    total,
-                    expiry: null,
-                    When.NotExists).ConfigureAwait(false);
+                total =
+                    await _globalRepository.LoadAsync<DefaultShardedCounterModel>(
+                        @namespace,
+                        GetAllKeys(@namespace, name))
+                    .Where(x => x.Value != null)
+                    .Select(x => x.Value!.value)
+                    .SumAsync().ConfigureAwait(false);
+                if (_redisDatabase != null)
+                {
+                    await _redisDatabase.StringSetAsync(
+                        GetShardRedisName(@namespace, name),
+                        total,
+                        expiry: null,
+                        When.NotExists).ConfigureAwait(false);
+                }
+                return total;
             }
-            return total;
         }
 
         public async Task AdjustAsync(string @namespace, string name, long modifier)
         {
-            var transaction = await _globalRepository.BeginTransactionAsync(@namespace).ConfigureAwait(false);
-            try
+            using (_managedTracer.StartSpan("db.counter.adjust", name))
             {
-                var afterCommit = await AdjustAsync(@namespace, name, modifier, transaction).ConfigureAwait(false);
-                await _globalRepository.CommitAsync(@namespace, transaction).ConfigureAwait(false);
-                await afterCommit().ConfigureAwait(false);
-            }
-            finally
-            {
-                if (!transaction.HasCommitted)
+                var transaction = await _globalRepository.BeginTransactionAsync(@namespace).ConfigureAwait(false);
+                try
                 {
-                    await _globalRepository.RollbackAsync(@namespace, transaction).ConfigureAwait(false);
+                    var afterCommit = await AdjustAsync(@namespace, name, modifier, transaction).ConfigureAwait(false);
+                    await _globalRepository.CommitAsync(@namespace, transaction).ConfigureAwait(false);
+                    await afterCommit().ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (!transaction.HasCommitted)
+                    {
+                        await _globalRepository.RollbackAsync(@namespace, transaction).ConfigureAwait(false);
+                    }
                 }
             }
         }
 
         public async Task<ShardedCounterPostCommit> AdjustAsync(string @namespace, string name, long modifier, IModelTransaction transaction)
         {
-            var index = RandomNumberGenerator.GetInt32(_numShards);
-            var keyFactory = await _globalRepository.GetKeyFactoryAsync<DefaultShardedCounterModel>(@namespace).ConfigureAwait(false);
-            var key = keyFactory.CreateKey(GetShardKeyName(name, index));
+            using (_managedTracer.StartSpan("db.counter.adjust_in_transaction", name))
+            {
+                var index = RandomNumberGenerator.GetInt32(_numShards);
+                var keyFactory = await _globalRepository.GetKeyFactoryAsync<DefaultShardedCounterModel>(@namespace).ConfigureAwait(false);
+                var key = keyFactory.CreateKey(GetShardKeyName(name, index));
 
-            var create = false;
-            var counter = await _globalRepository.LoadAsync<DefaultShardedCounterModel>(@namespace, key, transaction).ConfigureAwait(false);
-            if (counter == null)
-            {
-                counter = new DefaultShardedCounterModel
+                var create = false;
+                var counter = await _globalRepository.LoadAsync<DefaultShardedCounterModel>(@namespace, key, transaction).ConfigureAwait(false);
+                if (counter == null)
                 {
-                    Key = key,
-                    name = name,
-                    index = index,
-                    value = modifier,
-                };
-                create = true;
-            }
-            else
-            {
-                counter.value += modifier;
-            }
-            if (create)
-            {
-                await _globalRepository.CreateAsync(@namespace, counter, transaction).ConfigureAwait(false);
-            }
-            else
-            {
-                await _globalRepository.UpdateAsync(@namespace, counter, transaction).ConfigureAwait(false);
-            }
-            return async () =>
-            {
-                if (_redisDatabase != null)
-                {
-                    await _redisDatabase.StringIncrementAsync(GetShardRedisName(@namespace, name), modifier, CommandFlags.FireAndForget).ConfigureAwait(false);
+                    counter = new DefaultShardedCounterModel
+                    {
+                        Key = key,
+                        name = name,
+                        index = index,
+                        value = modifier,
+                    };
+                    create = true;
                 }
-            };
+                else
+                {
+                    counter.value += modifier;
+                }
+                if (create)
+                {
+                    await _globalRepository.CreateAsync(@namespace, counter, transaction).ConfigureAwait(false);
+                }
+                else
+                {
+                    await _globalRepository.UpdateAsync(@namespace, counter, transaction).ConfigureAwait(false);
+                }
+                return async () =>
+                {
+                    if (_redisDatabase != null)
+                    {
+                        await _redisDatabase.StringIncrementAsync(GetShardRedisName(@namespace, name), modifier, CommandFlags.FireAndForget).ConfigureAwait(false);
+                    }
+                };
+            }
         }
     }
 }
