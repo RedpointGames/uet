@@ -81,6 +81,7 @@
 		<PackageVersion Include="NodaTime" Version="3.3.1" />
 		<PackageVersion Include="S2Geometry" Version="1.0.3" />
 		<PackageVersion Include="Sentry.AspNetCore" Version="$(SentryPackageVersion)" />
+		<PackageVersion Include="Sentry.Profiling" Version="$(SentryPackageVersion)" />
 		<PackageVersion Include="SharpZipLib" Version="1.4.2" />
 		<PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 		<!-- Testing frameworks and libraries -->

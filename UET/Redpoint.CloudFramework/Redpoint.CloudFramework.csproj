@@ -47,6 +47,7 @@
 		<PackageReference Include="S2Geometry" />
 		<PackageReference Include="Sentry.AspNetCore" />
 		<PackageReference Include="Sentry.OpenTelemetry" />
+		<PackageReference Include="Sentry.Profiling" />
 		<PackageReference Include="SharpZipLib" />
 		<PackageReference Include="Swashbuckle.AspNetCore" />
 		<PackageReference Include="System.Linq.Async">
