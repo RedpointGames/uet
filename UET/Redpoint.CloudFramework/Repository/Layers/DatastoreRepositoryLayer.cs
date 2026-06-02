@@ -574,7 +574,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.load", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.load_batched", $"{@namespace},{typeof(T).Name}"))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -620,13 +620,16 @@
                         if (batch.Count == 1000)
                         {
                             IReadOnlyList<Entity> entities;
-                            if (transaction == null)
+                            using (_managedTracer.StartSpan($"db.datastore.load_batched.execute", $"loading {batch.Count} entities"))
                             {
-                                entities = await db.LookupAsync(batch).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                entities = await transaction.Transaction.LookupAsync(batch).ConfigureAwait(false);
+                                if (transaction == null)
+                                {
+                                    entities = await db.LookupAsync(batch).ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    entities = await transaction.Transaction.LookupAsync(batch).ConfigureAwait(false);
+                                }
                             }
 
                             if (metrics != null)
@@ -676,13 +679,16 @@
                     if (batch.Count > 0)
                     {
                         IReadOnlyList<Entity> entities;
-                        if (transaction == null)
+                        using (_managedTracer.StartSpan($"db.datastore.load_batched.execute", $"loading {batch.Count} entities"))
                         {
-                            entities = await db.LookupAsync(batch).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            entities = await transaction.Transaction.LookupAsync(batch).ConfigureAwait(false);
+                            if (transaction == null)
+                            {
+                                entities = await db.LookupAsync(batch).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                entities = await transaction.Transaction.LookupAsync(batch).ConfigureAwait(false);
+                            }
                         }
 
                         if (metrics != null)

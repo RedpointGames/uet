@@ -1115,7 +1115,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.load", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.rediscache.load_batched", $"{@namespace},{typeof(T).Name}"))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
