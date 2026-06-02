@@ -78,7 +78,7 @@
                 await _redisDatabase.StringSetAsync(
                     GetShardRedisName(@namespace, name),
                     total,
-                    TimeSpan.FromSeconds(60),
+                    expiry: null,
                     When.NotExists).ConfigureAwait(false);
             }
             return total;
