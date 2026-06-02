@@ -12,5 +12,9 @@
         IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel;
 
         Filter? SimplifyFilter(Filter? filter);
+
+        string RenderFilterToString(Filter? filter);
+
+        string RenderOrderToString(IEnumerable<PropertyOrder>? order);
     }
 }

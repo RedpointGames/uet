@@ -314,13 +314,16 @@ return queriesCleared
             Expression<Func<T, bool>>? order,
             int? limit) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.get_complex_cache_hash_and_columns", $"{@namespace},{typeof(T).Name}"))
+            using (var span = _managedTracer.StartSpan($"db.rediscache.get_complex_cache_hash_and_columns", $"{@namespace},{typeof(T).Name}"))
             {
                 GeoQueryParameters<T>? geoQuery = null;
                 var referenceModel = new T();
                 var hasAncestorQuery = false;
                 var filter = _expressionConverter.SimplifyFilter(_expressionConverter.ConvertExpressionToFilter(where.Body, where.Parameters[0], referenceModel, ref geoQuery, ref hasAncestorQuery));
                 var sort = order == null ? null : _expressionConverter.ConvertExpressionToOrder(order.Body, order.Parameters[0], referenceModel, ref geoQuery)?.ToList();
+
+                span.SetExtra("filter", _expressionConverter.RenderFilterToString(filter));
+                span.SetExtra("order", _expressionConverter.RenderOrderToString(sort));
 
                 Filter[] filters;
                 if (filter == null)

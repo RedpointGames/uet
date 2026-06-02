@@ -3,10 +3,12 @@
     using Google.Cloud.Datastore.V1;
     using Google.Type;
     using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.StringEnum;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -16,13 +18,15 @@
     internal class DefaultExpressionConverter : IExpressionConverter
     {
         private readonly IInstantTimestampConverter _instantTimestampConverter;
+        private readonly IGlobalPrefix _globalPrefix;
         private readonly Dictionary<Type, MethodInfo> _valueConverters;
 
         public DefaultExpressionConverter(
-            IInstantTimestampConverter instantTimestampConverter)
+            IInstantTimestampConverter instantTimestampConverter,
+            IGlobalPrefix globalPrefix)
         {
             _instantTimestampConverter = instantTimestampConverter;
-
+            _globalPrefix = globalPrefix;
             _valueConverters = new Dictionary<Type, MethodInfo>();
             foreach (var converter in typeof(Value).GetMethods(BindingFlags.Public | BindingFlags.Static).Where(x => x.Name == "op_Implicit" && x.GetParameters().Length == 1 && x.ReturnType == typeof(Value)))
             {
@@ -441,6 +445,108 @@
             }
 
             return Filter.And(newFilters);
+        }
+
+        private static string RenderPropertyToString(PropertyReference? property)
+        {
+            if (property == null)
+            {
+                return string.Empty;
+            }
+
+            return property.Name;
+        }
+
+        private string RenderValueToString(Value? value)
+        {
+            if (value == null)
+            {
+                return "NULL";
+            }
+
+            switch (value.ValueTypeCase)
+            {
+                case Value.ValueTypeOneofCase.NullValue:
+                    return "NULL";
+                case Value.ValueTypeOneofCase.BooleanValue:
+                    return value.BooleanValue ? "true" : "false";
+                case Value.ValueTypeOneofCase.IntegerValue:
+                    return value.IntegerValue.ToString(CultureInfo.InvariantCulture);
+                case Value.ValueTypeOneofCase.DoubleValue:
+                    return value.DoubleValue.ToString(CultureInfo.InvariantCulture);
+                case Value.ValueTypeOneofCase.TimestampValue:
+                    return value.TimestampValue.ToDateTimeOffset().ToString(CultureInfo.InvariantCulture);
+                case Value.ValueTypeOneofCase.KeyValue:
+                    return _globalPrefix.CreateInternal(value.KeyValue);
+                case Value.ValueTypeOneofCase.StringValue:
+                    return $"\"{value.StringValue.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+                case Value.ValueTypeOneofCase.BlobValue:
+                    return "BLOB";
+                case Value.ValueTypeOneofCase.GeoPointValue:
+                    return $"({value.GeoPointValue.Longitude}, {value.GeoPointValue.Latitude})";
+                case Value.ValueTypeOneofCase.EntityValue:
+                    return $"ENTITY";
+                case Value.ValueTypeOneofCase.ArrayValue:
+                    return $"[{string.Join(", ", value.ArrayValue.Values.Select(RenderValueToString))}]";
+                default:
+                    return "UNKNOWN";
+            }
+        }
+
+        public string RenderFilterToString(Filter? filter)
+        {
+            if (filter == null)
+            {
+                return string.Empty;
+            }
+
+            switch (filter.FilterTypeCase)
+            {
+                case Filter.FilterTypeOneofCase.CompositeFilter:
+                    var joiner = filter.CompositeFilter.Op switch
+                    {
+                        CompositeFilter.Types.Operator.Or => " OR ",
+                        CompositeFilter.Types.Operator.And => " AND ",
+                        _ => " ?? "
+                    };
+                    return $"({string.Join(joiner, filter.CompositeFilter.Filters.Select(RenderFilterToString))})";
+                case Filter.FilterTypeOneofCase.PropertyFilter:
+                    var op = filter.PropertyFilter.Op switch
+                    {
+                        PropertyFilter.Types.Operator.Equal => " == ",
+                        PropertyFilter.Types.Operator.NotEqual => " != ",
+                        PropertyFilter.Types.Operator.LessThan => " < ",
+                        PropertyFilter.Types.Operator.LessThanOrEqual => " <= ",
+                        PropertyFilter.Types.Operator.GreaterThan => " > ",
+                        PropertyFilter.Types.Operator.GreaterThanOrEqual => " >= ",
+                        PropertyFilter.Types.Operator.HasAncestor => " :> ",
+                        PropertyFilter.Types.Operator.In => " IN ",
+                        PropertyFilter.Types.Operator.NotIn => " NOT-IN ",
+                        _ => " ?? ",
+                    };
+                    return $"`{RenderPropertyToString(filter.PropertyFilter.Property)}`{op}{RenderValueToString(filter.PropertyFilter.Value)}";
+                default:
+                    return "??";
+            }
+        }
+
+        public string RenderOrderToString(IEnumerable<PropertyOrder>? order)
+        {
+            if (order == null)
+            {
+                return string.Empty;
+            }
+
+            return string.Join(", ", order.Select(x =>
+            {
+                var asc = x.Direction switch
+                {
+                    PropertyOrder.Types.Direction.Ascending => "ASC",
+                    PropertyOrder.Types.Direction.Descending => "DESC",
+                    _ => "??"
+                };
+                return $"{RenderPropertyToString(x.Property)} {asc}";
+            }));
         }
     }
 }

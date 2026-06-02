@@ -135,6 +135,9 @@
                             query.Order.AddRange(sort);
                         }
 
+                        span.SetExtra("filter", _expressionConverter.RenderFilterToString(filter));
+                        span.SetExtra("order", _expressionConverter.RenderOrderToString(sort));
+
                         cancellationToken.ThrowIfCancellationRequested();
 
                         if (transaction != null && !hasAncestorQuery && (_hostEnvironment.IsDevelopment() || _hostEnvironment.IsStaging()))
@@ -289,7 +292,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.query_geohash_range", $"{@namespace},{typeof(T).Name}"))
+            using (var span = _managedTracer.StartSpan($"db.datastore.query_geohash_range", $"{@namespace},{typeof(T).Name}"))
             {
                 Query query;
                 string hashKeyString;
@@ -313,6 +316,8 @@
                     {
                         query.Filter = _expressionConverter.SimplifyFilter(Filter.And(filter, filtersGeographic));
                     }
+
+                    span.SetExtra("filter", _expressionConverter.RenderFilterToString(query.Filter));
 
                     cancellationToken.ThrowIfCancellationRequested();
                 }
@@ -393,7 +398,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.query_paginated", $"{@namespace},{typeof(T).Name}"))
+            using (var span = _managedTracer.StartSpan($"db.datastore.query_paginated", $"{@namespace},{typeof(T).Name}"))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -425,6 +430,9 @@
                     {
                         query.Order.AddRange(sort);
                     }
+
+                    span.SetExtra("filter", _expressionConverter.RenderFilterToString(filter));
+                    span.SetExtra("order", _expressionConverter.RenderOrderToString(sort));
 
                     cancellationToken.ThrowIfCancellationRequested();
 

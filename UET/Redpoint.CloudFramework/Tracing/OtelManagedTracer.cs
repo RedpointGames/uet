@@ -40,7 +40,9 @@
 
         public ISpan StartSpan(string name, string? description = null)
         {
-            return new OtelSpan(_source.StartActivity(name));
+            var activity = _source.StartActivity(name);
+            activity?.DisplayName = description ?? string.Empty;
+            return new OtelSpan(activity);
         }
     }
 }
