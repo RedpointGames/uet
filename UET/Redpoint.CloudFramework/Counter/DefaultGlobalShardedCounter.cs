@@ -128,7 +128,7 @@
 
         public IReadOnlyDictionary<ShardedCounterName, Task<long>> GetManyAsync(string @namespace, IEnumerable<ShardedCounterName> name, CancellationToken cancellationToken)
         {
-            var names = name.ToList();
+            var names = name.ToHashSet();
 
             // Create the dictionary of promises and return the tasks that yield them.
             var futures = names.ToDictionary(k => k, v => new Future<long>());
