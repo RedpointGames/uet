@@ -1,17 +1,17 @@
-﻿namespace Redpoint.CloudFramework.Collections.Batching
+﻿namespace Redpoint.Collections.Batching
 {
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class KeyDistinctBatchAsyncOperation<TValue, TKey, TRelated> : IBatchAsyncOperation<TValue> where TKey : notnull
+    internal class KeyListDistinctBatchAsyncOperation<TValue, TKey, TRelated> : IBatchAsyncOperation<TValue> where TKey : notnull
     {
-        private readonly Func<TValue, TKey> _keySelector;
+        private readonly Func<TValue, IReadOnlyList<TKey>> _keySelector;
         private readonly Func<IAsyncEnumerable<TKey>, CancellationToken, IAsyncEnumerable<KeyValuePair<TKey, TRelated?>>> _joiner;
         private readonly Dictionary<TKey, TRelated?> _cache;
 
-        public KeyDistinctBatchAsyncOperation(
-            Func<TValue, TKey> keySelector,
+        public KeyListDistinctBatchAsyncOperation(
+            Func<TValue, IReadOnlyList<TKey>> keySelector,
             Func<IAsyncEnumerable<TKey>, CancellationToken, IAsyncEnumerable<KeyValuePair<TKey, TRelated?>>> joiner)
         {
             _keySelector = keySelector;
@@ -24,7 +24,7 @@
             CancellationToken cancellationToken)
         {
             var keys = values
-                .Select(_keySelector)
+                .SelectMany(_keySelector)
                 .Distinct()
                 .Where(x => !_cache.ContainsKey(x));
             await foreach (var kv in _joiner(keys.ToAsyncEnumerable(), cancellationToken).ConfigureAwait(false))
@@ -34,15 +34,16 @@
             var results = new List<object?>();
             foreach (var value in values)
             {
-                var key = _keySelector(value);
-                if (_cache.TryGetValue(key, out var related))
+                var keyList = _keySelector(value);
+                var valueList = new TRelated?[keyList.Count];
+                for (int i = 0; i < keyList.Count; i++)
                 {
-                    results.Add(related);
+                    if (!_cache.TryGetValue(keyList[i], out valueList[i]))
+                    {
+                        valueList[i] = default;
+                    }
                 }
-                else
-                {
-                    results.Add(null);
-                }
+                results.Add(valueList);
             }
             return results;
         }

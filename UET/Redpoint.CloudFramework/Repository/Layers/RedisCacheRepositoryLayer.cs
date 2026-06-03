@@ -29,10 +29,10 @@
     using System.Threading.Tasks;
     using static Google.Cloud.Datastore.V1.Key.Types;
     using Redpoint.Concurrency;
-    using Redpoint.CloudFramework.Collections.Batching;
     using Redpoint.Hashing;
     using System.Text.Json.Serialization;
     using System.Text.Json;
+    using Redpoint.Collections.Batching;
 
     internal partial class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
     {

@@ -1,4 +1,4 @@
-﻿namespace Redpoint.CloudFramework.Collections.Batching
+﻿namespace Redpoint.Collections.Batching
 {
     using System.Collections.Generic;
     using System.Threading;

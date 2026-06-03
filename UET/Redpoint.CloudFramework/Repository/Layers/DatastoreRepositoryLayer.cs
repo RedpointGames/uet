@@ -5,7 +5,6 @@
     using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Redpoint.CloudFramework.Collections.Batching;
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Metric;
     using Redpoint.CloudFramework.Models;
@@ -18,6 +17,7 @@
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
     using Redpoint.Collections;
+    using Redpoint.Collections.Batching;
     using Redpoint.Concurrency;
     using System;
     using System.Collections.Generic;

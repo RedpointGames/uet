@@ -1,11 +1,11 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Datastore
 {
     using Google.Cloud.Datastore.V1;
-    using Redpoint.CloudFramework.Collections.Batching;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Metrics;
     using Redpoint.CloudFramework.Repository.Pagination;
     using Redpoint.CloudFramework.Repository.Transaction;
+    using Redpoint.Collections.Batching;
     using System;
     using System.Collections.Generic;
     using System.Linq;

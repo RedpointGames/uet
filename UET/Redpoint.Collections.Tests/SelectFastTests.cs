@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.Collections.Tests
 {
+    using System.Collections.Concurrent;
     using System.Runtime.CompilerServices;
     using Xunit;
 
@@ -83,6 +84,72 @@
                 await Task.Delay(input * 10).ConfigureAwait(true);
                 return input;
             }).ToListAsync(cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+        }
+
+        [Fact]
+        public async Task SelectFastDurable()
+        {
+            for (int i = 0; i < 100; i++)
+            {
+                var expectedSeen = new ConcurrentDictionary<int, bool>(Enumerable.Range(0, 100).ToDictionary(k => k, v => true));
+                long selectFastSeen = 0;
+                await foreach (var _ in Enumerable.Range(0, 100)
+                    .ToAsyncEnumerable()
+                    .Select(async (int x, CancellationToken ct) =>
+                    {
+                        await Task.Yield();
+                        return x;
+                    })
+                    .SelectFast(
+                        24,
+                        async x =>
+                        {
+                            expectedSeen.TryRemove(x, out _);
+                            Interlocked.Add(ref selectFastSeen, 1);
+                            return true;
+                        }))
+                {
+                }
+
+                var remainingKeys = string.Join(", ", expectedSeen.Keys.Select(x => x.ToString()));
+
+                Assert.True(
+                    expectedSeen.IsEmpty && selectFastSeen == 100,
+                    $"{selectFastSeen} != 100; unexpected remaining keys were not processed: " + remainingKeys);
+            }
+        }
+
+        [Fact]
+        public async Task SelectManyFastDurable()
+        {
+            for (int i = 0; i < 100; i++)
+            {
+                var expectedSeen = new ConcurrentDictionary<int, bool>(Enumerable.Range(0, 100).ToDictionary(k => k, v => true));
+                long selectFastSeen = 0;
+                await foreach (var _ in Enumerable.Range(0, 100)
+                    .ToAsyncEnumerable()
+                    .Select(async (int x, CancellationToken ct) =>
+                    {
+                        await Task.Yield();
+                        return x;
+                    })
+                    .SelectManyFast(
+                        24,
+                        x =>
+                        {
+                            expectedSeen.TryRemove(x, out _);
+                            Interlocked.Add(ref selectFastSeen, 1);
+                            return new[] { true }.ToAsyncEnumerable();
+                        }))
+                {
+                }
+
+                var remainingKeys = string.Join(", ", expectedSeen.Keys.Select(x => x.ToString()));
+
+                Assert.True(
+                    expectedSeen.IsEmpty && selectFastSeen == 100,
+                    $"{selectFastSeen} != 100; unexpected remaining keys were not processed: " + remainingKeys);
+            }
         }
     }
 }

@@ -14,7 +14,7 @@
     using Redpoint.CloudFramework.Repository.Pagination;
     using Redpoint.CloudFramework.Repository.Metrics;
     using Microsoft.Extensions.Configuration;
-    using Redpoint.CloudFramework.Collections.Batching;
+    using Redpoint.Collections.Batching;
 
     internal class DatastoreGlobalRepository : IGlobalRepository
     {

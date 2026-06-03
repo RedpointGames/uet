@@ -1,11 +1,11 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Migration
 {
     using Microsoft.Extensions.Logging;
-    using Redpoint.CloudFramework.Collections.Batching;
     using Redpoint.CloudFramework.Locking;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Layers;
+    using Redpoint.Collections.Batching;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;

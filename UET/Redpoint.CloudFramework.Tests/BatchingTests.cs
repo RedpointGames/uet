@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Tests
 {
     using Redpoint.Collections;
-    using Redpoint.CloudFramework.Collections.Batching;
     using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
@@ -9,6 +8,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.CloudFramework.Repository.Layers;
     using Redpoint.CloudFramework.Tests.Models;
+    using Redpoint.Collections.Batching;
 
     [Collection("CloudFramework Test")]
     public class BatchingTests

@@ -27,14 +27,14 @@
             return currentTenant.DatastoreNamespace;
         }
 
-        public async Task<long> GetAsync(string name)
+        public async Task<long> GetAsync(ShardedCounterName name)
         {
             return await _globalShardedCounter.GetAsync(
                 await GetDatastoreNamespace().ConfigureAwait(false),
                 name).ConfigureAwait(false);
         }
 
-        public async Task AdjustAsync(string name, long modifier)
+        public async Task AdjustAsync(ShardedCounterName name, long modifier)
         {
             await _globalShardedCounter.AdjustAsync(
                 await GetDatastoreNamespace().ConfigureAwait(false),
@@ -42,7 +42,7 @@
                 modifier).ConfigureAwait(false);
         }
 
-        public async Task<ShardedCounterPostCommit> AdjustAsync(string name, long modifier, IModelTransaction existingTransaction)
+        public async Task<ShardedCounterPostCommit> AdjustAsync(ShardedCounterName name, long modifier, IModelTransaction existingTransaction)
         {
             return await _globalShardedCounter.AdjustAsync(
                 await GetDatastoreNamespace().ConfigureAwait(false),

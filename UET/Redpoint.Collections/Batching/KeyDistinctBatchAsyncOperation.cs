@@ -1,17 +1,17 @@
-﻿namespace Redpoint.CloudFramework.Collections.Batching
+﻿namespace Redpoint.Collections.Batching
 {
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class KeyListDistinctBatchAsyncOperation<TValue, TKey, TRelated> : IBatchAsyncOperation<TValue> where TKey : notnull
+    internal class KeyDistinctBatchAsyncOperation<TValue, TKey, TRelated> : IBatchAsyncOperation<TValue> where TKey : notnull
     {
-        private readonly Func<TValue, IReadOnlyList<TKey>> _keySelector;
+        private readonly Func<TValue, TKey> _keySelector;
         private readonly Func<IAsyncEnumerable<TKey>, CancellationToken, IAsyncEnumerable<KeyValuePair<TKey, TRelated?>>> _joiner;
         private readonly Dictionary<TKey, TRelated?> _cache;
 
-        public KeyListDistinctBatchAsyncOperation(
-            Func<TValue, IReadOnlyList<TKey>> keySelector,
+        public KeyDistinctBatchAsyncOperation(
+            Func<TValue, TKey> keySelector,
             Func<IAsyncEnumerable<TKey>, CancellationToken, IAsyncEnumerable<KeyValuePair<TKey, TRelated?>>> joiner)
         {
             _keySelector = keySelector;
@@ -24,7 +24,7 @@
             CancellationToken cancellationToken)
         {
             var keys = values
-                .SelectMany(_keySelector)
+                .Select(_keySelector)
                 .Distinct()
                 .Where(x => !_cache.ContainsKey(x));
             await foreach (var kv in _joiner(keys.ToAsyncEnumerable(), cancellationToken).ConfigureAwait(false))
@@ -34,16 +34,15 @@
             var results = new List<object?>();
             foreach (var value in values)
             {
-                var keyList = _keySelector(value);
-                var valueList = new TRelated?[keyList.Count];
-                for (int i = 0; i < keyList.Count; i++)
+                var key = _keySelector(value);
+                if (_cache.TryGetValue(key, out var related))
                 {
-                    if (!_cache.TryGetValue(keyList[i], out valueList[i]))
-                    {
-                        valueList[i] = default;
-                    }
+                    results.Add(related);
                 }
-                results.Add(valueList);
+                else
+                {
+                    results.Add(null);
+                }
             }
             return results;
         }
