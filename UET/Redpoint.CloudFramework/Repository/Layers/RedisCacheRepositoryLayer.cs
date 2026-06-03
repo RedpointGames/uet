@@ -545,13 +545,13 @@ end
 -- Check to see if the read data was invalidated through a concurrent write.
 if redis.call('GET', KEYS[5]) ~= ARGV[2] then    
     redis.call('UNLINK', KEYS[1], KEYS[2], KEYS[3], KEYS[4])
-    return 'invalidated'
+    return 'invalidated-by-concurrent-write'
 end
 
 -- Check to see if our write was explicitly invalidated.
 if redis.call('GET', KEYS[4]) == 'INVALIDATED' then
     redis.call('UNLINK', KEYS[1], KEYS[2], KEYS[3], KEYS[4])
-    return 'invalidated'
+    return 'invalidated-explicitly'
 end
 
 -- Add our query to the specified column keys.
@@ -852,7 +852,9 @@ return 'written'
                                                         (RedisValue)queryLastWriteValue,
                                                     }).ConfigureAwait(false);
                                             }
-                                            if (((string)finalizeResult!) != "invalidated")
+                                            var finalizeResultString = ((string)finalizeResult!);
+                                            span.SetTag("redis.cache_write_result", finalizeResultString);
+                                            if (finalizeResultString == "written")
                                             {
                                                 if (metrics != null)
                                                 {
