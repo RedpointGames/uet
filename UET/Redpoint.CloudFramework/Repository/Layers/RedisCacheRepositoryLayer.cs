@@ -634,7 +634,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.query", GetSpanName(@namespace, typeof(T).Name)))
+            using (var span = _managedTracer.StartSpan($"db.rediscache.query", GetSpanName(@namespace, typeof(T).Name)))
             {
                 Stopwatch? stopwatch = null;
                 if (metrics != null)
@@ -672,6 +672,8 @@ return 'written'
                     {
                         var (cacheHash, columns) = await GetComplexCacheHashAndColumns(@namespace, where, order, limit).ConfigureAwait(false);
 
+                        span.SetTag("redis.cache_hash", cacheHash);
+
                         var queryCache = new RedisKey($"QUERYCACHE:{cacheHash}");
                         var queryRefCount = new RedisKey($"QUERYRC:{cacheHash}");
                         var queryWriterCount = new RedisKey($"QUERYWC:{cacheHash}");
@@ -702,6 +704,9 @@ return 'written'
                             { "namespace", @namespace },
                             { "result", (string)obtainCacheResult! },
                         }).ConfigureAwait(false);
+
+                        span.SetTag("redis.cache_result", (string)obtainCacheResult!);
+
                         switch ((string)obtainCacheResult!)
                         {
                             case "cache":
