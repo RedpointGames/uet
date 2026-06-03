@@ -78,6 +78,18 @@
 
         public AsyncEvent<EntitiesModifiedEventArgs> OnNonTransactionalEntitiesModified { get; } = new AsyncEvent<EntitiesModifiedEventArgs>();
 
+        private static string GetSpanName(string @namespace, string modelName)
+        {
+            if (string.IsNullOrWhiteSpace(@namespace))
+            {
+                return modelName;
+            }
+            else
+            {
+                return $"{@namespace},{modelName}";
+            }
+        }
+
         private DatastoreDb GetDbForNamespace(string @namespace)
         {
             using (_managedTracer.StartSpan($"db.datastore.get_datastore_for_current_site", @namespace))
@@ -103,7 +115,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan("db.datastore.query", $"{@namespace},{typeof(T).Name}"))
+            using (var span = _managedTracer.StartSpan("db.datastore.query", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -135,8 +147,9 @@
                             query.Order.AddRange(sort);
                         }
 
-                        span.SetExtra("filter", _expressionConverter.RenderFilterToString(filter));
-                        span.SetExtra("order", _expressionConverter.RenderOrderToString(sort));
+                        span.DisplayName = _expressionConverter.RenderQueryToString(query);
+                        span.SetTag("filter", _expressionConverter.RenderFilterToString(filter));
+                        span.SetTag("order", _expressionConverter.RenderOrderToString(sort));
 
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -259,8 +272,7 @@
                     _logger.LogWarning($"QueryAsync operation returned more than 2500 '{new T().GetKind()}' entities, which is likely to cause high Datastore costs. Please optimize your application.");
                 }
 
-                span.SetTag("TotalEntitiesRead", totalEntitiesRead.ToString(CultureInfo.InvariantCulture));
-                span.SetExtra("TotalEntitiesRead", totalEntitiesRead);
+                span.SetTag("query.total_entities_read", totalEntitiesRead.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -292,7 +304,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan($"db.datastore.query_geohash_range", $"{@namespace},{typeof(T).Name}"))
+            using (var span = _managedTracer.StartSpan($"db.datastore.query_geohash_range", GetSpanName(@namespace, typeof(T).Name)))
             {
                 Query query;
                 string hashKeyString;
@@ -317,7 +329,8 @@
                         query.Filter = _expressionConverter.SimplifyFilter(Filter.And(filter, filtersGeographic));
                     }
 
-                    span.SetExtra("filter", _expressionConverter.RenderFilterToString(query.Filter));
+                    span.DisplayName = _expressionConverter.RenderQueryToString(query);
+                    span.SetTag("filter", _expressionConverter.RenderFilterToString(query.Filter));
 
                     cancellationToken.ThrowIfCancellationRequested();
                 }
@@ -398,7 +411,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan($"db.datastore.query_paginated", $"{@namespace},{typeof(T).Name}"))
+            using (var span = _managedTracer.StartSpan($"db.datastore.query_paginated", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -431,8 +444,9 @@
                         query.Order.AddRange(sort);
                     }
 
-                    span.SetExtra("filter", _expressionConverter.RenderFilterToString(filter));
-                    span.SetExtra("order", _expressionConverter.RenderOrderToString(sort));
+                    span.DisplayName = _expressionConverter.RenderQueryToString(query);
+                    span.SetTag("filter", _expressionConverter.RenderFilterToString(filter));
+                    span.SetTag("order", _expressionConverter.RenderOrderToString(sort));
 
                     cancellationToken.ThrowIfCancellationRequested();
 
@@ -495,7 +509,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.load", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.load", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -574,7 +588,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.load_batched", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.load_batched", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -744,7 +758,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.load_across_namespaces", $"{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.load_across_namespaces", typeof(T).Name))
             {
                 ArgumentNullException.ThrowIfNull(keys);
 
@@ -846,7 +860,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.create", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.create", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -991,7 +1005,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.upsert", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.upsert", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1144,7 +1158,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.update", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.update", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1276,7 +1290,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.delete", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.delete", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1401,7 +1415,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.allocate_key", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.allocate_key", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1418,7 +1432,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.get_key_factory", $"{@namespace},{typeof(T).Name}"))
+            using (_managedTracer.StartSpan($"db.datastore.get_key_factory", GetSpanName(@namespace, typeof(T).Name)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 

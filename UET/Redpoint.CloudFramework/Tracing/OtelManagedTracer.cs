@@ -22,14 +22,15 @@
                 _activity = activity;
             }
 
+            public string DisplayName
+            {
+                get { return _activity?.DisplayName ?? string.Empty; }
+                set { _activity?.DisplayName = value; }
+            }
+
             public void Dispose()
             {
                 _activity?.Stop();
-            }
-
-            public void SetExtra(string key, object? value)
-            {
-                _activity?.SetCustomProperty(key, value);
             }
 
             public void SetTag(string key, string value)

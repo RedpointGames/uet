@@ -8,15 +8,19 @@
         {
         }
 
-        public void Dispose()
+        public string DisplayName
         {
-        }
-
-        public void SetExtra(string key, object? value)
-        {
+            get => string.Empty;
+            set
+            {
+            }
         }
 
         public void SetTag(string key, string value)
+        {
+        }
+
+        public void Dispose()
         {
         }
     }

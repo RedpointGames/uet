@@ -4,7 +4,8 @@
 
     public interface ISpan : IDisposable
     {
+        string DisplayName { get; set; }
+
         void SetTag(string key, string value);
-        void SetExtra(string key, object? value);
     }
 }

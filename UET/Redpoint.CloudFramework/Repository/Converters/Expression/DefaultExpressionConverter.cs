@@ -548,5 +548,32 @@
                 return $"{RenderPropertyToString(x.Property)} {asc}";
             }));
         }
+
+        public string RenderQueryToString(Query query)
+        {
+            var where = query.Filter != null
+                ? $" WHERE {RenderFilterToString(query.Filter)}"
+                : string.Empty;
+            var limit = query.Limit != null
+                ? $" LIMIT {query.Limit}"
+                : string.Empty;
+            var sort = query.Order.Count != 0
+                ? $" ORDER BY {RenderOrderToString(query.Order)}"
+                : string.Empty;
+
+            return $"SELECT * FROM {query.Kind[0].Name}{where}{sort}{limit}";
+        }
+
+        public string RenderQueryToString(string queryKind, Filter? queryFilter, IReadOnlyList<PropertyOrder>? queryOrder)
+        {
+            var where = queryFilter != null
+                ? $" WHERE {RenderFilterToString(queryFilter)}"
+                : string.Empty;
+            var sort = queryOrder != null && queryOrder.Count > 0
+                ? $" ORDER BY {RenderOrderToString(queryOrder)}"
+                : string.Empty;
+
+            return $"SELECT * FROM {queryKind}{where}{sort}";
+        }
     }
 }

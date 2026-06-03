@@ -16,5 +16,9 @@
         string RenderFilterToString(Filter? filter);
 
         string RenderOrderToString(IEnumerable<PropertyOrder>? order);
+
+        string RenderQueryToString(Query query);
+
+        string RenderQueryToString(string kind, Filter? filter, IReadOnlyList<PropertyOrder>? order);
     }
 }
