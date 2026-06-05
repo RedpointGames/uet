@@ -120,7 +120,7 @@
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftPackageVersion)" />
-		<PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.19.0" />
+		<PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.19.1" />
 		<PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
 		<PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="10.0.2" />
 		<PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
