@@ -6,6 +6,8 @@ namespace Redpoint.Uet.BuildPipeline
 {
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Uet.BuildPipeline.BuildGraph;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.Build;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.Compile;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic;
     using Redpoint.Uet.BuildPipeline.BuildGraph.Gradle;
     using Redpoint.Uet.BuildPipeline.BuildGraph.MobileProvisioning;
@@ -35,6 +37,9 @@ namespace Redpoint.Uet.BuildPipeline
             {
                 services.AddSingleton<IMobileProvisioning, NullMobileProvisioning>();
             }
+            services.AddSingleton<IBuildGraphCompileGraphNodesGenerator, DefaultBuildGraphCompileGraphNodesGenerator>();
+            services.AddSingleton<IPluginBuildProvider, DefaultPluginBuildProvider>();
+            services.AddSingleton<IProjectBuildProvider, DefaultProjectBuildProvider>();
         }
     }
 }

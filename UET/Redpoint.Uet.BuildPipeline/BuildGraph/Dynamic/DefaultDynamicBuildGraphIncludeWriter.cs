@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.Uet.BuildPipeline.BuildGraph.Dynamic
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Redpoint.Uet.BuildPipeline.BuildGraph.Build;
     using Redpoint.Uet.Configuration;
     using Redpoint.Uet.Configuration.Dynamic;
     using Redpoint.Uet.Configuration.Plugin;
@@ -13,6 +14,8 @@
 
     internal class DefaultDynamicBuildGraphIncludeWriter : IDynamicBuildGraphIncludeWriter
     {
+        private readonly IPluginBuildProvider _pluginBuild;
+        private readonly IProjectBuildProvider _projectBuild;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>[] _pluginPrepare;
         private readonly IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>[] _projectPrepare;
         private readonly IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>[] _pluginTests;
@@ -23,6 +26,8 @@
 
         public DefaultDynamicBuildGraphIncludeWriter(IServiceProvider serviceProvider)
         {
+            _pluginBuild = serviceProvider.GetRequiredService<IPluginBuildProvider>();
+            _projectBuild = serviceProvider.GetRequiredService<IProjectBuildProvider>();
             _pluginPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, IPrepareProvider>>().ToArray();
             _projectPrepare = serviceProvider.GetServices<IDynamicProvider<BuildConfigProjectDistribution, IPrepareProvider>>().ToArray();
             _pluginTests = serviceProvider.GetServices<IDynamicProvider<BuildConfigPluginDistribution, ITestProvider>>().ToArray();
@@ -161,6 +166,12 @@
 
                 if (buildConfigDistribution is BuildConfigPluginDistribution pluginDistribution)
                 {
+                    await _pluginBuild.WriteBuildGraphNodesAsync(
+                        emitContext,
+                        writer,
+                        pluginDistribution,
+                        filterHostToCurrentPlatformOnly);
+
                     if (pluginDistribution.Tests != null && executeTests != null)
                     {
                         var filteredTests = FilterDynamicSteps(pluginDistribution.Tests, executeTests);
@@ -191,6 +202,12 @@
                 }
                 else if (buildConfigDistribution is BuildConfigProjectDistribution projectDistribution)
                 {
+                    await _projectBuild.WriteBuildGraphNodesAsync(
+                        emitContext,
+                        writer,
+                        projectDistribution,
+                        filterHostToCurrentPlatformOnly);
+
                     if (projectDistribution.Tests != null && executeTests != null)
                     {
                         var filteredTests = FilterDynamicSteps(projectDistribution.Tests, executeTests);

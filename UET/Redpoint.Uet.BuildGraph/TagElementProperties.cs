@@ -2,7 +2,7 @@
 {
     public record class TagElementProperties : ElementProperties
     {
-        public required string BaseDir { get; set; }
+        public string? BaseDir { get; set; }
 
         public required string Files { get; set; }
 

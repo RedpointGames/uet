@@ -8,7 +8,6 @@
 
 	<ItemGroup>
 		<None Remove="BuildGraph\BuildGraph_Plugin.xml" />
-		<None Remove="BuildGraph\BuildGraph_Plugin_Unified.xml" />
 		<None Remove="BuildGraph\BuildGraph_Project.xml" />
 		<None Remove="BuildGraph\BuildGraph_TestPatches.xml" />
 		<None Remove="BuildGraph\Patching\BuildGraphPatches.json" />
@@ -20,7 +19,6 @@
 
 	<ItemGroup>
 		<EmbeddedResource Include="BuildGraph\BuildGraph_Plugin.xml" />
-		<EmbeddedResource Include="BuildGraph\BuildGraph_Plugin_Unified.xml" />
 		<EmbeddedResource Include="BuildGraph\BuildGraph_TestPatches.xml" />
 		<EmbeddedResource Include="BuildGraph\BuildGraph_Project.xml" />
 		<EmbeddedResource Include="BuildGraph\Patching\BuildGraphPatches.json" />
@@ -33,6 +31,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Redpoint.MSBuildResolution\Redpoint.MSBuildResolution.csproj" />
 		<ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.BuildGraph\Redpoint.Uet.BuildGraph.csproj" />
 		<ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
 		<ProjectReference Include="..\Redpoint.Uet.SdkManagement\Redpoint.Uet.SdkManagement.csproj" />
 		<ProjectReference Include="..\Redpoint.Uet.Uat\Redpoint.Uet.Uat.csproj" />
