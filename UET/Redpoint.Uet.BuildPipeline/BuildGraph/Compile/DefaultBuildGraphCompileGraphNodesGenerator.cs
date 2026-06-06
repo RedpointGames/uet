@@ -275,6 +275,17 @@
                                     vector,
                                     async writer =>
                                     {
+                                        // Automatically set the StoreVersion for Android so that it increments over
+                                        // time. This is necessary for store submission pretty much everywhere. We have
+                                        // to pass this to the Compile tag as well, since the store version is used for
+                                        // the debug symbols folder.
+                                        await writer.WritePropertyAsync(
+                                            new PropertyElementProperties
+                                            {
+                                                Name = "AdditionalArguments",
+                                                Value = "$(AdditionalArguments) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)",
+                                                If = "'$(TargetPlatform)' == 'Android'"
+                                            });
                                         await writer.WriteCompileAsync(
                                             new CompileElementProperties
                                             {
