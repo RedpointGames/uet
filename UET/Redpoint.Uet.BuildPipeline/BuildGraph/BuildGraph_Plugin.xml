@@ -140,7 +140,7 @@
     and it can be used to package up a plugin for consumption by other steps.
   -->
 
-  <Macro Name="Create Package" Arguments="NodeName;AgentStage;AgentType;InputProject;InputBaseDir;InputBinaries;OutputDir;OutputTag">
+  <Macro Name="Create Package" Arguments="NodeName;AgentStage;AgentType;InputProject;InputBaseDir;InputBinaries;OutputDir;OutputTag" OptionalArguments="ZipName">
     <Agent Name="$(NodeName) ($(AgentStage))" Type="$(AgentType)">
       <Node Name="$(NodeName)" Requires="$(InputProject);$(InputBinaries)" Produces="$(OutputTag)">
         <Delete Files="$(OutputDir)/..." />
@@ -209,20 +209,27 @@ $(PackageExclude);
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; --package-type &quot;$(PackageType)&quot;" />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(DistributionUsesPrecompiledArgument)" />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
+        <Property
+          Name="FilesOutputTag"
+          Value="$(OutputTag)" />
+        <Property
+          Name="FilesOutputTag"
+          Value="$(OutputTag)_Files"
+          If="'$(ZipName)' != ''" />
         <Copy
           From="$(InputBaseDir)"
           To="$(OutputDir)"
           Files="#DirectCopyFiles"
-          Tag="$(OutputTag)"
+          Tag="$(FilesOutputTag)"
         />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-copyright-headers-for-submission --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(PackageType)' != 'Generic'" />
         <Tag
           Files="$(OutputDir)/$(PluginName).uplugin"
-          With="$(OutputTag)"
+          With="$(FilesOutputTag)"
         />
         <Tag
           Files="$(OutputDir)/Config/FilterPlugin.ini"
-          With="$(OutputTag)"
+          With="$(FilesOutputTag)"
         />
         <Tag
           BaseDir="$(OutputDir)/"
@@ -230,8 +237,16 @@ $(PackageExclude);
           Filter="
 /Source/.../*.Build.cs;
 "
-          With="$(OutputTag)"
+          With="$(FilesOutputTag)"
         />
+        <Do If="'$(ZipName)' != ''">
+          <Delete Files="$(ZipName)" />
+          <Zip
+            FromDir="$(OutputDir)/"
+            Files="$(OutputTag)_Files"
+            ZipFile="$(ZipName)"
+            Tag="$(OutputTag)" />
+        </Do>
       </Node>
     </Agent>
   </Macro>

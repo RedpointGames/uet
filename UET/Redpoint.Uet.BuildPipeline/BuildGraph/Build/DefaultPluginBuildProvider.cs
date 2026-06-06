@@ -170,41 +170,9 @@
                         { "InputBaseDir", "$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" },
                         { "InputBinaries", "$(EditorBinaries);$(GameBinaries)" },
                         { "OutputDir", "$(TempPath)/$(PackageFolder)" },
-                        { "OutputTag", "#PackagedPlugin" }
+                        { "OutputTag", "#PackagedZip" },
+                        { "ZipName", "$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" }
                     }
-                });
-            await writer.WritePropertyAsync(
-                new PropertyElementProperties
-                {
-                    Name = "PackageTasks",
-                    Value = "$(PackageTasks)#PackagedPlugin;",
-                    If = "'$(PackageType)' != 'None'"
-                });
-
-            await writer.WriteAgentNodeAsync(
-                new AgentNodeElementProperties
-                {
-                    AgentStage = "Create Final Package",
-                    AgentType = primaryHostPlatform,
-                    NodeName = "Zip Plugin",
-                    Requires = "#PackagedPlugin",
-                    Produces = "#PackagedZip",
-                },
-                async writer =>
-                {
-                    await writer.WriteDeleteAsync(
-                        new DeleteElementProperties
-                        {
-                            Files = "$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip"
-                        });
-                    await writer.WriteZipAsync(
-                        new ZipElementProperties
-                        {
-                            FromDir = "$(TempPath)/$(PackageFolder)/",
-                            Files = "#PackagedPlugin",
-                            ZipFile = "$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip",
-                            Tag = "#PackagedZip",
-                        });
                 });
             await writer.WritePropertyAsync(
                 new PropertyElementProperties
