@@ -126,7 +126,6 @@
                     if (!schemaOnly)
                     {
                         await _releaseUploader.CreateVersionReleaseAsync(context, version, files, client).ConfigureAwait(false);
-                        await _releaseUploader.UpdateLatestReleaseAsync(context, version, files, client).ConfigureAwait(false);
                     }
                     await _schemaUploader.UpdateSchemaRepositoryAsync(version, client, context.GetCancellationToken()).ConfigureAwait(false);
 
