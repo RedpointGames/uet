@@ -74,6 +74,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Google.Protobuf" />
+		<PackageReference Include="Grpc.Net.Client" />
 		<ProjectReference Include="..\Redpoint.CloudFramework.Analyzer.Package\Redpoint.CloudFramework.Analyzer.Package.csproj">
 			<IncludeAssets>analyzers;build</IncludeAssets>
 			<PrivateAssets>none</PrivateAssets>
