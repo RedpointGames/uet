@@ -198,8 +198,9 @@
                                 Key = $"RedpointGames/uet/releases/download/{version}/{file.name}",
                                 InputStream = stream,
                                 DisablePayloadSigning = true,
-                                DisableDefaultChecksumValidation = true
-                            });
+                                DisableDefaultChecksumValidation = true,
+                                AutoCloseStream = false,
+                            }).ConfigureAwait(false);
 
                         // Stop monitoring.
                         await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
@@ -236,8 +237,9 @@
                                     Key = $"RedpointGames/uet/releases/latest/download/{file.name}",
                                     InputStream = stream,
                                     DisablePayloadSigning = true,
-                                    DisableDefaultChecksumValidation = true
-                                });
+                                    DisableDefaultChecksumValidation = true,
+                                    AutoCloseStream = false,
+                                }).ConfigureAwait(false);
 
                             // Stop monitoring.
                             await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
