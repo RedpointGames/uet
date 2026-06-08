@@ -35,6 +35,9 @@
   <Option Name="UnifiedCompilePlatformsSuffixWin64" DefaultValue="" Description="List of all unique platforms that Win64 nodes will target"/>
   <Option Name="UnifiedCompilePlatformsSuffixMac" DefaultValue="" Description="List of all unique platforms that Mac nodes will target"/>
 
+  <!-- Unified/UBA options -->
+  <Option Name="UseUnifiedBuild" Restrict="true|false" DefaultValue="true" Description="If true, compilation nodes will be unified to each host platform, leveraging UBA to distribute compilation work. If the engine supports it, this is much faster that a separate agent/node per platform, because it eliminates all of the workspace set up on each build node."/>
+
   <!-- Package options -->
   <Option Name="VersionNumber" Restrict="[0-9]+" DefaultValue="10000" Description="The version number to embed in the packaged .uplugin file" />
   <Option Name="VersionName" Restrict="[^ ]+" DefaultValue="Unversioned" Description="The version name to embed in the packaged .uplugin file" />
@@ -55,6 +58,8 @@
   <!-- Dynamic scripts to include, used by UET to dynamically generate test and deployment nodes -->
   <Option Name="ScriptNodeIncludes" DefaultValue="" Description="Additional script includes paths for nodes" />
   <Option Name="ScriptMacroIncludes" DefaultValue="" Description="Additional script includes paths for macros" />
+
+  <EnvVar Name="UET_ZEN_PUBLISH_HOST" />
 
   <Property Name="EditorBinaries" Value="" />
   <Property Name="GameBinaries" Value="" />
@@ -112,22 +117,22 @@
   <!--
     Strip debugging symbols out of the target platform's binaries if requested.
   -->
-  <Macro Name="StripDebugSymbolsForTarget" Arguments="PluginPath;TargetPlatform;FilesTag">
+  <Macro Name="StripDebugSymbolsForTarget" Arguments="StripPath;TargetPlatform;FilesTag">
     <Switch>
       <Case If="'$(TargetPlatform)' == 'Win64'">
-        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*.pdb" With="$(FilesTag)_Debug" />
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*.pdb" With="$(FilesTag)_Debug" />
       </Case>
       <Case If="'$(TargetPlatform)' == 'Mac' or '$(TargetPlatform)' == 'IOS' or '$(TargetPlatform)' == 'TVOS'">
-        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*.a" With="$(FilesTag)_Debug" />
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*.a" With="$(FilesTag)_Debug" />
       </Case>
       <Case If="'$(TargetPlatform)' == 'Android' or '$(TargetPlatform)' == 'GooglePlay' or '$(TargetPlatform)' == 'MetaQuest'">
-        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*.a;*.so" With="$(FilesTag)_Debug" />
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*.a;*.so" With="$(FilesTag)_Debug" />
       </Case>
       <Case If="'$(TargetPlatform)' == 'Linux'">
-        <Tag BaseDir="$(PluginPath)" Files="$(FilesTag)" Filter="*" With="$(FilesTag)_Debug" />
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*" With="$(FilesTag)_Debug" Except=".../Inc/...;*.h;*.precompiled" />
       </Case>
     </Switch>
-    <Strip BaseDir="$(PluginPath)" OutputDir="$(PluginPath)" Platform="$(TargetPlatform)" Files="$(FilesTag)_Debug" If="'$(StripDebugSymbols)' == 'true'" />
+    <Strip BaseDir="$(StripPath)" OutputDir="$(StripPath)" Platform="$(TargetPlatform)" Files="$(FilesTag)_Debug" If="'$(StripDebugSymbols)' == 'true'" />
   </Macro>
 
   <!--
@@ -135,7 +140,7 @@
     and it can be used to package up a plugin for consumption by other steps.
   -->
 
-  <Macro Name="Create Package" Arguments="NodeName;AgentStage;AgentType;InputProject;InputBaseDir;InputBinaries;OutputDir;OutputTag">
+  <Macro Name="Create Package" Arguments="NodeName;AgentStage;AgentType;InputProject;InputBaseDir;InputBinaries;OutputDir;OutputTag" OptionalArguments="ZipName">
     <Agent Name="$(NodeName) ($(AgentStage))" Type="$(AgentType)">
       <Node Name="$(NodeName)" Requires="$(InputProject);$(InputBinaries)" Produces="$(OutputTag)">
         <Delete Files="$(OutputDir)/..." />
@@ -204,20 +209,27 @@ $(PackageExclude);
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-uplugin --input-path &quot;$(InputBaseDir)/$(PluginName).uplugin&quot; --output-path &quot;$(OutputDir)/$(PluginName).uplugin&quot; --engine-version &quot;$(EngineMajorVersion).$(EngineMinorVersion).0&quot; --version-name &quot;$(VersionName)&quot; --version-number &quot;$(VersionNumber)&quot; --package-type &quot;$(PackageType)&quot;" />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal copy-and-mutate-build-cs --input-base-path &quot;$(InputBaseDir)/&quot; --input-file-list &quot;$(TempPath)/BuildCsList.txt&quot; --output-path &quot;$(OutputDir)/&quot; $(DistributionUsesPrecompiledArgument)" />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal set-filter-file --package-include &quot;$(PackageInclude)&quot; --package-exclude &quot;$(PackageExclude)&quot; --output-path &quot;$(OutputDir)/Config/FilterPlugin.ini&quot;" />
+        <Property
+          Name="FilesOutputTag"
+          Value="$(OutputTag)" />
+        <Property
+          Name="FilesOutputTag"
+          Value="$(OutputTag)_Files"
+          If="'$(ZipName)' != ''" />
         <Copy
           From="$(InputBaseDir)"
           To="$(OutputDir)"
           Files="#DirectCopyFiles"
-          Tag="$(OutputTag)"
+          Tag="$(FilesOutputTag)"
         />
         <Spawn Exe="$(UETPath)" Arguments="$(UETGlobalArgs) internal update-copyright-headers-for-submission --path &quot;$(OutputDir)&quot; --copyright-header &quot;$(CopyrightHeader)&quot; --copyright-excludes &quot;$(CopyrightExcludes)&quot;" If="'$(PackageType)' != 'Generic'" />
         <Tag
           Files="$(OutputDir)/$(PluginName).uplugin"
-          With="$(OutputTag)"
+          With="$(FilesOutputTag)"
         />
         <Tag
           Files="$(OutputDir)/Config/FilterPlugin.ini"
-          With="$(OutputTag)"
+          With="$(FilesOutputTag)"
         />
         <Tag
           BaseDir="$(OutputDir)/"
@@ -225,8 +237,16 @@ $(PackageExclude);
           Filter="
 /Source/.../*.Build.cs;
 "
-          With="$(OutputTag)"
+          With="$(FilesOutputTag)"
         />
+        <Do If="'$(ZipName)' != ''">
+          <Delete Files="$(ZipName)" />
+          <Zip
+            FromDir="$(OutputDir)/"
+            Files="$(OutputTag)_Files"
+            ZipFile="$(ZipName)"
+            Tag="$(OutputTag)" />
+        </Do>
       </Node>
     </Agent>
   </Macro>
@@ -323,31 +343,6 @@ $(PackageExclude);
   </Macro>
 
   <!--
-
-    =========================================================================
-    =
-    = >> Editor level builds and testing
-    =
-    = In order to run automation tests and to run custom tests against the
-    = "test project", all we need is:
-    =
-    = * The editor binaries for the plugin
-    = * The test project generated for relevant platforms (windows/mac)
-    = 
-    = This is far less than required to actually package the plugin, and by
-    = separating "editor only" build components from the full plugin build,
-    = we can start the automation tests much earlier than we otherwise would.
-    =
-    = Refer to "Package builds and testing" to see where we compile the
-    = plugin for game/client/server targets and where we run tests that
-    = require the full packaged plugin (inc. custom tests against
-    = PackagedPlugin and Gauntlet tests).
-    = 
-    =========================================================================
-
-  -->
-
-  <!--
     Assemble the host project that we will use to build the plugin. All build steps require this because
     they need a project in order to provide a build context when compiling.
   -->
@@ -422,314 +417,7 @@ $(PackageExclude);
   </Agent>
 
   <!-- 
-    Build the editors first, if needed. These will feed into the packages we used for automation testing
-    (which aren't the full packages since they won't contain game binaries - only the editor binaries
-    are required for automation testing).
-  -->
-
-  <Agent Name="Compile $(EnginePrefix)Editor Mac (Mac Build Editor)" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-    <Node Name="Compile $(EnginePrefix)Editor Mac" Requires="#HostProject" Produces="#EditorBinaries_Mac" If="'$(CanBuildEditorMac)' == 'true'">
-      <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" HostPlatform="Mac" />
-      </ForEach>
-      <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Mac" TargetConfiguration="Development" />
-      <Compile
-        Target="$(EnginePrefix)Editor"
-        Platform="Mac"
-        Configuration="Development"
-        Tag="#EditorBinaries_Mac"
-        Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
-      />
-      <Expand
-        Name="StripDebugSymbolsForTarget"
-        PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-        TargetPlatform="Mac"
-        FilesTag="#EditorBinaries_Mac"
-      />
-    </Node>
-    <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Mac;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorMac)' == 'true'" />
-    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Mac;" If="'$(CanBuildEditorMac)' == 'true'" />
-  </Agent>
-
-  <Agent Name="Compile $(EnginePrefix)Editor Win64 (Windows Build Editor)" Type="Win64">
-    <Node Name="Compile $(EnginePrefix)Editor Win64" Requires="#HostProject" Produces="#EditorBinaries_Win64" If="'$(CanBuildEditorWin64)' == 'true'">
-      <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-        <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" HostPlatform="Win64" />
-      </ForEach>
-      <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(TempPath)/$(HostProjectName)" TargetName="$(EnginePrefix)Editor" TargetPlatform="Win64" TargetConfiguration="Development" />
-      <Compile
-        Target="$(EnginePrefix)Editor"
-        Platform="Win64"
-        Configuration="Development"
-        Tag="#EditorBinaries_Win64"
-        Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
-      />
-      <Expand
-        Name="StripDebugSymbolsForTarget"
-        PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-        TargetPlatform="Win64"
-        FilesTag="#EditorBinaries_Win64"
-      />
-      <Expand
-        Name="IntegrityCheckNewDllFilesAfterCompile"
-        FileList="#EditorBinaries_Win64"
-        TargetPlatform="Win64"
-      />
-    </Node>
-    <Property Name="EditorBinaries" Value="$(EditorBinaries)#EditorBinaries_Win64;" If="'$(PackageType)' == 'Generic' and '$(CanBuildEditorWin64)' == 'true'" />
-    <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(EnginePrefix)Editor Win64;" If="'$(CanBuildEditorWin64)' == 'true'" />
-  </Agent>
-
-  <!--
-
-    =========================================================================
-    =
-    = >> Package builds and testing
-    =
-    = Now we build the plugin binaries for the game/client/server targets
-    = on all the appropriate platforms.
-    =
-    = Once we've generated the package, we ZIP it up and then:
-    = 
-    = * For custom tests against the packaged plugin, we just run them with
-    =   the path to the plugin ZIP. It's expected these custom tests will
-    =   generate their own projects for testing if needed.
-    = * If there are Gauntlet tests to run, assemble a test project with
-    =   additional Gauntlet helpers, and build it for the appropriate targets
-    =   that the Gauntlet tests all collectively require.
-    = * Run any of the Gauntlet tests that are required.
-    = * Upload the packaged plugin to Backblaze B2 if necessary.
-    = 
-    =========================================================================
-
-  -->
-
-  <!--
-    Build our Mac game targets. These are only required for the submission package, for custom tests and for
-    Gauntlet tests.
-  -->
-
-  <ForEach Name="TargetName" Values="$(EnginePrefix)Game">
-    <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
-      <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-        <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Mac Build Game)" Type="Mac" If="'$(IsBuildMachine)' == 'true'">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Mac" />
-            </ForEach>
-            <Expand
-              Name="RemoveStalePrecompiledHeaders"
-              ProjectPath="$(TempPath)/$(HostProjectName)"
-              TargetName="$(TargetName)"
-              TargetPlatform="$(TargetPlatform)"
-              TargetConfiguration="$(TargetConfiguration)" />
-            <Compile
-              Target="$(TargetName)"
-              Platform="$(TargetPlatform)"
-              Configuration="$(TargetConfiguration)"
-              Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
-            />
-            <Expand
-              Name="StripDebugSymbolsForTarget"
-              PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-              TargetPlatform="$(TargetPlatform)"
-              FilesTag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-            />
-            <Property Name="BinaryExceptRule" Value="" />
-            <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
-            <Tag
-              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Except="$(BinaryExceptRule)"
-              With="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-            <Tag
-              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-              Filter="*.target"
-              With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-            <SanitizeReceipt
-              Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-          </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'" />
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
-        </Agent>
-      </ForEach>
-    </ForEach>
-  </ForEach>
-
-  <!--
-    Build our Windows game targets. These are only required for the submission package, for custom tests and for
-    Gauntlet tests.
-  -->
-
-  <ForEach Name="TargetName" Values="$(EnginePrefix)Game">
-    <ForEach Name="TargetPlatform" Values="$(GameTargetPlatforms)">
-      <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-        <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Game)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" Produces="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Game" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
-            </ForEach>
-            <Expand
-              Name="RemoveStalePrecompiledHeaders"
-              ProjectPath="$(TempPath)/$(HostProjectName)"
-              TargetName="$(TargetName)"
-              TargetPlatform="$(TargetPlatform)"
-              TargetConfiguration="$(TargetConfiguration)" />
-            <Compile
-              Target="$(TargetName)"
-              Platform="$(TargetPlatform)"
-              Configuration="$(TargetConfiguration)"
-              Tag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
-            />
-            <Expand
-              Name="StripDebugSymbolsForTarget"
-              PluginPath="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-              TargetPlatform="$(TargetPlatform)"
-              FilesTag="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-            />
-            <Expand
-              Name="IntegrityCheckNewDllFilesAfterCompile"
-              FileList="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              TargetPlatform="$(TargetPlatform)"
-            />
-            <Property Name="BinaryExceptRule" Value="" />
-            <Property Name="BinaryExceptRule" Value=".../Intermediate/.../Inc/..." If="'$(TargetConfiguration)' != 'Shipping'" />
-            <Tag
-              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate"
-              Except="$(BinaryExceptRule)"
-              With="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-            <Tag
-              Files="#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-              Filter="*.target"
-              With="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-            <SanitizeReceipt
-              Files="#GameReceipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"
-            />
-          </Node>
-          <Property Name="GameBinaries" Value="$(GameBinaries)#GameBinaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';') and '$(PackageType)' == 'Generic'"/>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
-        </Agent>
-      </ForEach>
-    </ForEach>
-  </ForEach>
-
-  <ForEach Name="TargetName" Values="$(HostProjectName)Client">
-    <ForEach Name="TargetPlatform" Values="$(ClientTargetPlatforms)">
-      <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-        <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Client)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <WriteTextFile
-              File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Client.Target.cs"
-              Text="using UnrealBuildTool; public class $(HostProjectName)ClientTarget : TargetRules { public $(HostProjectName)ClientTarget(TargetInfo Target) : base(Target) { Type = TargetType.Client; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
-            />
-            <WriteTextFile
-              File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName).Build.cs"
-              Text="using UnrealBuildTool; public class $(HostProjectName) : ModuleRules { public $(HostProjectName)(ReadOnlyTargetRules Target) : base(Target) { PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs; PublicDependencyModuleNames.AddRange(new string[] { &quot;Core&quot;, &quot;CoreUObject&quot;, &quot;Engine&quot;, &quot;InputCore&quot; }); } }"
-            />
-            <WriteTextFile
-              File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName)Module.cpp"
-              Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(HostProjectName), &quot;$(HostProjectName)&quot;);"
-            />
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Client" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
-            </ForEach>
-            <Expand
-              Name="RemoveStalePrecompiledHeaders"
-              ProjectPath="$(TempPath)/$(HostProjectName)"
-              TargetName="$(TargetName)"
-              TargetPlatform="$(TargetPlatform)"
-              TargetConfiguration="$(TargetConfiguration)" />
-            <Compile
-              Target="$(TargetName)"
-              Platform="$(TargetPlatform)"
-              Configuration="$(TargetConfiguration)"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
-            />
-          </Node>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
-        </Agent>
-      </ForEach>
-    </ForEach>
-  </ForEach>
-
-  <ForEach Name="TargetName" Values="$(HostProjectName)Server">
-    <ForEach Name="TargetPlatform" Values="$(ServerTargetPlatforms)">
-      <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-        <Agent Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) (Windows Build Server)" Type="Win64">
-          <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Requires="#HostProject" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')">
-            <WriteTextFile
-              File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)Server.Target.cs"
-              Text="using UnrealBuildTool; public class $(HostProjectName)ServerTarget : TargetRules { public $(HostProjectName)ServerTarget(TargetInfo Target) : base(Target) { Type = TargetType.Server; DefaultBuildSettings = BuildSettingsVersion.Latest; IncludeOrderVersion = EngineIncludeOrderVersion.Latest; ExtraModuleNames.AddRange(new string[] { &quot;$(HostProjectName)&quot; }); } }"
-            />
-            <WriteTextFile
-              File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName).Build.cs"
-              Text="using UnrealBuildTool; public class $(HostProjectName) : ModuleRules { public $(HostProjectName)(ReadOnlyTargetRules Target) : base(Target) { PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs; PublicDependencyModuleNames.AddRange(new string[] { &quot;Core&quot;, &quot;CoreUObject&quot;, &quot;Engine&quot;, &quot;InputCore&quot; }); } }"
-            />
-            <WriteTextFile
-              File="$(TempPath)/$(HostProjectName)/Source/$(HostProjectName)/$(HostProjectName)Module.cpp"
-              Text="#include &quot;Modules/ModuleManager.h&quot;&#10;IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, $(HostProjectName), &quot;$(HostProjectName)&quot;);"
-            />
-            <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-              <Expand Name="$(MacroName)" TargetType="Server" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="Win64" />
-            </ForEach>
-            <Expand
-              Name="RemoveStalePrecompiledHeaders"
-              ProjectPath="$(TempPath)/$(HostProjectName)"
-              TargetName="$(TargetName)"
-              TargetPlatform="$(TargetPlatform)"
-              TargetConfiguration="$(TargetConfiguration)" />
-            <Compile
-              Target="$(TargetName)"
-              Platform="$(TargetPlatform)"
-              Configuration="$(TargetConfiguration)"
-              Arguments="-Project=&quot;$(TempPath)/$(HostProjectName)/$(HostProjectName).uproject&quot; -plugin=&quot;$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)/$(PluginName).uplugin&quot; $(StripDebugFlags) $(AdditionalArguments)"
-            />
-          </Node>
-          <Property Name="BuildTasks" Value="$(BuildTasks)Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration);" If="!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
-        </Agent>
-      </ForEach>
-    </ForEach>
-  </ForEach>
-
-  <!--
-    Create our final package that we will be using for submission and for non-automation testing. This testing
-    includes custom scripts and Gauntlet tests, which may require game binaries to be present.
-  -->
-
-  <Expand
-    Name="Create Package"
-    AgentStage="Create Final Package"
-    AgentType="Win64"
-    NodeName="Create Package"
-    InputProject="#HostProject"
-    InputBaseDir="$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)"
-    InputBinaries="$(EditorBinaries);$(GameBinaries)"
-    OutputDir="$(TempPath)/$(PackageFolder)"
-    OutputTag="#PackagedPlugin"
-  />
-  <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedPlugin;" If="'$(PackageType)' != 'None'" />
-
-  <Agent Name="Zip Plugin (Create Final Package)" Type="Win64">
-    <Node Name="Zip Plugin" Requires="#PackagedPlugin" Produces="#PackagedZip">
-      <Delete Files="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" />
-      <Zip
-        FromDir="$(TempPath)/$(PackageFolder)/"
-        Files="#PackagedPlugin"
-        ZipFile="$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip"
-        Tag="#PackagedZip"
-    />
-    </Node>
-  </Agent>
-  <Property Name="PackageTasks" Value="$(PackageTasks)#PackagedZip;" If="'$(PackageType)' != 'None'" />
-
-  <!-- 
-    Run all of the tests and deployments (which are dynamically defined by UET).
+    Run all of the build, tests and deployments (which are dynamically defined by UET).
   -->
 
   <Include Script="$(ScriptNodeIncludes)" />

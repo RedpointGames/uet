@@ -8,6 +8,8 @@
 
         public required string NodeName { get; set; }
 
+        public string AgentName { get; set; } = string.Empty;
+
         public string Requires { get; set; } = string.Empty;
 
         public string Produces { get; set; } = string.Empty;

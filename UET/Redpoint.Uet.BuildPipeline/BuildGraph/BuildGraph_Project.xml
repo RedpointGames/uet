@@ -35,6 +35,9 @@
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
   <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on." />
 
+  <!-- Unified/UBA options -->
+  <Option Name="UseUnifiedBuild" Restrict="true|false" DefaultValue="true" Description="If true, compilation nodes will be unified to each host platform, leveraging UBA to distribute compilation work. If the engine supports it, this is much faster that a separate agent/node per platform, because it eliminates all of the workspace set up on each build node."/>
+
   <!-- Stage options -->
   <Option Name="StageDirectory" Restrict=".+" DefaultValue="Saved\StagedBuilds" Description="The path under which to place all of the staged builds" />
 
@@ -98,87 +101,24 @@
   </Macro>
 
   <!--
-    Macro for compiling the editor.
+    Strip debugging symbols out of the target platform's binaries if requested.
   -->
-  <Macro Name="CompileEditor" Arguments="EditorTarget;TargetPlatform;TargetConfiguration">
-    <Agent Name="Compile $(EditorTarget) $(TargetPlatform) (Windows Build)" Type="$(TargetPlatform)">
-      <Node Name="Compile $(EditorTarget) $(TargetPlatform)" Produces="#EditorBinaries;#BuildToolBinaries">
-        <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-          <Expand Name="$(MacroName)" TargetType="Editor" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(TargetPlatform)" />
-        </ForEach>
-        <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(EditorTarget)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-        <Expand
-          Name="IntegrityCheckExistingDllFilesBeforeCompile"
-          FolderPath="$(EnginePath)/Engine/Binaries/$(TargetPlatform)"
-          TargetPlatform="$(TargetPlatform)"
-        />
-        <Compile Target="$(EditorTarget)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#EditorBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" />
-        <Compile Target="UnrealPak" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Compile Target="ShaderCompileWorker" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Compile Target="BootstrapPackagedGame" Platform="$(TargetPlatform)" Configuration="Shipping" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Compile Target="CrashReportClient" Platform="$(TargetPlatform)" Configuration="Shipping" Tag="#BuildToolBinaries" Arguments="$(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true'" />
-        <Compile Target="ZenLaunch" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#BuildToolBinaries" Arguments="-Project=&quot;$(UProjectPath)&quot; $(AdditionalArguments)" AllowParallelExecutor="false" If="'$(IsUnrealEngineInstalled)' != 'true' and '$(UET_ZEN_PUBLISH_HOST)' != ''" />
-        <Expand
-          Name="IntegrityCheckNewDllFilesAfterCompile"
-          FileList="#EditorBinaries;#BuildToolBinaries"
-          TargetPlatform="$(TargetPlatform)"
-        />
-      </Node>
-    </Agent>
-  </Macro>
-
-  <!--
-    Macro for compiling a variant.
-  -->
-  <Macro Name="CompileVariant" Arguments="TargetType;TargetName;TargetStore;TargetConfiguration">
-
-    <Property Name="TargetPlatform" Value="$(TargetStore)" />
-    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'MetaQuest'" />
-    <Property Name="TargetPlatform" Value="Android" If="'$(TargetStore)' == 'GooglePlay'" />
-
-    <Property Name="VariantName" Value="Compile_$(TargetType)_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-
-    <Property Name="HostPlatform" Value="Win64" />
-    <Property Name="HostPlatform" Value="Mac" If="ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')" />
-
-    <Property Name="AgentSuffix" Value="(Windows Build)" />
-    <Property Name="AgentSuffix" Value="(macOS Build)" If="'$(HostPlatform)' == 'Mac'" />
-
-    <Agent
-		  Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration) $(AgentSuffix)"
-		  Type="$(HostPlatform)"
-		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
-    >
-      <Node Name="Compile $(TargetName) $(TargetPlatform) $(TargetConfiguration)" Produces="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)">
-        <ForEach Name="MacroName" Values="$(DynamicBeforeCompileMacros)">
-          <Expand Name="$(MacroName)" TargetType="$(TargetType)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" HostPlatform="$(HostPlatform)" />
-        </ForEach>
-        <Expand Name="RemoveStalePrecompiledHeaders" ProjectPath="$(ProjectRoot)" TargetName="$(TargetName)" TargetPlatform="$(TargetPlatform)" TargetConfiguration="$(TargetConfiguration)" />
-
-        <!-- 
-          Automatically set the StoreVersion for Android so that it increments over time. 
-          This is necessary for store submission pretty much everywhere. 
-          
-          We have to pass this to the Compile tag as well, since the store version is used
-          for the debug symbols folder.
-        -->
-        <Property
-				  If="'$(TargetPlatform)' == 'Android'"
-				  Name="AdditionalArguments"
-				  Value="$(AdditionalArguments) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
-
-        <Compile Target="$(TargetName)" Platform="$(TargetPlatform)" Configuration="$(TargetConfiguration)" Tag="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Arguments="-Project=&quot;$(UProjectPath)&quot; -SkipDeploy $(AdditionalArguments)"/>
-        <Tag Files="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" Filter="*.target" With="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)"/>
-        <SanitizeReceipt Files="#$(TargetType)Receipts_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)" />
-      </Node>
-      <Property Name="$(TargetType)Binaries" Value="$($(TargetType)Binaries)#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);"/>
-    </Agent>
-
-    <Property
-		  Name="GeneratedVariantsList"
-		  Value="$(GeneratedVariantsList)$(VariantName);"
-		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')" />
-
+  <Macro Name="StripDebugSymbolsForTarget" Arguments="StripPath;TargetPlatform;FilesTag">
+    <Switch>
+      <Case If="'$(TargetPlatform)' == 'Win64'">
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*.pdb" With="$(FilesTag)_Debug" />
+      </Case>
+      <Case If="'$(TargetPlatform)' == 'Mac' or '$(TargetPlatform)' == 'IOS' or '$(TargetPlatform)' == 'TVOS'">
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*.a" With="$(FilesTag)_Debug" />
+      </Case>
+      <Case If="'$(TargetPlatform)' == 'Android' or '$(TargetPlatform)' == 'GooglePlay' or '$(TargetPlatform)' == 'MetaQuest'">
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*.a;*.so" With="$(FilesTag)_Debug" />
+      </Case>
+      <Case If="'$(TargetPlatform)' == 'Linux'">
+        <Tag BaseDir="$(StripPath)" Files="$(FilesTag)" Filter="*" With="$(FilesTag)_Debug" Except=".../Inc/...;*.h;*.precompiled" />
+      </Case>
+    </Switch>
+    <Strip BaseDir="$(StripPath)" OutputDir="$(StripPath)" Platform="$(TargetPlatform)" Files="$(FilesTag)_Debug" If="'$(StripDebugSymbols)' == 'true'" />
   </Macro>
 
   <!--
@@ -197,7 +137,7 @@
 		  Type="Win64"
 		  If="!ContainsItem('$(GeneratedVariantsList)', '$(VariantName)', ';')"
     >
-      <Node Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor)" Requires="#EditorBinaries;#BuildToolBinaries" Produces="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)">
+      <Node Name="Cook $(TargetType) $(TargetPlatform) $(CookFlavor)" Requires="$(EditorBinaries);$(BuildToolBinaries)" Produces="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)">
         <Property Name="CookPlatform" Value="$(TargetPlatform)" />
         <Property Name="CookPlatform" Value="Windows" If="'$(CookPlatform)' == 'Win64'" />
         <Property Name="CookPlatform" Value="$(CookPlatform)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
@@ -268,7 +208,7 @@
       <Property Name="StageOutputs" Value="$(StageOutputs)_$(CookFlavor)" If="'$(CookFlavor)' != 'NoCookFlavor'" />
 
       <!-- Specify the job to run. We do all our other property declarations under here due to BuildGraph quirks. -->
-      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#$(TargetType)Binaries_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);#BuildToolBinaries" Produces="$(StageOutputs)">
+      <Node Name="Pak and Stage $(TargetName) $(TargetStore) $(TargetConfiguration) $(CookFlavor)" Requires="#Project_Binaries_$(TargetType)_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration);#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor);$(BuildToolBinaries)" Produces="$(StageOutputs)">
 
         <!-- Configure directory seperator based on host platform. -->
         <Property Name="Slash" Value="\" />
@@ -622,141 +562,8 @@
 
   </Macro>
 
-  <!-- Compilation targets; the expanded macro picks the correct platform to run the compile on depending on the target platform. -->
-  <Do If="'$(ExecuteBuild)' == 'true'">
-
-    <!-- Compile the editor for Windows (necessary for cook later) -->
-    <Expand Name="CompileEditor" EditorTarget="$(EditorTarget)" TargetPlatform="Win64" TargetConfiguration="Development" />
-
-    <!-- Compile the game (targeting the Game target, not Client) -->
-    <ForEach Name="TargetName" Values="$(GameTargets)">
-      <ForEach Name="TargetStore" Values="$(GameTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Expand Name="CompileVariant" TargetType="Game" TargetName="$(TargetName)" TargetStore="$(TargetStore)" TargetConfiguration="$(TargetConfiguration)" />
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-    <!-- Compile the client (targeting the Client target, not Game) -->
-    <ForEach Name="TargetName" Values="$(ClientTargets)">
-      <ForEach Name="TargetStore" Values="$(ClientTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Expand Name="CompileVariant" TargetType="Client" TargetName="$(TargetName)" TargetStore="$(TargetStore)" TargetConfiguration="$(TargetConfiguration)" />
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-    <!-- Compile the dedicated server -->
-    <ForEach Name="TargetName" Values="$(ServerTargets)">
-      <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Expand Name="CompileVariant" TargetType="Server" TargetName="$(TargetName)" TargetStore="$(TargetStore)" TargetConfiguration="$(TargetConfiguration)" />
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-  </Do>
-
-  <!-- Cook targets; these always execute on a Windows machine. -->
-  <Do If="'$(ExecuteBuild)' == 'true'">
-
-    <!-- Cook for game platforms (targeting the Game target, not Client) -->
-    <ForEach Name="TargetStore" Values="$(GameTargetPlatforms)">
-      <Property Name="CookFlavors" Value="NoCookFlavor" />
-      <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
-      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
-      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidGameCookFlavors)' != ''" />
-      <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidGameCookFlavors)' != ''" />
-      <ForEach Name="CookFlavor" Values="$(CookFlavors)">
-        <Expand Name="CookVariant" TargetType="Game" TargetStore="$(TargetStore)" CookFlavor="$(CookFlavor)" />
-      </ForEach>
-    </ForEach>
-
-    <!-- Cook for client platforms (targeting the Client target, not Game) -->
-    <ForEach Name="TargetStore" Values="$(ClientTargetPlatforms)">
-      <Property Name="CookFlavors" Value="NoCookFlavor" />
-      <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
-      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
-      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidClientCookFlavors)' != ''" />
-      <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidClientCookFlavors)' != ''" />
-      <ForEach Name="CookFlavor" Values="$(CookFlavors)">
-        <Expand Name="CookVariant" TargetType="Client" TargetStore="$(TargetStore)" CookFlavor="$(CookFlavor)" />
-      </ForEach>
-    </ForEach>
-
-    <!-- Cook for dedicated servers -->
-    <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
-      <Expand Name="CookVariant" TargetType="Server" TargetStore="$(TargetStore)" CookFlavor="NoCookFlavor" />
-    </ForEach>
-
-  </Do>
-
-  <!-- Packaging targets; the expanded macro picks the correct platform to run the compile on depending on the target platform. -->
-  <Do If="'$(ExecuteBuild)' == 'true'">
-
-    <!-- Pak and stage the game (targeting the Game target, not Client) -->
-    <ForEach Name="TargetName" Values="$(GameTargets)">
-      <ForEach Name="TargetStore" Values="$(GameTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(GameConfigurations)">
-          <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
-          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidGameCookFlavors)' != ''" />
-          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidGameCookFlavors)' != ''" />
-          <Property Name="CookFlavors" Value="$(AndroidGameCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidGameCookFlavors)' != ''" />
-          <ForEach Name="CookFlavor" Values="$(CookFlavors)">
-            <Expand
-						  Name="PackageVariant"
-						  TargetType="Game"
-						  TargetName="$(TargetName)"
-						  TargetStore="$(TargetStore)"
-						  TargetConfiguration="$(TargetConfiguration)"
-						  CookFlavor="$(CookFlavor)" />
-          </ForEach>
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-    <!-- Pak and stage the client (targeting the Client target, not Game) -->
-    <ForEach Name="TargetName" Values="$(ClientTargets)">
-      <ForEach Name="TargetStore" Values="$(ClientTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(ClientConfigurations)">
-          <Property Name="CookFlavors" Value="NoCookFlavor" />
-          <!-- @todo Tidy this up; probably when we generate these blocks instead of only supporting matrixes. -->
-          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'Android' and '$(AndroidClientCookFlavors)' != ''" />
-          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'MetaQuest' and '$(AndroidClientCookFlavors)' != ''" />
-          <Property Name="CookFlavors" Value="$(AndroidClientCookFlavors)" If="'$(TargetStore)' == 'GooglePlay' and '$(AndroidClientCookFlavors)' != ''" />
-          <ForEach Name="CookFlavor" Values="$(CookFlavors)">
-            <Expand
-						  Name="PackageVariant"
-						  TargetType="Client"
-						  TargetName="$(TargetName)"
-						  TargetStore="$(TargetStore)"
-						  TargetConfiguration="$(TargetConfiguration)"
-						  CookFlavor="$(CookFlavor)" />
-          </ForEach>
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-    <!-- Pak and stage the dedicated server -->
-    <ForEach Name="TargetName" Values="$(ServerTargets)">
-      <ForEach Name="TargetStore" Values="$(ServerTargetPlatforms)">
-        <ForEach Name="TargetConfiguration" Values="$(ServerConfigurations)">
-          <Expand
-					  Name="PackageVariant"
-					  TargetType="Server"
-					  TargetName="$(TargetName)"
-					  TargetStore="$(TargetStore)"
-					  TargetConfiguration="$(TargetConfiguration)"
-					  CookFlavor="NoCookFlavor" />
-        </ForEach>
-      </ForEach>
-    </ForEach>
-
-  </Do>
-
   <!-- 
-    Run all of the tests and deployments (which are dynamically defined by UET).
+    Run all the build steps, tests and deployments (which are dynamically defined by UET).
   -->
 
   <Include Script="$(ScriptNodeIncludes)" />
