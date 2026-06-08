@@ -1,5 +1,8 @@
 ﻿namespace UET.Commands.Internal.CreateGitHubRelease
 {
+    using Amazon.Runtime;
+    using Amazon.S3;
+    using Amazon.S3.Model;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Redpoint.CommandLine;
@@ -62,17 +65,23 @@
             private readonly Options _options;
             private readonly IReleaseUploader _releaseUploader;
             private readonly ISchemaUploader _schemaUploader;
+            private readonly IProgressFactory _progressFactory;
+            private readonly IMonitorFactory _monitorFactory;
 
             public CreateGitHubReleaseCommandInstance(
                 ILogger<CreateGitHubReleaseCommandInstance> logger,
                 Options options,
                 IReleaseUploader releaseUploader,
-                ISchemaUploader schemaUploader)
+                ISchemaUploader schemaUploader,
+                IProgressFactory progressFactory,
+                IMonitorFactory monitorFactory)
             {
                 _logger = logger;
                 _options = options;
                 _releaseUploader = releaseUploader;
                 _schemaUploader = schemaUploader;
+                _progressFactory = progressFactory;
+                _monitorFactory = monitorFactory;
             }
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
@@ -126,11 +135,114 @@
                     if (!schemaOnly)
                     {
                         await _releaseUploader.CreateVersionReleaseAsync(context, version, files, client).ConfigureAwait(false);
+                        await UploadFilesToR2Mirror(context, version, files, client).ConfigureAwait(false);
                     }
                     await _schemaUploader.UpdateSchemaRepositoryAsync(version, client, context.GetCancellationToken()).ConfigureAwait(false);
 
                     _logger.LogInformation($"GitHub release process complete.");
                     return 0;
+                }
+            }
+
+            private async Task UploadFilesToR2Mirror(ICommandInvocationContext context, string version, (string name, string label, FileInfo path)[] files, HttpClient httpClient)
+            {
+                var r2AccountId = Environment.GetEnvironmentVariable("UET_R2_ACCOUNT_ID");
+                var r2BucketName = Environment.GetEnvironmentVariable("UET_R2_BUCKET_NAME");
+                var r2AccessKeyId = Environment.GetEnvironmentVariable("UET_R2_ACCESS_KEY_ID");
+                var r2SecretAccessKey = Environment.GetEnvironmentVariable("UET_R2_SECRET_ACCESS_KEY");
+                if (string.IsNullOrWhiteSpace(r2AccountId) ||
+                    string.IsNullOrWhiteSpace(r2BucketName) ||
+                    string.IsNullOrWhiteSpace(r2AccessKeyId) ||
+                    string.IsNullOrWhiteSpace(r2SecretAccessKey))
+                {
+                    return;
+                }
+
+                var client = new AmazonS3Client(
+                    r2AccessKeyId,
+                    r2SecretAccessKey,
+                    new AmazonS3Config
+                    {
+                        ServiceURL = $"https://{r2AccountId}.r2.cloudflarestorage.com",
+                        ForcePathStyle = true,
+                        AuthenticationRegion = "auto",
+                    });
+
+                foreach (var file in files)
+                {
+                    _logger.LogInformation($"Uploading asset {file.name} to mirror from: {file.path.FullName} ...");
+                    using (var stream = new FileStream(
+                        file.path.FullName,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.Read | FileShare.Delete))
+                    {
+                        // Start monitoring.
+                        var cts = new CancellationTokenSource();
+                        var progress = _progressFactory.CreateProgressForStream(stream);
+                        var monitorTask = Task.Run(async () =>
+                        {
+                            var monitor = _monitorFactory.CreateByteBasedMonitor();
+                            await monitor.MonitorAsync(
+                                progress,
+                                SystemConsole.ConsoleInformation,
+                                SystemConsole.WriteProgressToConsole,
+                                cts.Token).ConfigureAwait(false);
+                        });
+
+                        // Upload the file.
+                        await client.PutObjectAsync(
+                            new PutObjectRequest
+                            {
+                                BucketName = r2BucketName,
+                                Key = $"RedpointGames/uet/releases/download/{version}/{file.name}",
+                                InputStream = stream,
+                                DisablePayloadSigning = true,
+                                DisableDefaultChecksumValidation = true
+                            });
+
+                        // Stop monitoring.
+                        await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
+                    }
+
+                    // If this is the version file, also override latest.
+                    if (file.name == "package.version")
+                    {
+                        _logger.LogInformation($"Uploading asset {file.name} to mirror (latest) from: {file.path.FullName} ...");
+                        using (var stream = new FileStream(
+                            file.path.FullName,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.Read | FileShare.Delete))
+                        {
+                            // Start monitoring.
+                            var cts = new CancellationTokenSource();
+                            var progress = _progressFactory.CreateProgressForStream(stream);
+                            var monitorTask = Task.Run(async () =>
+                            {
+                                var monitor = _monitorFactory.CreateByteBasedMonitor();
+                                await monitor.MonitorAsync(
+                                    progress,
+                                    SystemConsole.ConsoleInformation,
+                                    SystemConsole.WriteProgressToConsole,
+                                    cts.Token).ConfigureAwait(false);
+                            });
+
+                            // Upload the file.
+                            await client.PutObjectAsync(
+                                new PutObjectRequest
+                                {
+                                    BucketName = r2BucketName,
+                                    Key = $"RedpointGames/uet/releases/latest/download/{file.name}",
+                                    InputStream = stream,
+                                    DisablePayloadSigning = true,
+                                    DisableDefaultChecksumValidation = true
+                                });
+
+                            // Stop monitoring.
+                            await SystemConsole.CancelAndWaitForConsoleMonitoringTaskAsync(monitorTask, cts).ConfigureAwait(false);
+                        }
+                    }
                 }
             }
         }

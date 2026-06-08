@@ -31,6 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="AWSSDK.S3" />
 		<PackageReference Include="KubernetesClient.Aot" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
 		<PackageReference Include="Microsoft.Extensions.Logging" />
