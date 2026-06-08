@@ -2,9 +2,9 @@ name: Unreal Engine Tool
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   UET_FRAMEWORK_TARGET: net10.0
@@ -17,52 +17,52 @@ jobs:
     outputs:
       version: ${{ steps.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - id: timestamp
-      name: Generate Timestamp
-      shell: pwsh
-      run: |
-        $Timestamp = ([DateTime]::UtcNow)
-        $PackageVersion = "$($Timestamp.Year).$($Timestamp.DayOfYear + 1000).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
-        Set-Content -NoNewline -Path "package.version" -Value "$($PackageVersion)"
-        Set-Content -NoNewline -Path "$env:GITHUB_OUTPUT" -Value "version=$($PackageVersion)"
-    - name: Upload Timestamp
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: timestamp
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: timestamp
+        name: Generate Timestamp
+        shell: pwsh
+        run: |
+          $Timestamp = ([DateTime]::UtcNow)
+          $PackageVersion = "$($Timestamp.Year).$($Timestamp.DayOfYear + 1000).$(($Timestamp.Hour * 60) + $Timestamp.Minute)"
+          Set-Content -NoNewline -Path "package.version" -Value "$($PackageVersion)"
+          Set-Content -NoNewline -Path "$env:GITHUB_OUTPUT" -Value "version=$($PackageVersion)"
+      - name: Upload Timestamp
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: timestamp
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   test-stringenum-trimmed:
     name: "Test StringEnum Trimmed"
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build and Test
-      shell: pwsh
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y clang zlib1g-dev
-        dotnet publish /p:TargetFramework=${{ env.UET_FRAMEWORK_TARGET }} -c Release -r linux-x64 UET/Redpoint.StringEnum.TrimTests/Redpoint.StringEnum.TrimTests.csproj
-        if ($LastExitCode -ne 0) {
-          Write-Host "dotnet build (Redpoint.StringEnum.TrimTests.csproj) failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-        UET/Redpoint.StringEnum.TrimTests/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/Redpoint.StringEnum.TrimTests
-        if ($LastExitCode -ne 0) {
-          Write-Host "Redpoint.StringEnum.TrimTests failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build and Test
+        shell: pwsh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
+          dotnet publish /p:TargetFramework=${{ env.UET_FRAMEWORK_TARGET }} -c Release -r linux-x64 UET/Redpoint.StringEnum.TrimTests/Redpoint.StringEnum.TrimTests.csproj
+          if ($LastExitCode -ne 0) {
+            Write-Host "dotnet build (Redpoint.StringEnum.TrimTests.csproj) failed with exit code $LastExitCode"
+            exit $LastExitCode 
+          }
+          UET/Redpoint.StringEnum.TrimTests/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/Redpoint.StringEnum.TrimTests
+          if ($LastExitCode -ne 0) {
+            Write-Host "Redpoint.StringEnum.TrimTests failed with exit code $LastExitCode"
+            exit $LastExitCode 
+          }
+
   uefs-win:
     name: "Build Windows UEFS"
     runs-on: windows-latest
@@ -71,34 +71,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UEFS Daemon
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=win-x64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: uefs-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UEFS Daemon
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=win-x64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: uefs-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   uefs-mac:
     name: "Build macOS UEFS"
     runs-on: macos-latest
@@ -107,34 +107,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UEFS Daemon
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=osx-arm64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: uefs-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UEFS Daemon
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=osx-arm64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/Redpoint.Uefs.Daemon/Redpoint.Uefs.Daemon.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: uefs-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   shim-win:
     name: "Build Windows Shim"
     runs-on: windows-latest
@@ -143,34 +143,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Shim
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=win-x64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet.shim/uet.shim.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: shim-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Shim
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=win-x64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet.shim/uet.shim.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: shim-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   shim-mac:
     name: "Build macOS Shim"
     runs-on: macos-latest
@@ -179,34 +179,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Shim
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=osx-arm64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet.shim/uet.shim.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: shim-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Shim
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=osx-arm64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet.shim/uet.shim.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: shim-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   shim-linux:
     name: "Build Linux Shim"
     runs-on: ubuntu-latest
@@ -215,34 +215,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Shim
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=linux-x64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet.shim/uet.shim.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: shim-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Shim
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=linux-x64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet.shim/uet.shim.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: shim-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   pass-1-win:
     name: "Build Windows Pass 1"
     runs-on: windows-latest
@@ -251,34 +251,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Pass 1
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=win-x64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet/uet.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Pass 1
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=win-x64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet/uet.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   pass-1-mac:
     name: "Build macOS Pass 1"
     runs-on: macos-latest
@@ -287,37 +287,37 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Pass 1
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=osx-arm64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet/uet.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-        # Ensure the thing we built will actually run...
-        ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet --help
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Pass 1
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=osx-arm64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet/uet.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+          # Ensure the thing we built will actually run...
+          ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet --help
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   pass-1-linux:
     name: "Build Linux Pass 1"
     runs-on: ubuntu-latest
@@ -326,34 +326,34 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Pass 1
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=linux-x64 `
-          -p:Configuration=Release `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet/uet.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Pass 1
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=linux-x64 `
+            -p:Configuration=Release `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet/uet.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   libs-win:
     name: "Build and Test Libraries on Windows"
     runs-on: windows-latest
@@ -362,49 +362,49 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Install WinFsp
-      shell: pwsh
-      run: |
-        Invoke-WebRequest -Uri https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi -UseBasicParsing -OutFile winfsp.msi -ProgressAction SilentlyContinue
-        $Process = Start-Process -FilePath "$env:SystemRoot\system32\msiexec.exe" -ArgumentList @("/i", "winfsp.msi", "/qn", "/norestart") -Verb runas -PassThru
-        $Process.WaitForExit()
-    - name: Build and Test Libraries on Windows
-      shell: pwsh
-      run: |
-        dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.sln
-        if ($LastExitCode -ne 0) {
-          Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-        foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
-          if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests")) {
-            Write-Host "============ STARTING: $($Item.Name) ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)\TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
-            if ($LastExitCode -ne 0) {
-              Write-Host "============ FAILED:   $($Item.Name) ============"
-              exit $LastExitCode
-            }
-            Write-Host "============ PASSED:   $($Item.Name) ============"
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Install WinFsp
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi -UseBasicParsing -OutFile winfsp.msi -ProgressAction SilentlyContinue
+          $Process = Start-Process -FilePath "$env:SystemRoot\system32\msiexec.exe" -ArgumentList @("/i", "winfsp.msi", "/qn", "/norestart") -Verb runas -PassThru
+          $Process.WaitForExit()
+      - name: Build and Test Libraries on Windows
+        shell: pwsh
+        run: |
+          dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.sln
+          if ($LastExitCode -ne 0) {
+            Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
+            exit $LastExitCode 
           }
-        }
-    - name: Upload Test Results
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: test-results-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Upload Packages
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: libs-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+          foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
+            if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests")) {
+              Write-Host "============ STARTING: $($Item.Name) ============"
+              dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)\TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
+              if ($LastExitCode -ne 0) {
+                Write-Host "============ FAILED:   $($Item.Name) ============"
+                exit $LastExitCode
+              }
+              Write-Host "============ PASSED:   $($Item.Name) ============"
+            }
+          }
+      - name: Upload Test Results
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: test-results-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Upload Packages
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: libs-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
 
   # note: This doesn't run tests on macOS like we used to on GitLab, since the GitHub Runners
   #       seem to randomly stall when running xUnit tests.
@@ -416,19 +416,19 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build and Test Libraries on macOS
-      run: |
-        set -e
-        echo "Package version: $UET_PACKAGE_VERSION"
-        dotnet build -c Release /p:PackageVersion=$UET_PACKAGE_VERSION UET/UET.sln
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build and Test Libraries on macOS
+        run: |
+          set -e
+          echo "Package version: $UET_PACKAGE_VERSION"
+          dotnet build -c Release /p:PackageVersion=$UET_PACKAGE_VERSION UET/UET.sln
 
   libs-linux:
     name: "Build and Test Libraries on Linux"
@@ -438,39 +438,39 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build and Test Libraries on Linux
-      shell: pwsh
-      run: |
-        dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.sln
-        if ($LastExitCode -ne 0) {
-          Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-        foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
-          # note: We skip Redpoint.GrpcPipes.Transport.Tcp.Tests on Linux for now because some of the tests around deadlines/cancellation are unreliable on Linux.
-          if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests") -and ($Item.Name -ne "Redpoint.GrpcPipes.Transport.Tcp.Tests")) {
-            Write-Host "============ STARTING: $($Item.Name) ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
-            if ($LastExitCode -ne 0) {
-              Write-Host "============ FAILED:   $($Item.Name) ============"
-              exit $LastExitCode
-            }
-            Write-Host "============ PASSED:   $($Item.Name) ============"
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build and Test Libraries on Linux
+        shell: pwsh
+        run: |
+          dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.sln
+          if ($LastExitCode -ne 0) {
+            Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
+            exit $LastExitCode 
           }
-        }
-    - name: Upload Test Results
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: test-results-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+          foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
+            # note: We skip Redpoint.GrpcPipes.Transport.Tcp.Tests on Linux for now because some of the tests around deadlines/cancellation are unreliable on Linux.
+            if ((Test-Path "$($Item.FullName)/$($Item.Name).csproj") -and ($Item.Name -ne "Redpoint.CloudFramework.Tests") -and ($Item.Name -ne "Redpoint.GrpcPipes.Transport.Tcp.Tests")) {
+              Write-Host "============ STARTING: $($Item.Name) ============"
+              dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
+              if ($LastExitCode -ne 0) {
+                Write-Host "============ FAILED:   $($Item.Name) ============"
+                exit $LastExitCode
+              }
+              Write-Host "============ PASSED:   $($Item.Name) ============"
+            }
+          }
+      - name: Upload Test Results
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: test-results-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
 
   pass-2-win:
     name: "Build Windows Pass 2"
@@ -483,50 +483,50 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Windows Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download macOS Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Linux Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Pass 2
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=win-x64 `
-          -p:Configuration=Release `
-          -p:EmbeddingCrossPlatform=true `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet/uet.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Windows Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download macOS Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Linux Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Pass 2
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=win-x64 `
+            -p:Configuration=Release `
+            -p:EmbeddingCrossPlatform=true `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet/uet.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   pass-2-mac:
     name: "Build macOS Pass 2"
     runs-on: macos-latest
@@ -538,53 +538,53 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Windows Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download macOS Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Linux Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Pass 2
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=osx-arm64 `
-          -p:Configuration=Release `
-          -p:EmbeddingCrossPlatform=true `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet/uet.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-        # Ensure the thing we built will actually run...
-        ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet --help
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Windows Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download macOS Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Linux Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Pass 2
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=osx-arm64 `
+            -p:Configuration=Release `
+            -p:EmbeddingCrossPlatform=true `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet/uet.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+          # Ensure the thing we built will actually run...
+          ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet --help
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   pass-2-linux:
     name: "Build Linux Pass 2"
     runs-on: ubuntu-latest
@@ -596,53 +596,53 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Windows Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download macOS Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Linux Pass 1
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-1-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build UET Pass 2
-      shell: pwsh
-      run: |
-        dotnet `
-          msbuild `
-          -restore `
-          -t:Publish `
-          -p:RuntimeIdentifier=linux-x64 `
-          -p:Configuration=Release `
-          -p:EmbeddingCrossPlatform=true `
-          -p:UetSkipNuGetPackaging=true `
-          "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
-          "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
-          UET/uet/uet.csproj
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-        # Ensure the thing we built will actually run...
-        ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet --help
-        if ($LastExitCode -ne 0) { exit $LastExitCode }
-    - name: Upload Binaries
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Windows Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download macOS Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Linux Pass 1
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-1-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build UET Pass 2
+        shell: pwsh
+        run: |
+          dotnet `
+            msbuild `
+            -restore `
+            -t:Publish `
+            -p:RuntimeIdentifier=linux-x64 `
+            -p:Configuration=Release `
+            -p:EmbeddingCrossPlatform=true `
+            -p:UetSkipNuGetPackaging=true `
+            "-p:BaseUetVersion=${env:UET_PACKAGE_VERSION}" `
+            "-p:PackageVersion=${env:UET_PACKAGE_VERSION}" `
+            UET/uet/uet.csproj
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+          # Ensure the thing we built will actually run...
+          ./UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet --help
+          if ($LastExitCode -ne 0) { exit $LastExitCode }
+      - name: Upload Binaries
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   test-schema-generate:
     name: "Test Schema Generation"
     runs-on: windows-latest
@@ -653,26 +653,26 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Download Windows Pass 2
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download package.version
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: timestamp
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Test Schema Generation
-      shell: pwsh
-      run: |
-        UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal generate-json-schema `
-          --output-path test-schema.json
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download Windows Pass 2
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download package.version
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: timestamp
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Test Schema Generation
+        shell: pwsh
+        run: |
+          UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal generate-json-schema `
+            --output-path test-schema.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   cf-linux-tests:
     name: "Test Cloud Framework"
@@ -693,44 +693,44 @@ jobs:
         ports:
           - 9001:9001
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install .NET SDK
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Build and Test Cloud Framework
-      shell: pwsh
-      env:
-        IS_RUNNING_UNDER_CI: "true"
-        REDIS_SERVER: "redis:6379"
-        PUBSUB_SERVER: "pubsub:9000"
-        DATASTORE_SERVER: "datastore:9001"
-      run: |
-        foreach ($Item in (Get-ChildItem UET -Filter Redpoint.CloudFramework.Tests)) {
-          if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
-            dotnet build -c Release "$($Item.FullName)/$($Item.Name).csproj"
-            if ($LastExitCode -ne 0) {
-              Write-Host "dotnet build ($($Item.FullName)/$($Item.Name).csproj) failed with exit code $LastExitCode"
-              exit $LastExitCode 
-            }
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install .NET SDK
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Build and Test Cloud Framework
+        shell: pwsh
+        env:
+          IS_RUNNING_UNDER_CI: "true"
+          REDIS_SERVER: "redis:6379"
+          PUBSUB_SERVER: "pubsub:9000"
+          DATASTORE_SERVER: "datastore:9001"
+        run: |
+          foreach ($Item in (Get-ChildItem UET -Filter Redpoint.CloudFramework.Tests)) {
+            if (Test-Path "$($Item.FullName)/$($Item.Name).csproj") {
+              dotnet build -c Release "$($Item.FullName)/$($Item.Name).csproj"
+              if ($LastExitCode -ne 0) {
+                Write-Host "dotnet build ($($Item.FullName)/$($Item.Name).csproj) failed with exit code $LastExitCode"
+                exit $LastExitCode 
+              }
 
-            Write-Host "============ STARTING: $($Item.Name) ============"
-            dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
-            if ($LastExitCode -ne 0) {
-              Write-Host "============ FAILED:   $($Item.Name) ============"
-              exit $LastExitCode
+              Write-Host "============ STARTING: $($Item.Name) ============"
+              dotnet test --logger:"console" --logger:"trx;LogFileName=$($Item.Name).test-result.trx" --results-directory "$((Get-Location).Path)/TestResults" "$($Item.FullName)/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/$($Item.Name).dll"
+              if ($LastExitCode -ne 0) {
+                Write-Host "============ FAILED:   $($Item.Name) ============"
+                exit $LastExitCode
+              }
+              Write-Host "============ PASSED:   $($Item.Name) ============"
             }
-            Write-Host "============ PASSED:   $($Item.Name) ============"
           }
-        }
-    - name: Upload Test Results
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: test-results-cf
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Upload Test Results
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: test-results-cf
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
 
   package-helm:
     name: "Package Helm Charts for RKM"
@@ -740,30 +740,30 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Package Helm Charts
-      shell: pwsh
-      run: |
-        cd UET/Lib/Helm
-        helm package rkm --version "${env:UET_PACKAGE_VERSION}" --app-version "${env:UET_PACKAGE_VERSION}"
-        if ($LastExitCode -ne 0) {
-          Write-Host "helm package rkm failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-        helm package rkm-crds --version "${env:UET_PACKAGE_VERSION}" --app-version "${env:UET_PACKAGE_VERSION}"
-        if ($LastExitCode -ne 0) {
-          Write-Host "helm package rkm-crds failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-    - name: Upload Helm Charts
-      uses: ./.github/actions/upload-artifact
-      with:
-        UET_ARTIFACT_NAME: helm-chart
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Package Helm Charts
+        shell: pwsh
+        run: |
+          cd UET/Lib/Helm
+          helm package rkm --version "${env:UET_PACKAGE_VERSION}" --app-version "${env:UET_PACKAGE_VERSION}"
+          if ($LastExitCode -ne 0) {
+            Write-Host "helm package rkm failed with exit code $LastExitCode"
+            exit $LastExitCode 
+          }
+          helm package rkm-crds --version "${env:UET_PACKAGE_VERSION}" --app-version "${env:UET_PACKAGE_VERSION}"
+          if ($LastExitCode -ne 0) {
+            Write-Host "helm package rkm-crds failed with exit code $LastExitCode"
+            exit $LastExitCode 
+          }
+      - name: Upload Helm Charts
+        uses: ./.github/actions/upload-artifact
+        with:
+          UET_ARTIFACT_NAME: helm-chart
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+
   # Publish steps below
 
   publish-helm:
@@ -779,47 +779,47 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Check if Latest
-      id: check-if-latest
-      shell: bash
-      run: |
-        if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
-          echo "This is not the latest commit on main; skipping publish."
-          echo "skip=true" >> $GITHUB_OUTPUT
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-        fi
-        exit 0
-    - name: Download Helm Chart
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: helm-chart
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Publish Helm Chart
-      if: steps.check-if-latest.outputs.skip != 'true'
-      shell: pwsh
-      run: |
-        cd UET/Lib/Helm
-        helm registry login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
-        if ($LastExitCode -ne 0) {
-          Write-Host "helm registry login failed with exit code $LastExitCode"
-          exit $LastExitCode
-        }
-        helm push rkm-crds-*.tgz oci://ghcr.io/redpointgames/uet
-        if ($LastExitCode -ne 0) {
-          Write-Host "helm push failed with exit code $LastExitCode"
-          exit $LastExitCode
-        }
-        helm push rkm-components-*.tgz oci://ghcr.io/redpointgames/uet
-        if ($LastExitCode -ne 0) {
-          Write-Host "helm push failed with exit code $LastExitCode"
-          exit $LastExitCode
-        }
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Latest
+        id: check-if-latest
+        shell: bash
+        run: |
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            echo "This is not the latest commit on main; skipping publish."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+          exit 0
+      - name: Download Helm Chart
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: helm-chart
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Publish Helm Chart
+        if: steps.check-if-latest.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          cd UET/Lib/Helm
+          helm registry login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+          if ($LastExitCode -ne 0) {
+            Write-Host "helm registry login failed with exit code $LastExitCode"
+            exit $LastExitCode
+          }
+          helm push rkm-crds-*.tgz oci://ghcr.io/redpointgames/uet
+          if ($LastExitCode -ne 0) {
+            Write-Host "helm push failed with exit code $LastExitCode"
+            exit $LastExitCode
+          }
+          helm push rkm-components-*.tgz oci://ghcr.io/redpointgames/uet
+          if ($LastExitCode -ne 0) {
+            Write-Host "helm push failed with exit code $LastExitCode"
+            exit $LastExitCode
+          }
 
   publish-nuget:
     name: "Publish to NuGet"
@@ -845,50 +845,50 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Check if Latest
-      id: check-if-latest
-      shell: bash
-      run: |
-        if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
-          echo "This is not the latest commit on main; skipping publish."
-          echo "skip=true" >> $GITHUB_OUTPUT
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-        fi
-        exit 0
-    - name: Install .NET SDK
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/dotnet-sdk
-      with:
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download NuGet Packages
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: libs-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Publish Packages
-      if: steps.check-if-latest.outputs.skip != 'true'
-      shell: pwsh
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-      run: |
-        dotnet `
-          nuget `
-          push `
-          --source https://api.nuget.org/v3/index.json `
-          --skip-duplicate `
-          --api-key $env:NUGET_API_KEY `
-          (Get-ChildItem -Recurse -Filter "*.${env:UET_PACKAGE_VERSION}.nupkg" | % { $_.FullName })
-        if ($LastExitCode -ne 0) {
-          Write-Host "dotnet push failed with exit code $LastExitCode"
-          exit $LastExitCode 
-        }
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Latest
+        id: check-if-latest
+        shell: bash
+        run: |
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            echo "This is not the latest commit on main; skipping publish."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+          exit 0
+      - name: Install .NET SDK
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/dotnet-sdk
+        with:
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download NuGet Packages
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: libs-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Publish Packages
+        if: steps.check-if-latest.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet `
+            nuget `
+            push `
+            --source https://api.nuget.org/v3/index.json `
+            --skip-duplicate `
+            --api-key $env:NUGET_API_KEY `
+            (Get-ChildItem -Recurse -Filter "*.${env:UET_PACKAGE_VERSION}.nupkg" | % { $_.FullName })
+          if ($LastExitCode -ne 0) {
+            Write-Host "dotnet push failed with exit code $LastExitCode"
+            exit $LastExitCode 
+          }
+
   publish-github:
     name: "Publish to GitHub"
     runs-on: windows-latest
@@ -914,94 +914,98 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Check if Latest
-      id: check-if-latest
-      shell: bash
-      run: |
-        if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
-          echo "This is not the latest commit on main; skipping publish."
-          echo "skip=true" >> $GITHUB_OUTPUT
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-        fi
-        exit 0
-    - name: Download Windows UEFS
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: uefs-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Windows Shim
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: shim-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Windows Pass 2
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download macOS UEFS
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: uefs-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download macOS Shim
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: shim-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download macOS Pass 2
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-mac
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Linux Shim
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: shim-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Linux Pass 2
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download package.version
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: timestamp
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Publish to GitHub
-      if: steps.check-if-latest.outputs.skip != 'true'
-      shell: pwsh
-      env:
-        UET_GITHUB_RELEASES_PAT: ${{ secrets.UET_GITHUB_RELEASES_PAT }}
-      run: |
-        UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal create-github-release `
-          --version ${env:UET_PACKAGE_VERSION} `
-          --file "uet.exe=UET for Windows=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
-          --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs-daemon.exe" `
-          --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
-          --file "uet=UET for macOS=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
-          --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon" `
-          --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
-          --file "uet.linux=UET for Linux=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
-          --file "uet.shim.linux=UET Shim for Linux=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
-          --file "package.version=Version File=package.version"
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-  
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Latest
+        id: check-if-latest
+        shell: bash
+        run: |
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            echo "This is not the latest commit on main; skipping publish."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+          exit 0
+      - name: Download Windows UEFS
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: uefs-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Windows Shim
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: shim-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Windows Pass 2
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download macOS UEFS
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: uefs-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download macOS Shim
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: shim-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download macOS Pass 2
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-mac
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Linux Shim
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: shim-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Linux Pass 2
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download package.version
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: timestamp
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Publish to GitHub
+        if: steps.check-if-latest.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          UET_GITHUB_RELEASES_PAT: ${{ secrets.UET_GITHUB_RELEASES_PAT }}
+          UET_R2_ACCESS_KEY_ID: ${{ secrets.UET_R2_ACCESS_KEY_ID }}
+          UET_R2_ACCOUNT_ID: ${{ secrets.UET_R2_ACCOUNT_ID }}
+          UET_R2_BUCKET_NAME: ${{ secrets.UET_R2_BUCKET_NAME }}
+          UET_R2_SECRET_ACCESS_KEY: ${{ secrets.UET_R2_SECRET_ACCESS_KEY }}
+        run: |
+          UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe internal create-github-release `
+            --version ${env:UET_PACKAGE_VERSION} `
+            --file "uet.exe=UET for Windows=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
+            --file "uefs-daemon.exe=UEFS Daemon for Windows=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uefs-daemon.exe" `
+            --file "uet.shim.exe=UET Shim for Windows=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/win-x64/publish/uet.exe" `
+            --file "uet=UET for macOS=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
+            --file "uefs-daemon=UEFS Daemon for macOS=UET/Redpoint.Uefs.Daemon/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uefs-daemon" `
+            --file "uet.shim=UET Shim for macOS=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/osx-arm64/publish/uet" `
+            --file "uet.linux=UET for Linux=UET/uet/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
+            --file "uet.shim.linux=UET Shim for Linux=UET/uet.shim/bin/Release/${{ env.UET_FRAMEWORK_TARGET }}/linux-x64/publish/uet" `
+            --file "package.version=Version File=package.version"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
   publish-uefs-container:
     name: "Publish UEFS Container"
     runs-on: ubuntu-latest
@@ -1031,41 +1035,41 @@ jobs:
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Check if Latest
-      id: check-if-latest
-      shell: bash
-      run: |
-        if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
-          echo "This is not the latest commit on main; skipping publish."
-          echo "skip=true" >> $GITHUB_OUTPUT
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-        fi
-        exit 0
-    - name: Download Windows UEFS
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: uefs-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Log in to the Container registry
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build UEFS Container
-      if: steps.check-if-latest.outputs.skip != 'true'
-      shell: pwsh
-      run: |
-        docker buildx create --name img-builder --use --platform windows/amd64
-        docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
-        docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Latest
+        id: check-if-latest
+        shell: bash
+        run: |
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            echo "This is not the latest commit on main; skipping publish."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+          exit 0
+      - name: Download Windows UEFS
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: uefs-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Log in to the Container registry
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build UEFS Container
+        if: steps.check-if-latest.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          docker buildx create --name img-builder --use --platform windows/amd64
+          docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:${env:UET_PACKAGE_VERSION}" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
+          docker buildx build --platform windows/amd64 --output=type=registry -f UET/Lib/Uefs/Kubernetes/Dockerfile -t "ghcr.io/redpointgames/uet/uefs:latest" --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} .
 
   publish-uet-containers:
     name: "Publish UET Containers"
@@ -1094,104 +1098,112 @@ jobs:
       - cf-linux-tests
     strategy:
       matrix:
-        variant: [linux, linux-wine, linux-pxeboot-server, windows-ltsc2022, windows-ltsc2025, windows-hostprocess]
+        variant:
+          [
+            linux,
+            linux-wine,
+            linux-pxeboot-server,
+            windows-ltsc2022,
+            windows-ltsc2025,
+            windows-hostprocess,
+          ]
     env:
       UET_PACKAGE_VERSION: ${{ needs.timestamp.outputs.version }}
       UET_CONTAINER_VARIANT: ${{ matrix.variant }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Check if Latest
-      id: check-if-latest
-      shell: bash
-      run: |
-        if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
-          echo "This is not the latest commit on main; skipping publish."
-          echo "skip=true" >> $GITHUB_OUTPUT
-        else
-          echo "skip=false" >> $GITHUB_OUTPUT
-        fi
-        exit 0
-    - name: Set up Docker Buildx
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: docker/setup-buildx-action@v3
-      with:
-        driver-opts: image=moby/buildkit:v0.11.0
-    - name: Download Linux Pass 2
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-linux
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Download Windows Pass 2
-      if: steps.check-if-latest.outputs.skip != 'true'
-      uses: ./.github/actions/download-artifact
-      with:
-        UET_ARTIFACT_NAME: pass-2-win
-        UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
-    - name: Log in to the Container registry
-      if: steps.check-if-latest.outputs.skip != 'true' && github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
-      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build/Publish UET Container
-      if: steps.check-if-latest.outputs.skip != 'true'
-      run: |
-        TAG_SUFFIX=""
-        PLATFORM="linux/amd64"
-        if [ "$UET_CONTAINER_VARIANT" == "linux-wine" ]; then
-          TAG_SUFFIX="-wine"
-        fi
-        if [ "$UET_CONTAINER_VARIANT" == "linux-pxeboot-server" ]; then
-          TAG_SUFFIX="-pxeboot-server"
-        fi
-        if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2022" ]; then
-          TAG_SUFFIX="-ltsc2022"
-          PLATFORM="windows/amd64"
-        fi
-        if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2025" ]; then
-          TAG_SUFFIX="-ltsc2025"
-          PLATFORM="windows/amd64"
-        fi
-        if [ "$UET_CONTAINER_VARIANT" == "windows-hostprocess" ]; then
-          TAG_SUFFIX="-hostprocess"
-          PLATFORM="windows/amd64"
-        fi
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if Latest
+        id: check-if-latest
+        shell: bash
+        run: |
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            echo "This is not the latest commit on main; skipping publish."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+          exit 0
+      - name: Set up Docker Buildx
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:v0.11.0
+      - name: Download Linux Pass 2
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-linux
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Download Windows Pass 2
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: ./.github/actions/download-artifact
+        with:
+          UET_ARTIFACT_NAME: pass-2-win
+          UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: Log in to the Container registry
+        if: steps.check-if-latest.outputs.skip != 'true' && github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build/Publish UET Container
+        if: steps.check-if-latest.outputs.skip != 'true'
+        run: |
+          TAG_SUFFIX=""
+          PLATFORM="linux/amd64"
+          if [ "$UET_CONTAINER_VARIANT" == "linux-wine" ]; then
+            TAG_SUFFIX="-wine"
+          fi
+          if [ "$UET_CONTAINER_VARIANT" == "linux-pxeboot-server" ]; then
+            TAG_SUFFIX="-pxeboot-server"
+          fi
+          if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2022" ]; then
+            TAG_SUFFIX="-ltsc2022"
+            PLATFORM="windows/amd64"
+          fi
+          if [ "$UET_CONTAINER_VARIANT" == "windows-ltsc2025" ]; then
+            TAG_SUFFIX="-ltsc2025"
+            PLATFORM="windows/amd64"
+          fi
+          if [ "$UET_CONTAINER_VARIANT" == "windows-hostprocess" ]; then
+            TAG_SUFFIX="-hostprocess"
+            PLATFORM="windows/amd64"
+          fi
 
-        OUTPUT_TYPE="image"
-        if [ "$GITHUB_REF" == "refs/heads/main" ] && [ "$GITHUB_REPOSITORY" == "RedpointGames/uet" ]; then
-          OUTPUT_TYPE="registry"
-        fi
+          OUTPUT_TYPE="image"
+          if [ "$GITHUB_REF" == "refs/heads/main" ] && [ "$GITHUB_REPOSITORY" == "RedpointGames/uet" ]; then
+            OUTPUT_TYPE="registry"
+          fi
 
-        echo "Tag suffix: $TAG_SUFFIX"
-        echo "Platform: $PLATFORM"
-        echo "GitHub ref: $GITHUB_REF"
-        echo "GitHub repository: $GITHUB_REPOSITORY"
-        echo "Output type: $OUTPUT_TYPE"
+          echo "Tag suffix: $TAG_SUFFIX"
+          echo "Platform: $PLATFORM"
+          echo "GitHub ref: $GITHUB_REF"
+          echo "GitHub repository: $GITHUB_REPOSITORY"
+          echo "Output type: $OUTPUT_TYPE"
 
-        docker \
-          buildx \
-          build \
-          --platform $PLATFORM \
-          --output=type=$OUTPUT_TYPE \
-          --pull \
-          -t "ghcr.io/redpointgames/uet/uet:$UET_PACKAGE_VERSION$TAG_SUFFIX" \
-          --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
-          --build-arg UET_VERSION=$UET_PACKAGE_VERSION \
-          -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
-          .
-        docker \
-          buildx \
-          build \
-          --platform $PLATFORM \
-          --output=type=$OUTPUT_TYPE \
-          --pull \
-          -t "ghcr.io/redpointgames/uet/uet:latest$TAG_SUFFIX" \
-          --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
-          --build-arg UET_VERSION=$UET_PACKAGE_VERSION \
-          -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
-          .
+          docker \
+            buildx \
+            build \
+            --platform $PLATFORM \
+            --output=type=$OUTPUT_TYPE \
+            --pull \
+            -t "ghcr.io/redpointgames/uet/uet:$UET_PACKAGE_VERSION$TAG_SUFFIX" \
+            --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
+            --build-arg UET_VERSION=$UET_PACKAGE_VERSION \
+            -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
+            .
+          docker \
+            buildx \
+            build \
+            --platform $PLATFORM \
+            --output=type=$OUTPUT_TYPE \
+            --pull \
+            -t "ghcr.io/redpointgames/uet/uet:latest$TAG_SUFFIX" \
+            --build-arg UET_TARGET_FRAMEWORK=${{ env.UET_FRAMEWORK_TARGET }} \
+            --build-arg UET_VERSION=$UET_PACKAGE_VERSION \
+            -f UET/Lib/Container/$UET_CONTAINER_VARIANT.Dockerfile \
+            .
