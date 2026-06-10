@@ -12,7 +12,6 @@
         Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
-            BuildConfigPluginDistribution buildConfigDistribution,
-            bool filterHostToCurrentPlatformOnly);
+            BuildConfigPluginDistribution buildConfigDistribution);
     }
 }

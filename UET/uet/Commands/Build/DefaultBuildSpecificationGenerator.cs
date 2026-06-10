@@ -636,6 +636,7 @@
 
                     // General options
                     { "IsUnrealEngine5", "true" },
+                    { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Clean options
                     { "CleanDirectories", string.Join(";", cleanDirectories) },
@@ -864,6 +865,7 @@
 
                     // General options
                     { "IsUnrealEngine5", "true" },
+                    { "Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) },
 
                     // Clean options
                     { "CleanDirectories", string.Empty },

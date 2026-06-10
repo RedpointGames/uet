@@ -169,8 +169,7 @@
                     await _pluginBuild.WriteBuildGraphNodesAsync(
                         emitContext,
                         writer,
-                        pluginDistribution,
-                        filterHostToCurrentPlatformOnly);
+                        pluginDistribution);
 
                     if (pluginDistribution.Tests != null && executeTests != null)
                     {

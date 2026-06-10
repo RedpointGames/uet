@@ -59,11 +59,16 @@
 
             foreach (var projectPackage in castedSettings)
             {
+                if (!context.CanHostPlatformBeUsed(projectPackage.settings.HostPlatform))
+                {
+                    continue;
+                }
+
                 // Figure out what binaries we need to make the plugin to run the test.
                 var inputBinaries = new List<string>
                 {
-                    $"#EditorBinaries_{projectPackage.settings.HostPlatform}",
-                    $"#GameBinaries_$(EnginePrefix)Game_{projectPackage.settings.TargetPlatform}_Development",
+                    $"#Plugin_Binaries_Editor_$(EnginePrefix)Editor_{projectPackage.settings.HostPlatform}_Development",
+                    $"#Plugin_Binaries_Game_$(EnginePrefix)Game_{projectPackage.settings.TargetPlatform}_Development",
                 };
 
                 // Hash the name so we can make safe tags.
@@ -84,7 +89,7 @@
                             { "InputBaseDir", $"$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" },
                             { "InputBinaries", string.Join(';', inputBinaries) },
                             { "OutputDir", $"$(TempPath)/ProjectPackage_{uniqueHash}_Plugin" },
-                            { "OutputTag", $"#ProjectPackage_{uniqueHash}_Plugin" },
+                            { "OutputLooseTag", $"#ProjectPackage_{uniqueHash}_Plugin" },
                         }
                     }).ConfigureAwait(false);
 

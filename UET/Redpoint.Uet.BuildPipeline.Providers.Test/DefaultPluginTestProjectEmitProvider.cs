@@ -56,7 +56,7 @@
                         new PropertyElementProperties
                         {
                             Name = $"{_propertyPrefix}_PluginEditorBinaries_{platform}",
-                            Value = $"#EditorBinaries_{platform}",
+                            Value = $"#Plugin_Binaries_Editor_$(EnginePrefix)Editor_{platform}_Development",
                             // @note: Plugin binaries are only available when not making a Marketplace/Fab package. For
                             // Marketplace/Fab packages, the plugin is compiled as part of the automation project prior to testing.
                             If = $"'$(PackageType)' == 'Generic' and '$(CanBuildEditor{platform})' == 'true'"
@@ -74,7 +74,7 @@
                                 { "InputBaseDir", "$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" },
                                 { "InputBinaries", $"$({_propertyPrefix}_PluginEditorBinaries_{platform})" },
                                 { "OutputDir", $"$(TempPath)/$(PackageFolder)-{platform}" },
-                                { "OutputTag", $"#{_propertyPrefix}_Plugin_{platform}" },
+                                { "OutputLooseTag", $"#{_propertyPrefix}_Plugin_{platform}" },
                             },
                             If = platform == BuildConfigHostPlatform.Mac ? "'$(IsBuildMachine)' == 'true'" : null,
                         }).ConfigureAwait(false);

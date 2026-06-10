@@ -20,18 +20,21 @@
         public async Task WriteBuildGraphNodesAsync(
             IBuildGraphEmitContext context,
             XmlWriter writer,
-            BuildConfigPluginDistribution buildConfigDistribution,
-            bool filterHostToCurrentPlatformOnly)
+            BuildConfigPluginDistribution buildConfigDistribution)
         {
-            var primaryHostPlatform = filterHostToCurrentPlatformOnly
-                ? true switch
-                {
-                    var v when v == OperatingSystem.IsWindows() => "Win64",
-                    var v when v == OperatingSystem.IsMacOS() => "Mac",
-                    var v when v == OperatingSystem.IsLinux() => "Linux",
-                    _ => "Win64",
-                }
-                : "Win64";
+            var primaryHostPlatform = true switch
+            {
+                var v when v == OperatingSystem.IsWindows() => "Win64",
+                var v when v == OperatingSystem.IsMacOS() => "Mac",
+                var v when v == OperatingSystem.IsLinux() => "Linux",
+                _ => "Win64",
+            };
+
+            var editorPlatformList = buildConfigDistribution.Build.Editor?.Platforms?.Select(x => x.ToString()).ToList() ?? [];
+            if (editorPlatformList.Count == 0)
+            {
+                editorPlatformList.Add(primaryHostPlatform);
+            }
 
             await _buildGraphCompileGraphNodesGenerator.WriteBuildGraphNodesToCompileAsync(
                 context,
@@ -48,31 +51,22 @@
                         switch (productionResult.HostPlatform)
                         {
                             case "Win64":
-                                if (filterHostToCurrentPlatformOnly && !OperatingSystem.IsWindows())
+                                if (!context.CanHostPlatformBeUsed(Configuration.BuildConfigHostPlatform.Win64))
                                 {
                                     return "false";
                                 }
                                 else
                                 {
-                                    return "'$(PackageType)' == 'Generic' and '$(TargetType)' != 'Editor'";
+                                    return null;
                                 }
                             case "Mac":
-                                if (filterHostToCurrentPlatformOnly && !OperatingSystem.IsMacOS())
+                                if (!context.CanHostPlatformBeUsed(Configuration.BuildConfigHostPlatform.Mac))
                                 {
                                     return "false";
                                 }
                                 else
                                 {
-                                    return "'$(PackageType)' == 'Generic' and '$(TargetType)' != 'Editor'";
-                                }
-                            case "Linux":
-                                if (filterHostToCurrentPlatformOnly && !OperatingSystem.IsLinux())
-                                {
-                                    return "false";
-                                }
-                                else
-                                {
-                                    return "'$(PackageType)' == 'Generic' and '$(TargetType)' != 'Editor'";
+                                    return null;
                                 }
                             default:
                                 return null;
@@ -101,7 +95,7 @@
                 [
                     new CompilationVector
                     {
-                        Platforms = buildConfigDistribution.Build.Editor?.Platforms?.Select(x => x.ToString()).ToList() ?? [primaryHostPlatform],
+                        Platforms = editorPlatformList,
                         Targets = [new("$(EnginePrefix)Editor", "Editor")],
                         Configurations = ["Development"],
                         Arguments =
@@ -170,7 +164,8 @@
                         { "InputBaseDir", "$(TempPath)/$(HostProjectName)/Plugins/$(ShortPluginName)" },
                         { "InputBinaries", "$(EditorBinaries);$(GameBinaries)" },
                         { "OutputDir", "$(TempPath)/$(PackageFolder)" },
-                        { "OutputTag", "#PackagedZip" },
+                        { "OutputLooseTag", "#PackagedPlugin" },
+                        { "OutputZipTag", "#PackagedZip" },
                         { "ZipName", "$(ProjectRoot)/$(PluginName)-$(Distribution)-$(VersionName).zip" }
                     }
                 });

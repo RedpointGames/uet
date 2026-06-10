@@ -566,12 +566,15 @@
                 },
                 async writer =>
                 {
+                    await writer.WriteCommentAsync("Win64 Unified");
                     await WriteUnifiedCompileAsync(
                         context,
                         writer,
                         compilation,
                         "Win64",
                         vectors);
+
+                    await writer.WriteCommentAsync("Mac Unified");
                     await WriteUnifiedCompileAsync(
                         context,
                         writer,
@@ -591,12 +594,15 @@
                 },
                 async writer =>
                 {
+                    await writer.WriteCommentAsync("Win64 Non-Unified");
                     await WriteNonUnifiedCompileAsync(
                         context,
                         writer,
                         compilation,
                         "Win64",
                         vectors);
+
+                    await writer.WriteCommentAsync("Mac Non-Unified");
                     await WriteNonUnifiedCompileAsync(
                         context,
                         writer,
