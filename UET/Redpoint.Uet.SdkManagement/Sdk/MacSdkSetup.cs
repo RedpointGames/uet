@@ -2,11 +2,14 @@
 {
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Redpoint.Hashing;
     using Redpoint.PackageManagement;
     using Redpoint.ProcessExecution;
     using Redpoint.ProgressMonitor;
     using Redpoint.Uet.SdkManagement.Sdk.VersionNumbers;
+    using System.Globalization;
     using System.Runtime.Versioning;
+    using System.Text;
 
     public class MacSdkSetup : ISdkSetup
     {
@@ -55,7 +58,18 @@
         {
             if (OperatingSystem.IsMacOS())
             {
-                var versionNumber = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+                var resolver = _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath);
+                var xcodeVersion = await resolver.GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+                var portableToolchainInfo = await resolver.GetPortableToolchainVersion(unrealEnginePath, xcodeVersion).ConfigureAwait(false);
+                var versionNumber = xcodeVersion;
+                if (portableToolchainInfo != null)
+                {
+                    versionNumber += '-' + Hash.XxHash64(
+                        portableToolchainInfo.Value.ClangSubdir + "-" + 
+                        portableToolchainInfo.Value.OSSHeadersSubdir + "-" + 
+                        portableToolchainInfo.Value.PortableToolchainVersion,
+                        Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture);
+                }
                 return $"{versionNumber}-iOS";
             }
             else if (OperatingSystem.IsWindows())
@@ -70,7 +84,7 @@
         }
 
         [SupportedOSPlatform("macos")]
-        public async Task InstallXcode(string xcodeVersion, string sdkPackagePath, CancellationToken cancellationToken)
+        public async Task InstallXcode(string xcodeVersion, MacPortableToolchainInfo? portableToolchainInfo, string sdkPackagePath, CancellationToken cancellationToken)
         {
             // Check that the required environment variables have been set.
             var appleXcodeStoragePath = Environment.GetEnvironmentVariable("UET_APPLE_XCODE_STORAGE_PATH");
@@ -231,14 +245,54 @@
             {
                 throw new SdkSetupPackageGenerationFailedException("Xcode was unable to install iOS platform support.");
             }
+
+            // Create AutoSDK directory.
+            if (portableToolchainInfo.HasValue)
+            {
+                var clangBase = Path.GetDirectoryName(Path.GetDirectoryName(portableToolchainInfo.Value.ClangSubdir)!)!;
+
+                var toolchainPath = Path.Combine(sdkPackagePath, "AutoSDK", portableToolchainInfo.Value.PortableToolchainVersion);
+                Directory.CreateDirectory(toolchainPath);
+                Directory.CreateDirectory(Path.Combine(toolchainPath, clangBase));
+                Directory.CreateDirectory(Path.Combine(toolchainPath, portableToolchainInfo.Value.OSSHeadersSubdir, "usr"));
+
+                var links = new Dictionary<string, string>
+                {
+                    {
+                        Path.Combine(toolchainPath, portableToolchainInfo.Value.OSSHeadersSubdir, "usr", "include"),
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "Platforms", "MacOSX.platform", "Developer", "SDKs", "MacOSX.sdk", "usr", "include")
+                    },
+                    {
+                        Path.Combine(toolchainPath, clangBase, "include"),
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "Platforms", "MacOSX.platform", "Developer", "SDKs", "MacOSX.sdk", "usr", "include")
+                    },
+                    {
+                        Path.Combine(toolchainPath, clangBase, "lib"),
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "Toolchains", "XcodeDefault.xctoolchain", "usr", "lib")
+                    },
+                    {
+                        Path.Combine(toolchainPath, clangBase, "bin"),
+                        Path.Combine(sdkPackagePath, "Xcode.app", "Contents", "Developer", "Toolchains", "XcodeDefault.xctoolchain", "usr", "bin")
+                    },
+                };
+
+                foreach (var kv in links)
+                {
+                    Directory.CreateSymbolicLink(
+                        kv.Key,
+                        Path.GetRelativePath(kv.Key, kv.Value).Substring(3));
+                }
+            }
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
         {
             if (OperatingSystem.IsMacOS())
             {
-                var xcodeVersion = await _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath).GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
-                await InstallXcode(xcodeVersion, sdkPackagePath, cancellationToken);
+                var versionResolver = _versionNumberResolver.For<IMacVersionNumbers>(unrealEnginePath);
+                var xcodeVersion = await versionResolver.GetXcodeVersion(unrealEnginePath).ConfigureAwait(false);
+                var portableToolchainVersion = await versionResolver.GetPortableToolchainVersion(unrealEnginePath, xcodeVersion).ConfigureAwait(false);
+                await InstallXcode(xcodeVersion, portableToolchainVersion, sdkPackagePath, cancellationToken);
             }
             else
             {
@@ -248,7 +302,26 @@
 
         public Task<AutoSdkMapping[]> GetAutoSdkMappingsForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
         {
-            return Task.FromResult(Array.Empty<AutoSdkMapping>());
+            if (OperatingSystem.IsMacOS())
+            {
+                return Task.FromResult(new[]
+                {
+                    new AutoSdkMapping
+                    {
+                        RelativePathInsideAutoSdkPath = "Apple",
+                        RelativePathInsideSdkPackagePath = "AutoSDK",
+                    },
+                    new AutoSdkMapping
+                    {
+                        RelativePathInsideAutoSdkPath = "Xcode.app",
+                        RelativePathInsideSdkPackagePath = "Xcode.app",
+                    },
+                });
+            }
+            else
+            {
+                return Task.FromResult(Array.Empty<AutoSdkMapping>());
+            }
         }
 
         public async Task<EnvironmentForSdkUsage> GetRuntimeEnvironmentForSdkPackage(string sdkPackagePath, CancellationToken cancellationToken)
@@ -277,7 +350,7 @@
                 // Emit the environment variable required to use Xcode from the package directory.
                 var envs = new Dictionary<string, string>
                 {
-                    { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") }
+                    { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") },
                 };
                 var currentPath = Environment.GetEnvironmentVariable("PATH");
                 if (currentPath != null)

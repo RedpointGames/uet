@@ -426,17 +426,24 @@
                         }
                         else if (OperatingSystem.IsMacOS())
                         {
-                            var solutionPath = Path.Combine(workingDirectory, outputFilenameWithoutExtension + ".xcworkspace");
-                            if (File.Exists(solutionPath))
+                            var opened = false;
+                            foreach (var candidateFilename in new[] { outputFilenameWithoutExtension, outputFilenameWithoutExtension + " (Mac)" })
                             {
-                                _logger.LogInformation($"Opening generated project file due to --open|-o being passed: {solutionPath}");
-                                Process.Start(new ProcessStartInfo
+                                var solutionPath = Path.Combine(workingDirectory, candidateFilename + ".xcworkspace");
+                                _logger.LogInformation($"Checking for project: {solutionPath}");
+                                if (File.Exists(solutionPath) || Directory.Exists(solutionPath))
                                 {
-                                    UseShellExecute = true,
-                                    FileName = solutionPath,
-                                });
+                                    _logger.LogInformation($"Opening generated project file due to --open|-o being passed: {solutionPath}");
+                                    Process.Start(new ProcessStartInfo
+                                    {
+                                        UseShellExecute = true,
+                                        FileName = solutionPath,
+                                    });
+                                    opened = true;
+                                    break;
+                                }
                             }
-                            else
+                            if (!opened)
                             {
                                 _logger.LogWarning("Unable to automatically open generated project file because it doesn't exist. This can happen if you've configured Unreal Engine to generate project files for something other than Xcode.");
                             }
