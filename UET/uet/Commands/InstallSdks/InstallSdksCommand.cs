@@ -79,9 +79,9 @@
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
-                if (!OperatingSystem.IsWindows())
+                if (OperatingSystem.IsLinux())
                 {
-                    _logger.LogError("This command is not currently supported on non-Windows platforms.");
+                    _logger.LogError("This command is not currently supported on Linux.");
                     return 1;
                 }
 
@@ -103,7 +103,9 @@
                     _logger.LogInformation($" - {platform}");
                 }
 
-                var packagePath = UetPaths.UetDefaultWindowsSdkStoragePath;
+                var packagePath = OperatingSystem.IsWindows()
+                    ? UetPaths.UetDefaultWindowsSdkStoragePath
+                    : UetPaths.UetDefaultMacSdkStoragePath;
                 Directory.CreateDirectory(packagePath);
 
                 var envVars = await _localSdkManager.SetupEnvironmentForSdkSetups(
@@ -112,21 +114,24 @@
                     sdkSetups.ToHashSet(),
                     context.GetCancellationToken()).ConfigureAwait(false);
 
-                if (!context.ParseResult.GetValueForOption(_options.SkipPermissionUpdate))
+                if (OperatingSystem.IsWindows())
                 {
-                    _logger.LogInformation("Updating permissions on SDK directories so all users have read/write access...");
-                    await _worldPermissionApplier.GrantEveryonePermissionAsync(packagePath, context.GetCancellationToken()).ConfigureAwait(false);
-                }
-
-                _logger.LogInformation("Setting environment variables to user scope...");
-                foreach (var kv in envVars)
-                {
-                    _logger.LogInformation($"  {kv.Key} = {kv.Value}");
-                    if (Environment.GetEnvironmentVariable(kv.Key, EnvironmentVariableTarget.User) != kv.Value)
+                    if (!context.ParseResult.GetValueForOption(_options.SkipPermissionUpdate))
                     {
-                        Environment.SetEnvironmentVariable(kv.Key, kv.Value, EnvironmentVariableTarget.User);
+                        _logger.LogInformation("Updating permissions on SDK directories so all users have read/write access...");
+                        await _worldPermissionApplier.GrantEveryonePermissionAsync(packagePath, context.GetCancellationToken()).ConfigureAwait(false);
                     }
-                    context.GetCancellationToken().ThrowIfCancellationRequested();
+
+                    _logger.LogInformation("Setting environment variables to user scope...");
+                    foreach (var kv in envVars)
+                    {
+                        _logger.LogInformation($"  {kv.Key} = {kv.Value}");
+                        if (Environment.GetEnvironmentVariable(kv.Key, EnvironmentVariableTarget.User) != kv.Value)
+                        {
+                            Environment.SetEnvironmentVariable(kv.Key, kv.Value, EnvironmentVariableTarget.User);
+                        }
+                        context.GetCancellationToken().ThrowIfCancellationRequested();
+                    }
                 }
 
                 return 0;

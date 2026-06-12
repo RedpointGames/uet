@@ -47,6 +47,11 @@
             return await ParseXcodeVersion(applePlatformSdk).ConfigureAwait(false);
         }
 
+        public Task<MacPortableToolchainInfo?> GetPortableToolchainVersion(string unrealEnginePath, string xcodeVersion)
+        {
+            return Task.FromResult<MacPortableToolchainInfo?>(null);
+        }
+
         public async Task<string> GetITunesVersion(string unrealEnginePath)
         {
             return string.Empty;
