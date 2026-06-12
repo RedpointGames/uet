@@ -2997,12 +2997,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"moment-timezone@npm:^0.5.48":
-  version: 0.5.48
-  resolution: "moment-timezone@npm:0.5.48"
+"moment-timezone@npm:^0.6.2":
+  version: 0.6.2
+  resolution: "moment-timezone@npm:0.6.2"
   dependencies:
     moment: "npm:^2.29.4"
-  checksum: 10c0/ab14ec9d94bc33f29ac18e5417b7f8aca0b17130b952c5cc9697b8fea839e5ece9313af5fd3c9703a05db472b1560ddbfc7ad2aa24aac9afd047d6da6c3c6033
+  checksum: 10c0/dbdca171625edaa73e55e4db152b9d3fe14035766e86c20a4bf881570418ecdbc50cc2d3a84101967b229a5ac0630031b4c3a49b0ba8447a9cd458d76e383cd5
   languageName: node
   linkType: hard
 
@@ -3041,7 +3041,7 @@ __metadata:
     globals: "npm:^16.5.0"
     luxon: "npm:^3.7.2"
     moment: "npm:^2.30.1"
-    moment-timezone: "npm:^0.5.48"
+    moment-timezone: "npm:^0.6.2"
     react: "npm:^18"
     react-dom: "npm:^19"
     react-router: "npm:^7.15.1"
