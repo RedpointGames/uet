@@ -33,6 +33,7 @@
 	<ItemGroup>
 		<PackageReference Include="AWSSDK.S3" />
 		<PackageReference Include="KubernetesClient.Aot" />
+		<PackageReference Include="LoreVcs" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
 		<PackageReference Include="Microsoft.Extensions.Logging" />
 		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />

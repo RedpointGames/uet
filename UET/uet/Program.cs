@@ -25,6 +25,7 @@ using UET.Commands.Generate;
 using UET.Commands.InstallSdks;
 using UET.Commands.Internal;
 using UET.Commands.List;
+using UET.Commands.Lore;
 using UET.Commands.New;
 using UET.Commands.Storage;
 using UET.Commands.Test;
@@ -73,6 +74,7 @@ var rootCommand = CommandLineBuilder.NewBuilder(globalCommandContext)
     .AddCommand<InstallSdksCommand>()
     .AddCommand<UpgradeCommand>()
     .AddCommand<StorageCommand>()
+    .AddCommand<LoreCommand>()
     .AddCommand<UefsCommand>()
     .AddCommand<TransferCommand>()
     .AddCommand<AppleCertCommand>()
