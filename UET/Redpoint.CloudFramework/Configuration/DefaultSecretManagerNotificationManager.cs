@@ -174,7 +174,13 @@
                 {
                     try
                     {
-                        await value.Subscriber.StopAsync(value.CancellationTokenSource.Token).ConfigureAwait(false);
+                        await value.Subscriber.StopAsync(
+                            new SubscriberClient.ShutdownOptions
+                            {
+                                Mode = SubscriberClient.ShutdownMode.NackImmediately,
+                                Timeout = TimeSpan.Zero,
+                            },
+                            value.CancellationTokenSource.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
