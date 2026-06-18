@@ -219,6 +219,8 @@
 
             public async Task<int> ExecuteAsync(ICommandInvocationContext context)
             {
+                var engineMajorVersions = new[] { 5, 6 };
+
                 var p4Client = context.ParseResult.GetValueForOption(_options.P4Client) ?? string.Empty;
                 var p4Tickets = context.ParseResult.GetValueForOption(_options.P4Tickets) ?? string.Empty;
                 var p4Config = context.ParseResult.GetValueForOption(_options.P4Config) ?? string.Empty;
@@ -621,86 +623,132 @@
                     }
                 }
 
-                _logger.LogInformation("Fetching all existing branches from Git that start with '5.'...");
-                RemoveIndexLock(gitWorkspacePath);
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
-                    {
-                        FilePath = git,
-                        Arguments = ["fetch", "origin", "+refs/heads/5.*:refs/remotes/origin/5.*"],
-                        WorkingDirectory = gitWorkspacePath.FullName,
-                        EnvironmentVariables = gitEnvs,
-                    },
-                    CaptureSpecification.Passthrough,
-                    context.GetCancellationToken());
-                if (exitCode != 0)
+                foreach (var engineMajorVersion in engineMajorVersions)
                 {
-                    _logger.LogError("Failed to fetch Git branches.");
-                    return exitCode;
-                }
-
-                _logger.LogInformation("Iterating through folders in Perforce that start with 'Release-5.'...");
-                foreach (var releaseFolder in new DirectoryInfo(Path.Combine(p4WorkspacePath.FullName, "UE5")).GetDirectories("Release-5.*"))
-                {
-                    var releaseVersion = releaseFolder.Name.Substring("Release-".Length);
-
-                    _logger.LogInformation($"Checking if Git branch 'origin/{releaseVersion}' exists...");
+                    _logger.LogInformation($"Fetching all existing branches from Git that start with '{engineMajorVersion}.'...");
                     RemoveIndexLock(gitWorkspacePath);
-                    var revision = new StringBuilder();
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
                             FilePath = git,
-                            Arguments = ["rev-parse", "--verify", $"origin/{releaseVersion}"],
+                            Arguments = ["fetch", "origin", $"+refs/heads/{engineMajorVersion}.*:refs/remotes/origin/{engineMajorVersion}.*"],
                             WorkingDirectory = gitWorkspacePath.FullName,
                             EnvironmentVariables = gitEnvs,
                         },
-                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(revision),
+                        CaptureSpecification.Passthrough,
                         context.GetCancellationToken());
-
-                    var isNew = exitCode != 0;
-
-                    _logger.LogInformation($"Preparing branch '{releaseVersion}'...");
-                    if (isNew)
+                    if (exitCode != 0)
                     {
-                        var baseVersionNumber = new EngineVersionNumber(releaseVersion);
-                        baseVersionNumber.Minus(1);
+                        _logger.LogError("Failed to fetch Git branches.");
+                        return exitCode;
+                    }
+                }
 
-                        // Try to find a previous branch that we can start this branch at, so that merging to a new engine version will let Git handle the merge properly.
-                        string? baseGitBranch = null;
-                        while (baseVersionNumber.Major >= 5)
-                        {
-                            var baseRevision = new StringBuilder();
-                            exitCode = await _processExecutor.ExecuteAsync(
-                                new ProcessSpecification
-                                {
-                                    FilePath = git,
-                                    Arguments = ["rev-parse", "--verify", $"origin/{baseVersionNumber.Major}.{baseVersionNumber.Minor}"],
-                                    WorkingDirectory = gitWorkspacePath.FullName,
-                                    EnvironmentVariables = gitEnvs,
-                                },
-                                CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(baseRevision),
-                                context.GetCancellationToken());
-                            if (exitCode == 0)
+                foreach (var engineMajorVersion in engineMajorVersions)
+                {
+                    _logger.LogInformation($"Iterating through folders in Perforce that start with 'Release-{engineMajorVersion}.'...");
+                    foreach (var releaseFolder in new DirectoryInfo(Path.Combine(p4WorkspacePath.FullName, $"UE{engineMajorVersion}")).GetDirectories($"Release-{engineMajorVersion}.*"))
+                    {
+                        var releaseVersion = releaseFolder.Name.Substring("Release-".Length);
+
+                        _logger.LogInformation($"Checking if Git branch 'origin/{releaseVersion}' exists...");
+                        RemoveIndexLock(gitWorkspacePath);
+                        var revision = new StringBuilder();
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
                             {
-                                baseGitBranch = baseRevision.ToString().Trim();
-                                break;
+                                FilePath = git,
+                                Arguments = ["rev-parse", "--verify", $"origin/{releaseVersion}"],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(revision),
+                            context.GetCancellationToken());
+
+                        var isNew = exitCode != 0;
+
+                        _logger.LogInformation($"Preparing branch '{releaseVersion}'...");
+                        if (isNew)
+                        {
+                            var baseVersionNumber = new EngineVersionNumber(releaseVersion);
+                            baseVersionNumber.Minus(1);
+
+                            // Try to find a previous branch that we can start this branch at, so that merging to a new engine version will let Git handle the merge properly.
+                            string? baseGitBranch = null;
+                            while (baseVersionNumber.Major >= 5 /* intentional, to allow 6.0 to branch from 5.8 */)
+                            {
+                                var baseRevision = new StringBuilder();
+                                exitCode = await _processExecutor.ExecuteAsync(
+                                    new ProcessSpecification
+                                    {
+                                        FilePath = git,
+                                        Arguments = ["rev-parse", "--verify", $"origin/{baseVersionNumber.Major}.{baseVersionNumber.Minor}"],
+                                        WorkingDirectory = gitWorkspacePath.FullName,
+                                        EnvironmentVariables = gitEnvs,
+                                    },
+                                    CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(baseRevision),
+                                    context.GetCancellationToken());
+                                if (exitCode == 0)
+                                {
+                                    baseGitBranch = baseRevision.ToString().Trim();
+                                    break;
+                                }
+                                else
+                                {
+                                    baseVersionNumber.Minus(1);
+                                }
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(baseGitBranch))
+                            {
+                                _logger.LogInformation($"Creating new branch '{releaseVersion}' at revision '{baseGitBranch}'...");
+                                RemoveIndexLock(gitWorkspacePath);
+                                exitCode = await _processExecutor.ExecuteAsync(
+                                    new ProcessSpecification
+                                    {
+                                        FilePath = git,
+                                        Arguments = ["checkout", "-B", releaseVersion, baseGitBranch],
+                                        WorkingDirectory = gitWorkspacePath.FullName,
+                                        EnvironmentVariables = gitEnvs,
+                                    },
+                                    CaptureSpecification.Passthrough,
+                                    context.GetCancellationToken());
+                                if (exitCode != 0)
+                                {
+                                    _logger.LogError($"Failed to create new branch '{releaseVersion}' at revision '{baseGitBranch}'.");
+                                    return exitCode;
+                                }
                             }
                             else
                             {
-                                baseVersionNumber.Minus(1);
+                                _logger.LogInformation($"Creating new branch '{releaseVersion}'...");
+                                RemoveIndexLock(gitWorkspacePath);
+                                exitCode = await _processExecutor.ExecuteAsync(
+                                    new ProcessSpecification
+                                    {
+                                        FilePath = git,
+                                        Arguments = ["checkout", "--orphan", releaseVersion],
+                                        WorkingDirectory = gitWorkspacePath.FullName,
+                                        EnvironmentVariables = gitEnvs,
+                                    },
+                                    CaptureSpecification.Passthrough,
+                                    context.GetCancellationToken());
+                                if (exitCode != 0)
+                                {
+                                    _logger.LogError($"Failed to create new branch '{releaseVersion}'.");
+                                    return exitCode;
+                                }
                             }
                         }
-
-                        if (!string.IsNullOrWhiteSpace(baseGitBranch))
+                        else
                         {
-                            _logger.LogInformation($"Creating new branch '{releaseVersion}' at revision '{baseGitBranch}'...");
+                            _logger.LogInformation($"Git LFS fetch from 'origin/{releaseVersion}'...");
                             RemoveIndexLock(gitWorkspacePath);
                             exitCode = await _processExecutor.ExecuteAsync(
                                 new ProcessSpecification
                                 {
                                     FilePath = git,
-                                    Arguments = ["checkout", "-B", releaseVersion, baseGitBranch],
+                                    Arguments = ["lfs", "fetch", "origin", revision.ToString().Trim()],
                                     WorkingDirectory = gitWorkspacePath.FullName,
                                     EnvironmentVariables = gitEnvs,
                                 },
@@ -708,40 +756,158 @@
                                 context.GetCancellationToken());
                             if (exitCode != 0)
                             {
-                                _logger.LogError($"Failed to create new branch '{releaseVersion}' at revision '{baseGitBranch}'.");
+                                _logger.LogError($"Failed to Git LFS fetch '{releaseVersion}'.");
+                                return exitCode;
+                            }
+
+                            _logger.LogInformation($"Switch HEAD to 'origin/{releaseVersion}'...");
+                            RemoveIndexLock(gitWorkspacePath);
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = ["symbolic-ref", "HEAD", $"refs/remotes/origin/{releaseVersion}"],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Passthrough,
+                                context.GetCancellationToken());
+                            if (exitCode != 0)
+                            {
+                                _logger.LogError($"Failed to switch HEAD to 'origin/{releaseVersion}'.");
+                                return exitCode;
+                            }
+
+                            _logger.LogInformation($"Reset/create branch '{releaseVersion}' to 'origin/{releaseVersion}'...");
+                            RemoveIndexLock(gitWorkspacePath);
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = ["update-ref", $"refs/heads/{releaseVersion}", $"refs/remotes/origin/{releaseVersion}"],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Passthrough,
+                                context.GetCancellationToken());
+                            if (exitCode != 0)
+                            {
+                                _logger.LogError($"Failed to set ref of '{releaseVersion}' to 'origin/{releaseVersion}'.");
+                                return exitCode;
+                            }
+
+                            _logger.LogInformation($"Switch HEAD to '{releaseVersion}'...");
+                            RemoveIndexLock(gitWorkspacePath);
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = git,
+                                    Arguments = ["symbolic-ref", "HEAD", $"refs/heads/{releaseVersion}"],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Passthrough,
+                                context.GetCancellationToken());
+                            if (exitCode != 0)
+                            {
+                                _logger.LogError($"Failed to switch HEAD to 'origin/{releaseVersion}'.");
+                                return exitCode;
+                            }
+                        }
+
+                        void DeleteAllGitModulesAndAttributes()
+                        {
+                            _logger.LogInformation($"Deleting all .gitattributes, .gitmodules and .gitignore files...");
+                            foreach (var file in gitWorkspacePath.EnumerateFiles("*", SearchOption.AllDirectories))
+                            {
+                                if (file.Name == ".gitignore" ||
+                                    file.Name == ".gitmodules" ||
+                                    file.Name == ".gitattributes")
+                                {
+                                    _logger.LogInformation($"  '{file.FullName}'...");
+                                    File.Delete(file.FullName);
+                                }
+                            }
+                        }
+
+                        DeleteAllGitModulesAndAttributes();
+
+                        if (OperatingSystem.IsWindows())
+                        {
+                            _logger.LogInformation($"Using robocopy to mirror everything into Git...");
+                            exitCode = await _processExecutor.ExecuteAsync(
+                                new ProcessSpecification
+                                {
+                                    FilePath = robocopy!,
+                                    Arguments = ["/MIR", releaseFolder.FullName, gitWorkspacePath.FullName, "/XD", ".git", "/XJ", "/NJH", "/ETA", "/MT:128"],
+                                    WorkingDirectory = gitWorkspacePath.FullName,
+                                    EnvironmentVariables = gitEnvs,
+                                },
+                                CaptureSpecification.Sanitized,
+                                context.GetCancellationToken());
+                            if (exitCode > 8)
+                            {
+                                _logger.LogError($"Failed to robocopy.");
                                 return exitCode;
                             }
                         }
                         else
                         {
-                            _logger.LogInformation($"Creating new branch '{releaseVersion}'...");
-                            RemoveIndexLock(gitWorkspacePath);
+                            _logger.LogInformation($"Using rclone to mirror everything into Git...");
                             exitCode = await _processExecutor.ExecuteAsync(
                                 new ProcessSpecification
                                 {
-                                    FilePath = git,
-                                    Arguments = ["checkout", "--orphan", releaseVersion],
+                                    FilePath = rclone!,
+                                    Arguments = [
+                                        "sync",
+                                        "--exclude=/.git/**",
+                                        "--transfers=64",
+                                        "--delete-before",
+                                        "--metadata",
+                                        releaseFolder.FullName,
+                                        gitWorkspacePath.FullName,
+                                    ],
                                     WorkingDirectory = gitWorkspacePath.FullName,
                                     EnvironmentVariables = gitEnvs,
                                 },
-                                CaptureSpecification.Passthrough,
+                                CaptureSpecification.Sanitized,
                                 context.GetCancellationToken());
                             if (exitCode != 0)
                             {
-                                _logger.LogError($"Failed to create new branch '{releaseVersion}'.");
+                                _logger.LogError($"Failed to rsync.");
                                 return exitCode;
                             }
                         }
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Git LFS fetch from 'origin/{releaseVersion}'...");
+
+                        DeleteAllGitModulesAndAttributes();
+
+                        _logger.LogInformation($"Setting .gitattributes...");
+                        File.WriteAllText(
+                            Path.Combine(gitWorkspacePath.FullName, ".gitattributes"),
+                            """
+                            *.dll filter=lfs diff=lfs merge=lfs -text
+                            *.so filter=lfs diff=lfs merge=lfs -text
+                            *.dylib filter=lfs diff=lfs merge=lfs -text
+                            *.pdb filter=lfs diff=lfs merge=lfs -text
+                            *.exe filter=lfs diff=lfs merge=lfs -text
+                            *.uasset filter=lfs diff=lfs merge=lfs -text
+                            *.a filter=lfs diff=lfs merge=lfs -text
+                            *.png filter=lfs diff=lfs merge=lfs -text
+                            *.svg filter=lfs diff=lfs merge=lfs -text
+                            **/Binaries/** filter=lfs diff=lfs merge=lfs -text
+                            **/Content/** filter=lfs diff=lfs merge=lfs -text
+                            **/ThirdParty/** filter=lfs diff=lfs merge=lfs -text
+                            **/Documentation/** filter=lfs diff=lfs merge=lfs -text
+                            Engine/Extras/** filter=lfs diff=lfs merge=lfs -text
+                            """);
+
+                        _logger.LogInformation($"Staging all changes into Git...");
                         RemoveIndexLock(gitWorkspacePath);
                         exitCode = await _processExecutor.ExecuteAsync(
                             new ProcessSpecification
                             {
                                 FilePath = git,
-                                Arguments = ["lfs", "fetch", "origin", revision.ToString().Trim()],
+                                Arguments = ["add", "-A"],
                                 WorkingDirectory = gitWorkspacePath.FullName,
                                 EnvironmentVariables = gitEnvs,
                             },
@@ -749,264 +915,106 @@
                             context.GetCancellationToken());
                         if (exitCode != 0)
                         {
-                            _logger.LogError($"Failed to Git LFS fetch '{releaseVersion}'.");
+                            _logger.LogError($"Failed to stage all changes into Git.");
                             return exitCode;
                         }
 
-                        _logger.LogInformation($"Switch HEAD to 'origin/{releaseVersion}'...");
-                        RemoveIndexLock(gitWorkspacePath);
+                        _logger.LogInformation("Counting the number of deleted files...");
+                        long deletedFileCount = 0;
+                        var gitStatus = new StringBuilder();
                         exitCode = await _processExecutor.ExecuteAsync(
                             new ProcessSpecification
                             {
                                 FilePath = git,
-                                Arguments = ["symbolic-ref", "HEAD", $"refs/remotes/origin/{releaseVersion}"],
+                                Arguments = ["status", "--porcelain"],
                                 WorkingDirectory = gitWorkspacePath.FullName,
                                 EnvironmentVariables = gitEnvs,
                             },
-                            CaptureSpecification.Passthrough,
+                            CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitStatus),
                             context.GetCancellationToken());
                         if (exitCode != 0)
                         {
-                            _logger.LogError($"Failed to switch HEAD to 'origin/{releaseVersion}'.");
+                            _logger.LogError("Failed to run 'git status'.");
                             return exitCode;
                         }
-
-                        _logger.LogInformation($"Reset/create branch '{releaseVersion}' to 'origin/{releaseVersion}'...");
-                        RemoveIndexLock(gitWorkspacePath);
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = git,
-                                Arguments = ["update-ref", $"refs/heads/{releaseVersion}", $"refs/remotes/origin/{releaseVersion}"],
-                                WorkingDirectory = gitWorkspacePath.FullName,
-                                EnvironmentVariables = gitEnvs,
-                            },
-                            CaptureSpecification.Passthrough,
-                            context.GetCancellationToken());
-                        if (exitCode != 0)
+                        foreach (var line in gitStatus.ToString().Replace("\r", "", StringComparison.Ordinal).Split('\n'))
                         {
-                            _logger.LogError($"Failed to set ref of '{releaseVersion}' to 'origin/{releaseVersion}'.");
-                            return exitCode;
-                        }
-
-                        _logger.LogInformation($"Switch HEAD to '{releaseVersion}'...");
-                        RemoveIndexLock(gitWorkspacePath);
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
+                            if (line.StartsWith('D'))
                             {
-                                FilePath = git,
-                                Arguments = ["symbolic-ref", "HEAD", $"refs/heads/{releaseVersion}"],
-                                WorkingDirectory = gitWorkspacePath.FullName,
-                                EnvironmentVariables = gitEnvs,
-                            },
-                            CaptureSpecification.Passthrough,
-                            context.GetCancellationToken());
-                        if (exitCode != 0)
-                        {
-                            _logger.LogError($"Failed to switch HEAD to 'origin/{releaseVersion}'.");
-                            return exitCode;
-                        }
-                    }
-
-                    void DeleteAllGitModulesAndAttributes()
-                    {
-                        _logger.LogInformation($"Deleting all .gitattributes, .gitmodules and .gitignore files...");
-                        foreach (var file in gitWorkspacePath.EnumerateFiles("*", SearchOption.AllDirectories))
-                        {
-                            if (file.Name == ".gitignore" ||
-                                file.Name == ".gitmodules" ||
-                                file.Name == ".gitattributes")
-                            {
-                                _logger.LogInformation($"  '{file.FullName}'...");
-                                File.Delete(file.FullName);
+                                deletedFileCount++;
                             }
                         }
-                    }
-
-                    DeleteAllGitModulesAndAttributes();
-
-                    if (OperatingSystem.IsWindows())
-                    {
-                        _logger.LogInformation($"Using robocopy to mirror everything into Git...");
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = robocopy!,
-                                Arguments = ["/MIR", releaseFolder.FullName, gitWorkspacePath.FullName, "/XD", ".git", "/XJ", "/NJH", "/ETA", "/MT:128"],
-                                WorkingDirectory = gitWorkspacePath.FullName,
-                                EnvironmentVariables = gitEnvs,
-                            },
-                            CaptureSpecification.Sanitized,
-                            context.GetCancellationToken());
-                        if (exitCode > 8)
+                        if (deletedFileCount > 1000)
                         {
-                            _logger.LogError($"Failed to robocopy.");
-                            return exitCode;
+                            _logger.LogError($"Too many deleted files ({deletedFileCount})! This indicates that either Perforce or the file copy deleted more files than expected and would generate a bad commit.");
+                            return 1;
                         }
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Using rclone to mirror everything into Git...");
+
+                        _logger.LogInformation("Getting revision information from Perforce...");
+                        var perforceMessage = new StringBuilder();
                         exitCode = await _processExecutor.ExecuteAsync(
                             new ProcessSpecification
                             {
-                                FilePath = rclone!,
-                                Arguments = [
-                                    "sync",
-                                    "--exclude=/.git/**",
-                                    "--transfers=64",
-                                    "--delete-before",
-                                    "--metadata",
-                                    releaseFolder.FullName,
-                                    gitWorkspacePath.FullName,
-                                ],
-                                WorkingDirectory = gitWorkspacePath.FullName,
-                                EnvironmentVariables = gitEnvs,
+                                FilePath = p4,
+                                Arguments = ["-I", "changes", "-m1", $"//{p4Client}/UE{engineMajorVersion}/{releaseFolder.Name}/...#head"],
+                                EnvironmentVariables = p4Envs,
                             },
-                            CaptureSpecification.Sanitized,
+                            CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(perforceMessage),
                             context.GetCancellationToken());
                         if (exitCode != 0)
                         {
-                            _logger.LogError($"Failed to rsync.");
+                            _logger.LogError("Failed to get Perforce revision information.");
                             return exitCode;
                         }
-                    }
-
-                    DeleteAllGitModulesAndAttributes();
-
-                    _logger.LogInformation($"Setting .gitattributes...");
-                    File.WriteAllText(
-                        Path.Combine(gitWorkspacePath.FullName, ".gitattributes"),
-                        """
-                        *.dll filter=lfs diff=lfs merge=lfs -text
-                        *.so filter=lfs diff=lfs merge=lfs -text
-                        *.dylib filter=lfs diff=lfs merge=lfs -text
-                        *.pdb filter=lfs diff=lfs merge=lfs -text
-                        *.exe filter=lfs diff=lfs merge=lfs -text
-                        *.uasset filter=lfs diff=lfs merge=lfs -text
-                        *.a filter=lfs diff=lfs merge=lfs -text
-                        *.png filter=lfs diff=lfs merge=lfs -text
-                        *.svg filter=lfs diff=lfs merge=lfs -text
-                        **/Binaries/** filter=lfs diff=lfs merge=lfs -text
-                        **/Content/** filter=lfs diff=lfs merge=lfs -text
-                        **/ThirdParty/** filter=lfs diff=lfs merge=lfs -text
-                        **/Documentation/** filter=lfs diff=lfs merge=lfs -text
-                        Engine/Extras/** filter=lfs diff=lfs merge=lfs -text
-                        """);
-
-                    _logger.LogInformation($"Staging all changes into Git...");
-                    RemoveIndexLock(gitWorkspacePath);
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
+                        var commitMessage = perforceMessage.ToString().Trim();
+                        if (string.IsNullOrWhiteSpace(commitMessage))
                         {
-                            FilePath = git,
-                            Arguments = ["add", "-A"],
-                            WorkingDirectory = gitWorkspacePath.FullName,
-                            EnvironmentVariables = gitEnvs,
-                        },
-                        CaptureSpecification.Passthrough,
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
-                    {
-                        _logger.LogError($"Failed to stage all changes into Git.");
-                        return exitCode;
-                    }
-
-                    _logger.LogInformation("Counting the number of deleted files...");
-                    long deletedFileCount = 0;
-                    var gitStatus = new StringBuilder();
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = git,
-                            Arguments = ["status", "--porcelain"],
-                            WorkingDirectory = gitWorkspacePath.FullName,
-                            EnvironmentVariables = gitEnvs,
-                        },
-                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(gitStatus),
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
-                    {
-                        _logger.LogError("Failed to run 'git status'.");
-                        return exitCode;
-                    }
-                    foreach (var line in gitStatus.ToString().Replace("\r", "", StringComparison.Ordinal).Split('\n'))
-                    {
-                        if (line.StartsWith('D'))
-                        {
-                            deletedFileCount++;
+                            commitMessage = $"Automatic snapshot of Perforce to Git for Unreal Engine {releaseVersion}.";
                         }
-                    }
-                    if (deletedFileCount > 1000)
-                    {
-                        _logger.LogError($"Too many deleted files ({deletedFileCount})! This indicates that either Perforce or the file copy deleted more files than expected and would generate a bad commit.");
-                        return 1;
-                    }
+                        _logger.LogInformation($"Commit message for Git: {commitMessage}");
 
-                    _logger.LogInformation("Getting revision information from Perforce...");
-                    var perforceMessage = new StringBuilder();
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
+                        _logger.LogInformation($"Committing all changes into Git...");
+                        RemoveIndexLock(gitWorkspacePath);
+                        var commitOutput = new StringBuilder();
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = ["commit", "-m", commitMessage],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(commitOutput),
+                            context.GetCancellationToken());
+                        var commitOutputString = commitOutput.ToString();
+                        if (exitCode != 0)
                         {
-                            FilePath = p4,
-                            Arguments = ["-I", "changes", "-m1", $"//{p4Client}/UE5/{releaseFolder.Name}/...#head"],
-                            EnvironmentVariables = p4Envs,
-                        },
-                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(perforceMessage),
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
-                    {
-                        _logger.LogError("Failed to get Perforce revision information.");
-                        return exitCode;
-                    }
-                    var commitMessage = perforceMessage.ToString().Trim();
-                    if (string.IsNullOrWhiteSpace(commitMessage))
-                    {
-                        commitMessage = $"Automatic snapshot of Perforce to Git for Unreal Engine {releaseVersion}.";
-                    }
-                    _logger.LogInformation($"Commit message for Git: {commitMessage}");
+                            // If we fail to commit because there's nothing to commit, that's fine.
+                            if (!commitOutputString.Contains("nothing to commit, working tree clean", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine(commitOutputString);
+                                _logger.LogError($"Failed to commit changes to Git.");
+                                return exitCode;
+                            }
+                        }
+                        Console.WriteLine(commitOutputString);
 
-                    _logger.LogInformation($"Committing all changes into Git...");
-                    RemoveIndexLock(gitWorkspacePath);
-                    var commitOutput = new StringBuilder();
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
+                        _logger.LogInformation($"Pushing changes to origin...");
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = git,
+                                Arguments = ["push", "origin", releaseVersion],
+                                WorkingDirectory = gitWorkspacePath.FullName,
+                                EnvironmentVariables = gitEnvs,
+                            },
+                            CaptureSpecification.Passthrough,
+                            context.GetCancellationToken());
+                        if (exitCode != 0)
                         {
-                            FilePath = git,
-                            Arguments = ["commit", "-m", commitMessage],
-                            WorkingDirectory = gitWorkspacePath.FullName,
-                            EnvironmentVariables = gitEnvs,
-                        },
-                        CaptureSpecification.CreateFromSanitizedStdoutStringBuilder(commitOutput),
-                        context.GetCancellationToken());
-                    var commitOutputString = commitOutput.ToString();
-                    if (exitCode != 0)
-                    {
-                        // If we fail to commit because there's nothing to commit, that's fine.
-                        if (!commitOutputString.Contains("nothing to commit, working tree clean", StringComparison.OrdinalIgnoreCase))
-                        {
-                            Console.WriteLine(commitOutputString);
-                            _logger.LogError($"Failed to commit changes to Git.");
+                            _logger.LogError($"Failed to push changes back to Git.");
                             return exitCode;
                         }
-                    }
-                    Console.WriteLine(commitOutputString);
-
-                    _logger.LogInformation($"Pushing changes to origin...");
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = git,
-                            Arguments = ["push", "origin", releaseVersion],
-                            WorkingDirectory = gitWorkspacePath.FullName,
-                            EnvironmentVariables = gitEnvs,
-                        },
-                        CaptureSpecification.Passthrough,
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
-                    {
-                        _logger.LogError($"Failed to push changes back to Git.");
-                        return exitCode;
                     }
                 }
 
