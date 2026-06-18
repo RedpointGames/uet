@@ -228,6 +228,11 @@
                 _logger.LogWarning("Detected temporary error in uploading debug symbols to Sentry. The build will be retried.");
                 NeedsRetry = true;
             }
+            if (data.Contains("Insufficient system resources exist to complete the requested service", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected temporary error due to low system resources.");
+                NeedsRetry = true;
+            }
             if (data.Contains("fatal error C1853:", StringComparison.Ordinal))
             {
                 // Scenario on Windows where precompiled files are out-of-date or corrupt and need to be regenerated.
