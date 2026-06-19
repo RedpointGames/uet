@@ -209,7 +209,7 @@
                 // Compute how to invoke project generation.
                 string workingDirectory;
                 string outputFolder;
-                string outputFilenameWithoutExtension;
+                string? outputFilenameWithoutExtension;
                 string scriptName;
                 var arguments = new List<string>();
                 if (IsGeneratingEngineFiles(engine, paths, context.ParseResult.FindResultFor(_options.Path)))
@@ -308,7 +308,7 @@
                         arguments.Add($"-project={paths[0].UProjectPath}");
                     }
                     outputFolder = engine.Path!;
-                    outputFilenameWithoutExtension = "UE5";
+                    outputFilenameWithoutExtension = null;
                 }
                 else
                 {
@@ -407,43 +407,44 @@
 
                     if (open)
                     {
+                        string[] baseFilenames = outputFilenameWithoutExtension == null
+                            ? ["UE", "UE5"]
+                            : [outputFilenameWithoutExtension];
+                        IEnumerable<string> candidateFilenames;
                         if (OperatingSystem.IsWindows())
                         {
-                            var solutionPath = Path.Combine(workingDirectory, outputFilenameWithoutExtension + ".sln");
-                            if (File.Exists(solutionPath))
-                            {
-                                _logger.LogInformation($"Opening generated project file due to --open|-o being passed: {solutionPath}");
-                                Process.Start(new ProcessStartInfo
-                                {
-                                    UseShellExecute = true,
-                                    FileName = solutionPath,
-                                });
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Unable to automatically open generated project file because it doesn't exist. This can happen if you've configured Unreal Engine to generate project files for something other than Visual Studio.");
-                            }
+                            candidateFilenames = baseFilenames.SelectMany(x => new[] { $"{x}.slnx", $"{x}.sln" });
                         }
                         else if (OperatingSystem.IsMacOS())
                         {
-                            var solutionPath = Path.Combine(workingDirectory, outputFilenameWithoutExtension + ".xcworkspace");
-                            if (File.Exists(solutionPath))
-                            {
-                                _logger.LogInformation($"Opening generated project file due to --open|-o being passed: {solutionPath}");
-                                Process.Start(new ProcessStartInfo
-                                {
-                                    UseShellExecute = true,
-                                    FileName = solutionPath,
-                                });
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Unable to automatically open generated project file because it doesn't exist. This can happen if you've configured Unreal Engine to generate project files for something other than Xcode.");
-                            }
+                            candidateFilenames = baseFilenames.SelectMany(x => new[] { $"{x} (Mac).xcworkspace", $"{x}.xcworkspace" });
                         }
                         else
                         {
                             _logger.LogWarning($"Opening generated project files with --open|-o is not supported on this platform.");
+                            return 0;
+                        }
+
+                        var opened = false;
+                        foreach (var candidateFilename in candidateFilenames)
+                        {
+                            var solutionPath = Path.Combine(workingDirectory, candidateFilename);
+                            _logger.LogInformation($"Checking for project: {solutionPath}");
+                            if (File.Exists(solutionPath) || Directory.Exists(solutionPath))
+                            {
+                                _logger.LogInformation($"Opening generated project file due to --open|-o being passed: {solutionPath}");
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    UseShellExecute = true,
+                                    FileName = solutionPath,
+                                });
+                                opened = true;
+                                break;
+                            }
+                        }
+                        if (!opened)
+                        {
+                            _logger.LogWarning($"Unable to automatically open generated project file because it doesn't exist. This can happen if you've configured Unreal Engine to generate project files for something other than {(OperatingSystem.IsWindows() ? "Visual Studio" : "Xcode")}.");
                         }
                     }
                 }
