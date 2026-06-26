@@ -181,14 +181,35 @@
                     }, monitoringCts.Token);
 
                     _logger.LogInformation($"Executing installer at '{installerPath}'...");
+
+                    var installerExecutablePath = installerPath;
+                    var installerArguments = (installer.InstallerArguments ?? [])
+                        .Select(x => Substitute(x.Replace("%LOG_PATH%", logPath, StringComparison.Ordinal), sdkPackagePath))
+                        .Select(x => new LogicalProcessArgument(x))
+                        .ToList();
+                    if (installerExecutablePath.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // This is an MSI file, we need to run msiexec instead.
+                        installerExecutablePath = @"C:\WINDOWS\system32\msiexec.exe";
+                        installerArguments =
+                            new LogicalProcessArgument[]
+                            {
+                                "/i",
+                                installerPath,
+                                "/L*v",
+                                Path.Combine(logPath, Path.GetFileNameWithoutExtension(installerPath) + ".log"),
+                                "/quiet",
+                                "/qn",
+                            }
+                            .Concat(installerArguments)
+                            .ToList();
+                    }
+
                     var exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
-                            FilePath = installerPath,
-                            Arguments = installer.InstallerArguments!
-                                .Select(x => Substitute(x.Replace("%LOG_PATH%", logPath, StringComparison.Ordinal), sdkPackagePath))
-                                .Select(x => new LogicalProcessArgument(x))
-                                .ToArray(),
+                            FilePath = installerExecutablePath,
+                            Arguments = installerArguments,
                             WorkingDirectory = Path.GetDirectoryName(installerPath)
                         },
                         CaptureSpecification.Passthrough,

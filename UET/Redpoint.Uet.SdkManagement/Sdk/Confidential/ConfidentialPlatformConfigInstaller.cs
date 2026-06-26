@@ -9,7 +9,7 @@
         [JsonPropertyName("InstallerPath"), JsonRequired]
         public string? InstallerPath { get; set; }
 
-        [JsonPropertyName("InstallerArguments"), JsonRequired]
+        [JsonPropertyName("InstallerArguments")]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
         public string[]? InstallerArguments { get; set; }
 
