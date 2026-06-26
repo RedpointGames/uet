@@ -8,7 +8,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- System libraries whose version is tied with framework version -->
-		<PackageVersion Include="AWSSDK.S3" Version="4.0.25.1" />
+		<PackageVersion Include="AWSSDK.S3" Version="4.0.25.3" />
 		<PackageVersion Include="Cronos" Version="0.13.0" />
 		<PackageVersion Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.3.11" />
 		<PackageVersion Include="Microsoft.AspNetCore.WebSockets" Version="2.3.11" />
