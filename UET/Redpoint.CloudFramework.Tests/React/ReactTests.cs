@@ -1,7 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Tests.React
 {
-    using global::React;
-    using global::React.AspNet;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
@@ -50,39 +48,6 @@
 
     public class ReactTests
     {
-        [Fact]
-        public void TestJsonEncoding()
-        {
-            var builder = WebApplication.CreateBuilder([]);
-
-            builder.Services.AddLogging();
-            builder.Services.AddControllersWithViews()
-                .AddControllersAsServices()
-                .AddJsonOptionsForSwaggerReactApp();
-
-            builder.Services.AddReact();
-            builder.Services.AddSwaggerGenForReactApp();
-
-            var app = builder.Build();
-            app.UseRouting();
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
-
-            var sp = app.Services;
-            var siteConfiguration = sp.GetRequiredService<IReactSiteConfiguration>();
-
-            var encoded = JsonSerializer.Serialize(
-                new TestClass
-                {
-                    EnumCamelCase = TestEnum.AnotherCamelCase,
-                },
-                siteConfiguration.JsonSerializerSettings);
-            Assert.Equal(
-                @"{""enumCamelCase"":""anotherCamelCase""}",
-                encoded);
-        }
-
         private class TestWebHostEnvironment : IWebHostEnvironment
         {
             public string WebRootPath { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
@@ -103,7 +68,6 @@
                 .AddControllersAsServices()
                 .AddJsonOptionsForSwaggerReactApp();
 
-            builder.Services.AddReact();
             builder.Services.AddSwaggerGenForReactApp();
 
             var app = builder.Build();
