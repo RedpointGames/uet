@@ -190,59 +190,17 @@ namespace Redpoint.CloudFramework.Startup
             services.AddMetrics();
             try
             {
-                if (!hostEnvironment.IsDevelopment() || Environment.GetEnvironmentVariable("REDPOINT_OTEL_USE_TELEMETRY_IN_DEVELOPMENT") == "1")
-                {
-                    var telemetryBuilder = services.AddOpenTelemetry();
-                    var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME");
-                    if (!string.IsNullOrWhiteSpace(serviceName))
-                    {
-                        var serviceNamespace = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAMESPACE");
-                        var serviceVersion = Environment.GetEnvironmentVariable("SENTRY_RELEASE");
-                        Console.WriteLine($"Setting resource name for telemetry to service_name={serviceName},service_namespace={serviceNamespace},service_version={serviceVersion}");
-                        telemetryBuilder = telemetryBuilder
-                            .ConfigureResource(resource =>
-                            {
-                                resource.AddService(serviceName ?? "service-name-not-set", serviceNamespace, serviceVersion);
-                            });
-                    }
-                    telemetryBuilder = telemetryBuilder
-                        .WithMetrics(builder => builder
-                            .AddMeter("*")
-                            .AddPrometheusHttpListener(options =>
-                            {
-                                var prometheusPrefix = configuration["CloudFramework:Prometheus:HttpPrefix"];
-                                if (!string.IsNullOrWhiteSpace(prometheusPrefix))
-                                {
-                                    options.UriPrefixes = [prometheusPrefix];
-                                }
-                            }))
-                        .WithTracing(tracing =>
+                services.AddOpenTelemetry()
+                    .WithMetrics(builder => builder
+                        .AddMeter("*")
+                        .AddPrometheusHttpListener(options =>
                         {
-                            tracing = tracing
-                                .AddAspNetCoreInstrumentation()
-                                .AddHttpClientInstrumentation();
-
-                            var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
-                            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                            var prometheusPrefix = configuration["CloudFramework:Prometheus:HttpPrefix"];
+                            if (!string.IsNullOrWhiteSpace(prometheusPrefix))
                             {
-                                Console.WriteLine($"Enabling tracing with OTLP export endpoint: {otlpEndpoint}");
-                                tracing = tracing.AddOtlpExporter(otlp =>
-                                {
-                                    otlp.Endpoint = new Uri(otlpEndpoint!);
-                                    otlp.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;
-                                });
+                                options.UriPrefixes = [prometheusPrefix];
                             }
-
-                            tracing = tracing
-                                .AddSource(OtelManagedTracer._sourceName)
-                                .SetSampler(new TraceIdRatioBasedSampler(_tracingRate));
-
-                            if (!string.IsNullOrWhiteSpace(configuration["Sentry:Dsn"]))
-                            {
-                                tracing = tracing.AddSentry();
-                            }
-                        });
-                }
+                        }));
             }
             catch (Exception ex)
             {
