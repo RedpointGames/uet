@@ -221,10 +221,6 @@ namespace Redpoint.CloudFramework.Startup
 
                             options.ProfilesSampleRate = _tracingRate;
                             options.AddProfilingIntegration();
-
-                            // We use OpenTelemetry for tracing.
-                            options.UseOpenTelemetry();
-                            options.DisableSentryHttpMessageHandler = true;
                         });
                 })
                 .ConfigureServices((context, services) =>

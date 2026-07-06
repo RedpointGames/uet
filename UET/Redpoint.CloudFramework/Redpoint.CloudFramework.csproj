@@ -29,17 +29,10 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 		<PackageReference Include="NodaTime" />
 		<PackageReference Include="NSec.Cryptography" />
-		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore">
-			<NoWarn>NU5104</NoWarn>
-		</PackageReference>
 		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.HttpListener">
 			<NoWarn>NU5104</NoWarn>
 		</PackageReference>
-		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Http" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
 		<PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
 		<PackageReference Include="S2Geometry" />
 		<PackageReference Include="Sentry.AspNetCore" />
 		<PackageReference Include="Sentry.OpenTelemetry" />
