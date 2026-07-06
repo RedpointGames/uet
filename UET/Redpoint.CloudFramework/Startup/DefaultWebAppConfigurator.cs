@@ -219,7 +219,7 @@ namespace Redpoint.CloudFramework.Startup
 
                             options.Environment = context.HostingEnvironment.EnvironmentName;
 
-                            options.ProfilesSampleRate = _tracingRate;
+                            options.ProfilesSampleRate = 1.0;
                             options.AddProfilingIntegration();
                         });
                 })
