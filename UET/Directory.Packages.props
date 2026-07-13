@@ -68,7 +68,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.CodeRefactoring.Testing" Version="$(MicrosoftTestingAnalyzersVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(MicrosoftAnalyzersVersion)" />
     <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
-    <PackageVersion Include="NodaTime" Version="3.3.2" />
+    <PackageVersion Include="NodaTime" Version="3.3.3" />
     <PackageVersion Include="S2Geometry" Version="1.0.3" />
     <PackageVersion Include="Sentry.AspNetCore" Version="$(SentryPackageVersion)" />
     <PackageVersion Include="Sentry.Profiling" Version="$(SentryPackageVersion)" />
