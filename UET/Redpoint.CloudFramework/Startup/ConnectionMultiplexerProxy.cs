@@ -30,7 +30,7 @@
             }
         }
 
-        internal static string? GetRedisConnectionString(string redisServer)
+        internal static ConfigurationOptions? GetRedisConnectionOptions(string redisServer)
         {
             if (string.IsNullOrWhiteSpace(redisServer))
             {
@@ -72,14 +72,22 @@
                 redisConnect = string.Join(",", addresses);
             }
 
-            return redisConnect + ",allowAdmin=true";
+            var options = ConfigurationOptions.Parse(redisConnect + ",allowAdmin=true");
+
+            // @hack: Workaround bug that is presumably the cause of .NET apps increasing CPU usage over
+            // time for no reason:
+            // - https://github.com/mgravell/Pipelines.Sockets.Unofficial/issues/28
+            // - https://stackoverflow.com/questions/74766237/cpu-spikes-almost-100-used-even-with-very-simple-request-and-response-in-asp
+            options.SocketManager = SocketManager.ThreadPool;
+
+            return options;
         }
 
         private static ConnectionMultiplexer? ConnectToRedis(
             string redisServer,
             ILogger<ConnectionMultiplexerProxy> logger)
         {
-            var redisConnect = GetRedisConnectionString(redisServer);
+            var redisConnect = GetRedisConnectionOptions(redisServer);
 
             if (redisConnect == null)
             {

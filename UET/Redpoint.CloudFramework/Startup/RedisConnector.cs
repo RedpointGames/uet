@@ -47,12 +47,12 @@
                 redisServer = "localhost:6379";
             }
 
-            var redisConnect = ConnectionMultiplexerProxy.GetRedisConnectionString(redisServer);
+            var redisConnect = ConnectionMultiplexerProxy.GetRedisConnectionOptions(redisServer);
 
             services.AddOptions();
             services.Configure<RedisCacheOptions>(x =>
             {
-                x.Configuration = redisConnect;
+                x.ConfigurationOptions = redisConnect;
             });
             services.Add(ServiceDescriptor.Singleton<IDistributedCache, RetryableRedisCache>());
             services.Add(ServiceDescriptor.Singleton<IDistributedCacheExtended, DistributedCacheExtended>());
