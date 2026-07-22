@@ -53,7 +53,7 @@
     <PackageVersion Include="Google.Cloud.Datastore.V1" Version="5.2.0" />
     <PackageVersion Include="Google.Cloud.Monitoring.V3" Version="3.16.0" />
     <PackageVersion Include="Google.Cloud.PubSub.V1" Version="3.36.0" />
-    <PackageVersion Include="Google.Cloud.SecretManager.V1" Version="2.7.0" />
+    <PackageVersion Include="Google.Cloud.SecretManager.V1" Version="2.8.0" />
     <!-- Dependencies for Cloud Framework -->
     <PackageVersion Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.3.11" />
     <PackageVersion Include="Microsoft.CodeAnalysis" Version="$(MicrosoftAnalyzersVersion)" />
