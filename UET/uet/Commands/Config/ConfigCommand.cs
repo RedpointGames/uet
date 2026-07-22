@@ -22,6 +22,7 @@
             services.AddSingleton<IBooleanConfigSetting, ClangBooleanConfigSetting>();
             services.AddSingleton<IBooleanConfigSetting, UbaBooleanConfigSetting>();
             services.AddSingleton<IBooleanConfigSetting, UbaPreferRemoteBooleanConfigSetting>();
+            services.AddSingleton<IBooleanConfigSetting, Vs2026BooleanConfigSetting>();
             services.AddSingleton(sp => sp.GetServices<IBooleanConfigSetting>().ToArray());
         }
 
