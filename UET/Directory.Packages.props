@@ -47,7 +47,7 @@
     <!-- gRPC -->
     <PackageVersion Include="Google.Protobuf" Version="3.35.1" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.80.0" />
-    <PackageVersion Include="Grpc.Tools" Version="2.81.1" />
+    <PackageVersion Include="Grpc.Tools" Version="2.82.0" />
     <!-- Google Cloud for Cloud Framework -->
     <PackageVersion Include="Google.Cloud.BigQuery.V2" Version="3.12.0" />
     <PackageVersion Include="Google.Cloud.Datastore.V1" Version="5.2.0" />
