@@ -28,6 +28,12 @@
         public bool? Manual { get; set; }
 
         /// <summary>
+        /// If set and false, this entry will be skipped when reading the build configuration file.
+        /// </summary>
+        [JsonPropertyName("Enabled")]
+        public bool? Enabled { get; set; }
+
+        /// <summary>
         /// The dynamic settings associate with this test/deployment type. To be consumed by the dynamic test/deployment provider based on the type.
         /// </summary>
         public object DynamicSettings { get; set; } = new object();

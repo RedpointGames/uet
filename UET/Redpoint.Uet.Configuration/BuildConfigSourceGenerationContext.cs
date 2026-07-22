@@ -35,6 +35,14 @@
                     new BuildConfigDeploymentConverter<BuildConfigProjectDistribution>(serviceProvider),
                     new BuildConfigTestPredefinedConverter<BuildConfigPluginDistribution>(serviceProvider),
                     new BuildConfigTargetPlatformConverter(),
+
+                    new NullFilteringArrayConverter<BuildConfigDynamic<BuildConfigPluginDistribution, IPrepareProvider>>(),
+                    new NullFilteringArrayConverter<BuildConfigDynamic<BuildConfigProjectDistribution, IPrepareProvider>>(),
+                    new NullFilteringArrayConverter<BuildConfigDynamic<BuildConfigPluginDistribution, ITestProvider>>(),
+                    new NullFilteringArrayConverter<BuildConfigDynamic<BuildConfigProjectDistribution, ITestProvider>>(),
+                    new NullFilteringArrayConverter<BuildConfigDynamic<BuildConfigPluginDistribution, IDeploymentProvider>>(),
+                    new NullFilteringArrayConverter<BuildConfigDynamic<BuildConfigProjectDistribution, IDeploymentProvider>>(),
+                    new NullFilteringArrayConverter<BuildConfigPredefinedDynamic<BuildConfigPluginDistribution, ITestProvider, BuildConfigPluginPredefinedTestDependencies>>(),
                 }
             });
         }
