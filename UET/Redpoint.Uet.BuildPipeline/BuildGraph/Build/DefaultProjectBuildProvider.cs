@@ -207,7 +207,7 @@
                             },
                             new CompilationVector
                             {
-                                Platforms = targetPlatforms.Where(x => x == "Windows" || x == "Mac" || x == "Linux").ToList(),
+                                Platforms = targetPlatforms.Where(x => x == "Win64" || x == "Mac" || x == "Linux").ToList(),
                                 Targets =
                                 [
                                     new("BootstrapPackagedGame", "Editor", "'$(IsUnrealEngineInstalled)' != 'true'"),
@@ -222,7 +222,7 @@
                             },
                             new CompilationVector
                             {
-                                Platforms = targetPlatforms.Where(x => x == "Windows" || x == "Mac" || x == "Linux").ToList(),
+                                Platforms = targetPlatforms.Where(x => x == "Win64" || x == "Mac" || x == "Linux").ToList(),
                                 Targets =
                                 [
                                     new("CrashReportClient", "Editor", "'$(IsUnrealEngineInstalled)' != 'true'"),
