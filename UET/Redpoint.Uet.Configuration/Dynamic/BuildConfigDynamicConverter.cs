@@ -45,6 +45,10 @@
                 {
                     return false;
                 });
+            if (result != null && result.Enabled == false)
+            {
+                return null;
+            }
 
             return result;
         }

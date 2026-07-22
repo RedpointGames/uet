@@ -11,6 +11,7 @@
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Meta;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Docker;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.GooglePlay;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.ItchIo;
 
     public static class DeploymentProviderServiceCollections
     {
@@ -22,6 +23,7 @@
             services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, MetaProjectDeploymentProvider>();
             services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, GooglePlayProjectDeploymentProvider>();
             services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, DockerProjectDeploymentProvider>();
+            services.AddDynamicProvider<BuildConfigProjectDistribution, IDeploymentProvider, ItchIoProjectDeploymentProvider>();
         }
     }
 }

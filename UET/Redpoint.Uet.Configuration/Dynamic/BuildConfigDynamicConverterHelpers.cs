@@ -129,6 +129,9 @@
                             // @todo: Enforce that this can only appear for IDeploymentProvider.
                             result.Manual = reader.GetBoolean();
                             break;
+                        case "Enabled":
+                            result.Enabled = reader.GetBoolean();
+                            break;
                         default:
                             if (propertyName == providerType)
                             {
@@ -183,6 +186,10 @@
 
             writer.WriteString("Name", value.Name);
             writer.WriteString("Type", value.Type);
+            if (value.Enabled.HasValue)
+            {
+                writer.WriteBoolean("Enabled", value.Enabled.Value);
+            }
             if (value.Manual.HasValue)
             {
                 writer.WriteBoolean("Manual", value.Manual.Value);

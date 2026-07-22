@@ -5,6 +5,7 @@
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Custom;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Docker;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.GooglePlay;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.ItchIo;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Meta;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Steam;
     using System.Text.Json.Serialization;
@@ -16,6 +17,7 @@
     [JsonSerializable(typeof(BuildConfigProjectDeploymentMeta))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentGooglePlay))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentDocker))]
+    [JsonSerializable(typeof(BuildConfigProjectDeploymentItchIo))]
     internal sealed partial class DeploymentProviderRuntimeJson
     {
     }
