@@ -58,6 +58,7 @@
                             adb:            Run the Android Debug Bridge.
                             xcode:          Run the version of Xcode that this Unreal Engine version requires.
                             fastlane:       Install and run Fastlane.
+                            unrealpak:      Run UnrealPak.
  
                             If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
                             """
@@ -127,6 +128,7 @@
                     "adb",
                     "xcode",
                     "fastlane",
+                    "unrealpak",
                 ]);
                 Target.Arity = ArgumentArity.ExactlyOne;
                 Target.HelpName = "target";
@@ -541,6 +543,149 @@
                                         _ = Process.Start(startInfo);
                                         return 0;
                                     }
+                                }
+                            case "unrealpak":
+                                {
+                                    var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
+
+                                    List<(string unrealPakPath, DateTimeOffset lastModulesModificationTime)> moduleAndEngineTargets = [];
+                                    var attemptedPaths = new List<string>();
+                                    void SearchForPaths()
+                                    {
+                                        moduleAndEngineTargets.Clear();
+                                        attemptedPaths.Clear();
+                                        foreach (var configuration in configurationPreferences)
+                                        {
+                                            string modulePath;
+                                            string unrealPakPath;
+                                            if (configuration == "Development")
+                                            {
+                                                modulePath = Path.Combine(
+                                                    engineWorkspace.Path,
+                                                    "Engine",
+                                                    "Binaries",
+                                                    platformName,
+                                                    "UnrealPak.modules");
+                                                unrealPakPath = Path.Combine(
+                                                    engineWorkspace.Path,
+                                                    "Engine",
+                                                    "Binaries",
+                                                    platformName,
+                                                    $"UnrealPak{executableSuffix}");
+                                            }
+                                            else
+                                            {
+                                                modulePath = Path.Combine(
+                                                    Path.GetDirectoryName(projectPath)!,
+                                                    "Binaries",
+                                                    platformName,
+                                                    $"UnrealPak-{platformName}-{configuration}.modules");
+                                                unrealPakPath = Path.Combine(
+                                                    engineWorkspace.Path,
+                                                    "Engine",
+                                                    "Binaries",
+                                                    platformName,
+                                                    $"UnrealPak-{platformName}-{configuration}{executableSuffix}");
+                                            }
+                                            attemptedPaths.Add(modulePath);
+                                            if (File.Exists(modulePath) && File.Exists(unrealPakPath))
+                                            {
+                                                moduleAndEngineTargets.Add((unrealPakPath, File.GetLastWriteTimeUtc(modulePath)));
+                                            }
+                                        }
+                                    }
+
+                                    if (!forceBuild)
+                                    {
+                                        SearchForPaths();
+                                    }
+
+                                    var targetListToBuild = new List<string>();
+                                    if (moduleAndEngineTargets.Count == 0)
+                                    {
+                                        targetListToBuild.Add($"{editorTargetName} Development {platformName}");
+                                    }
+
+                                    if (targetListToBuild.Count > 0)
+                                    {
+                                        // The editor isn't built; try to build it.
+                                        if (!forceBuild)
+                                        {
+                                            _logger.LogWarning("The UnrealPak binary don't exist as expected. The modules that were searched for were:");
+                                            foreach (var attemptedPath in attemptedPaths)
+                                            {
+                                                _logger.LogWarning($"  {attemptedPath}");
+                                            }
+                                        }
+
+                                        _logger.LogWarning("Attempting to build UnrealPak on-demand...");
+
+                                        var ubtPath = GetUbtPath();
+                                        if (!File.Exists(ubtPath))
+                                        {
+                                            _logger.LogError($"Unable to locate the build script that was expected to exist at: {ubtPath}");
+                                            return 1;
+                                        }
+
+                                        var targetListPath = Path.GetTempFileName();
+                                        await File.WriteAllLinesAsync(targetListPath, targetListToBuild, context.GetCancellationToken());
+
+                                        var buildArguments = new List<LogicalProcessArgument>
+                                        {
+                                            ParameterisedArgument("TargetList", targetListPath),
+                                        };
+
+                                        var buildExitCode = await _processExecutor.ExecuteAsync(
+                                            new ProcessSpecification
+                                            {
+                                                FilePath = ubtPath,
+                                                Arguments = buildArguments,
+                                                WorkingDirectory = engineWorkspace.Path,
+                                            },
+                                            CaptureSpecification.Passthrough,
+                                            context.GetCancellationToken()).ConfigureAwait(false);
+                                        if (buildExitCode != 0)
+                                        {
+                                            _logger.LogError($"RunUBT exited with non-zero exit code {buildExitCode}.");
+                                            return buildExitCode;
+                                        }
+
+                                        // Try to find UnrealPak again.
+                                        SearchForPaths();
+                                        if (moduleAndEngineTargets.Count == 0)
+                                        {
+                                            _logger.LogError("Still can't find UnrealPak after successfully building it. UET probably needs to be updated to handle whatever path it got built to!");
+                                            return 1;
+                                        }
+                                    }
+
+                                    var foundPath = moduleAndEngineTargets
+                                        .OrderByDescending(x => x.lastModulesModificationTime)
+                                        .Select(x => x.unrealPakPath)
+                                        .First();
+
+                                    if (moduleAndEngineTargets.Count > 1)
+                                    {
+                                        _logger.LogInformation("Multiple built configurations of UnrealPak were found. The configuration with the newest build will be selected:");
+                                        foreach (var entry in moduleAndEngineTargets.OrderByDescending(x => x.lastModulesModificationTime))
+                                        {
+                                            _logger.LogInformation($" - {entry.lastModulesModificationTime}: {entry.unrealPakPath}");
+                                        }
+                                    }
+
+                                    var runArguments = new List<LogicalProcessArgument>();
+                                    runArguments.AddRange(arguments.Select(x => new LogicalProcessArgument(x)));
+
+                                    LogExecution(foundPath, runArguments, false);
+                                    return await _processExecutor.ExecuteAsync(
+                                        new ProcessSpecification
+                                        {
+                                            FilePath = foundPath,
+                                            Arguments = runArguments,
+                                            WorkingDirectory = engineWorkspace.Path,
+                                        },
+                                        CaptureSpecification.Passthrough,
+                                        context.GetCancellationToken()).ConfigureAwait(false);
                                 }
                             case "uat":
                             case "ubt":
