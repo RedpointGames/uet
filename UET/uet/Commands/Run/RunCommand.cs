@@ -301,6 +301,10 @@
                                 {
                                     var cmdSuffix = target == "editor-cmd" ? "-Cmd" : string.Empty;
                                     var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
+                                    var noSource = !Directory.Exists(
+                                        Path.Combine(
+                                            Path.GetDirectoryName(projectPath)!,
+                                            "Source"));
 
                                     List<(string editorPath, DateTimeOffset lastModulesModificationTime)> moduleAndEngineTargets = [];
                                     var attemptedPaths = new List<string>();
@@ -317,10 +321,19 @@
                                                 if (configuration == "Development")
                                                 {
                                                     modulePath = Path.Combine(
-                                                        Path.GetDirectoryName(projectPath)!,
-                                                        "Binaries",
-                                                        platformName,
-                                                        "UnrealEditor.modules");
+                                                            Path.GetDirectoryName(projectPath)!,
+                                                            "Binaries",
+                                                            platformName,
+                                                            "UnrealEditor.modules");
+                                                    if (!File.Exists(modulePath) && noSource)
+                                                    {
+                                                        modulePath = Path.Combine(
+                                                                engineWorkspace.Path,
+                                                                "Engine",
+                                                                "Binaries",
+                                                                platformName,
+                                                                "UnrealEditor.modules");
+                                                    }
                                                     editorPath = Path.Combine(
                                                         engineWorkspace.Path,
                                                         "Engine",
@@ -349,6 +362,7 @@
                                                 {
                                                     modulePath = Path.Combine(
                                                         engineWorkspace.Path,
+                                                        "Engine",
                                                         "Binaries",
                                                         platformName,
                                                         "UnrealEditor.modules");
@@ -363,6 +377,7 @@
                                                 {
                                                     modulePath = Path.Combine(
                                                         engineWorkspace.Path,
+                                                        "Engine",
                                                         "Binaries",
                                                         platformName,
                                                         $"UnrealEditor-{platformName}-{configuration}.modules");
@@ -397,6 +412,7 @@
                                     {
                                         if (!File.Exists(Path.Combine(
                                             engineWorkspace.Path,
+                                            "Engine",
                                             "Binaries",
                                             platformName,
                                             $"{engineTool}.modules")))
