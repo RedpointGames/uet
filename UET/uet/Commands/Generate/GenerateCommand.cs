@@ -363,25 +363,8 @@
                     var vsDirectory = Path.Combine(workingDirectory, ".vs");
                     if (Directory.Exists(vsDirectory))
                     {
-                        if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
-                        {
-                            try
-                            {
-                                await foreach (var handle in NativeHandles.GetAllFileHandlesAsync(context.GetCancellationToken()))
-                                {
-                                    if (handle.FilePath.StartsWith(vsDirectory, StringComparison.OrdinalIgnoreCase) &&
-                                        (handle.FilePath.Contains("Browse.VC.db", StringComparison.OrdinalIgnoreCase) ||
-                                         handle.FilePath.Contains("Browse.VC.opendb", StringComparison.OrdinalIgnoreCase)))
-                                    {
-                                        _logger.LogInformation($"Trying to close handle to Intellisense database file at: {handle.FilePath}");
-                                        await NativeHandles.ForciblyCloseHandleAsync(handle, context.GetCancellationToken());
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                            }
-                        }
+                        // @note: We previously forcibly closed Intellisense database handles here, but it seems to cause more problems
+                        // than it fixes. In order for Intellisense to be reset, VS should just be closed when generating project files.
                         foreach (var browseFile in new DirectoryInfo(vsDirectory).GetFiles("Browse.VC.*db*", SearchOption.AllDirectories))
                         {
                             _logger.LogInformation($"Trying to clear Intellisense database file at: {browseFile.FullName}");
