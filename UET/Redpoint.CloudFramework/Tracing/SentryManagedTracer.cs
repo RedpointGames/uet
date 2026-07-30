@@ -17,6 +17,7 @@
                 set
                 {
                     _span.Description = value;
+                    _span.SetTag("description", value);
                     _span.SetData("description", value);
                 }
             }
@@ -28,6 +29,7 @@
 
             public void SetTag(string key, string value)
             {
+                _span.SetTag(key, value);
                 _span.SetData(key, value);
             }
         }
