@@ -161,8 +161,10 @@ namespace Redpoint.CloudFramework.Startup
             services.AddSingleton(typeof(ICurrentTenantService), _currentTenantService);
             services.AddSingleton(sp => sp.GetServices<IPrefixProvider>().ToArray());
 
-            // Add Otel managed tracer. All tracing goes via Otel (including Sentry).
-            services.AddSingleton<IManagedTracer, OtelManagedTracer>();
+            // Add Sentry managed tracer. Only OpenTelemetry metrics are configured at the moment, because
+            // routing Otel tracing and logging to Sentry doesn't seem to work correctly, therefore we trace
+            // directly to Sentry.
+            services.AddSingleton<IManagedTracer, SentryManagedTracer>();
 
             if (_googleCloudUsage != GoogleCloudUsageFlag.None)
             {
