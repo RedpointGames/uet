@@ -8,6 +8,7 @@
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Metric;
     using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Expression;
     using Redpoint.CloudFramework.Repository.Converters.Model;
     using Redpoint.CloudFramework.Repository.Geographic;
@@ -40,6 +41,7 @@
         private readonly IExpressionConverter _expressionConverter;
         private readonly ILogger<DatastoreRepositoryLayer> _logger;
         private readonly IMetricService _metricService;
+        private readonly IGlobalPrefix _globalPrefix;
         private readonly DatastoreClient _client;
 
         private readonly MemoryCacheEntryOptions _memoryCacheOptions =
@@ -59,7 +61,8 @@
             IMemoryCache memoryCache,
             IExpressionConverter expressionConverter,
             ILogger<DatastoreRepositoryLayer> logger,
-            IMetricService metricService)
+            IMetricService metricService,
+            IGlobalPrefix globalPrefix)
         {
             _entityConverter = entityConverter;
             _hostEnvironment = hostEnvironment;
@@ -70,6 +73,7 @@
             _expressionConverter = expressionConverter;
             _logger = logger;
             _metricService = metricService;
+            _globalPrefix = globalPrefix;
 
             _client = _googleServices.Build<DatastoreClient, DatastoreClientBuilder>(
                 DatastoreClient.DefaultEndpoint,
@@ -78,8 +82,13 @@
 
         public AsyncEvent<EntitiesModifiedEventArgs> OnNonTransactionalEntitiesModified { get; } = new AsyncEvent<EntitiesModifiedEventArgs>();
 
-        private static string GetSpanName(string @namespace, string modelName)
+        private string GetSpanName(string @namespace, string modelName, Key? key)
         {
+            if (key != null)
+            {
+                return _globalPrefix.CreateInternal(key);
+            }
+
             if (string.IsNullOrWhiteSpace(@namespace))
             {
                 return modelName;
@@ -115,7 +124,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan("db.datastore.query", GetSpanName(@namespace, typeof(T).Name)))
+            using (var span = _managedTracer.StartSpan("db.datastore.query", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -304,7 +313,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan($"db.datastore.query_geohash_range", GetSpanName(@namespace, typeof(T).Name)))
+            using (var span = _managedTracer.StartSpan($"db.datastore.query_geohash_range", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 Query query;
                 string hashKeyString;
@@ -411,7 +420,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan($"db.datastore.query_paginated", GetSpanName(@namespace, typeof(T).Name)))
+            using (var span = _managedTracer.StartSpan($"db.datastore.query_paginated", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -509,7 +518,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.load", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.load", GetSpanName(@namespace, typeof(T).Name, key)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -588,7 +597,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.load_batched", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.load_batched", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -860,7 +869,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.create", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.create", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1005,7 +1014,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.upsert", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.upsert", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1158,7 +1167,7 @@
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.update", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.update", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1290,7 +1299,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.delete", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.delete", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1415,7 +1424,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.allocate_key", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.allocate_key", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1432,7 +1441,7 @@
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.datastore.get_key_factory", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.datastore.get_key_factory", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 

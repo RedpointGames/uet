@@ -32,6 +32,7 @@
     using System.Text.Json.Serialization;
     using System.Text.Json;
     using Redpoint.Collections.Batching;
+    using Redpoint.CloudFramework.Prefix;
 
     internal partial class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
     {
@@ -42,6 +43,7 @@
         private readonly IModelConverter<string> _jsonConverter;
         private readonly IMetricService _metricService;
         private readonly IManagedTracer _managedTracer;
+        private readonly IGlobalPrefix _globalPrefix;
 
         private const string _cacheQueries = "rcf/cache/queries";
         private const string _cacheLookups = "rcf/cache/lookups";
@@ -55,7 +57,8 @@
             IExpressionConverter expressionConverter,
             IModelConverter<string> jsonConverter,
             IMetricService metricService,
-            IManagedTracer managedTracer)
+            IManagedTracer managedTracer,
+            IGlobalPrefix globalPrefix)
         {
             _datastoreRepositoryLayer = datastoreRepositoryLayer;
             _redis = redis;
@@ -64,6 +67,7 @@
             _jsonConverter = jsonConverter;
             _metricService = metricService;
             _managedTracer = managedTracer;
+            _globalPrefix = globalPrefix;
             _datastoreRepositoryLayer.OnNonTransactionalEntitiesModified.Add(this.ClearEntitiesFromCache);
         }
 
@@ -165,8 +169,13 @@ end
 return queriesCleared
 ";
 
-        private static string GetSpanName(string @namespace, string modelName)
+        private string GetSpanName(string @namespace, string modelName, Key? key)
         {
+            if (key != null)
+            {
+                return _globalPrefix.CreateInternal(key);
+            }
+
             if (string.IsNullOrWhiteSpace(@namespace))
             {
                 return modelName;
@@ -325,7 +334,7 @@ return queriesCleared
             Expression<Func<T, bool>>? order,
             int? limit) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan($"db.rediscache.get_complex_cache_hash_and_columns", GetSpanName(@namespace, typeof(T).Name)))
+            using (var span = _managedTracer.StartSpan($"db.rediscache.get_complex_cache_hash_and_columns", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 GeoQueryParameters<T>? geoQuery = null;
                 var referenceModel = new T();
@@ -582,7 +591,7 @@ return 'written'
         {
             string queryLastWriteValue = "0";
             var queryLastWriteKey = new RedisKey($"LASTWRITE:{model.GetKind()}");
-            using (_managedTracer.StartSpan("db.rediscache.load.get_last_write", GetSpanName(@namespace, model.GetType().Name)))
+            using (_managedTracer.StartSpan("db.rediscache.load.get_last_write", GetSpanName(@namespace, model.GetType().Name, model.Key)))
             {
                 var lastWriteValue = await cache.StringGetAsync(queryLastWriteKey).ConfigureAwait(false);
                 if (lastWriteValue.HasValue)
@@ -633,7 +642,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (var span = _managedTracer.StartSpan($"db.rediscache.query", GetSpanName(@namespace, typeof(T).Name)))
+            using (var span = _managedTracer.StartSpan($"db.rediscache.query", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 Stopwatch? stopwatch = null;
                 if (metrics != null)
@@ -687,7 +696,7 @@ return 'written'
                         var cache = _redis.GetDatabase();
                         var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, new T()).ConfigureAwait(false);
                         RedisResult obtainCacheResult;
-                        using (_managedTracer.StartSpan("db.rediscache.cache.try_obtain_complex_cache", GetSpanName(@namespace, typeof(T).Name)))
+                        using (_managedTracer.StartSpan("db.rediscache.cache.try_obtain_complex_cache", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             obtainCacheResult = await cache.ScriptEvaluateAsync(_tryObtainComplexCache, keys: new[]
                             {
@@ -736,7 +745,7 @@ return 'written'
                                     }
                                     finally
                                     {
-                                        using (_managedTracer.StartSpan("db.rediscache.cache.release_complex_cache", GetSpanName(@namespace, typeof(T).Name)))
+                                        using (_managedTracer.StartSpan("db.rediscache.cache.release_complex_cache", GetSpanName(@namespace, typeof(T).Name, null)))
                                         {
                                             await cache.ScriptEvaluateAsync(_releaseComplexCache, keys: new[]
                                             {
@@ -793,7 +802,7 @@ return 'written'
                                                 metrics,
                                                 CancellationToken.None).AsBatches().ConfigureAwait(false))
                                             {
-                                                using (_managedTracer.StartSpan("db.rediscache.cache.batch_process", GetSpanName(@namespace, typeof(T).Name)))
+                                                using (_managedTracer.StartSpan("db.rediscache.cache.batch_process", GetSpanName(@namespace, typeof(T).Name, null)))
                                                 {
                                                     var keys = new List<RedisKey>
                                                     {
@@ -813,7 +822,7 @@ return 'written'
                                                         values.Add(new RedisValue(cachedEntity));
                                                     }
 
-                                                    using (_managedTracer.StartSpan("db.rediscache.cache.write_cached_entity_to_cache", GetSpanName(@namespace, typeof(T).Name)))
+                                                    using (_managedTracer.StartSpan("db.rediscache.cache.write_cached_entity_to_cache", GetSpanName(@namespace, typeof(T).Name, null)))
                                                     {
                                                         await cache.ScriptEvaluateAsync(
                                                             _writeCachedEntityIntoCache,
@@ -822,7 +831,7 @@ return 'written'
                                                     }
                                                 }
 
-                                                using (_managedTracer.StartSpan("db.rediscache.cache.batch_emit", GetSpanName(@namespace, typeof(T).Name)))
+                                                using (_managedTracer.StartSpan("db.rediscache.cache.batch_emit", GetSpanName(@namespace, typeof(T).Name, null)))
                                                 {
                                                     if (pullBatches != null)
                                                     {
@@ -833,7 +842,7 @@ return 'written'
                                             }
 
                                             RedisResult finalizeResult;
-                                            using (_managedTracer.StartSpan("db.rediscache.cache.finalize_cache_writing", GetSpanName(@namespace, typeof(T).Name)))
+                                            using (_managedTracer.StartSpan("db.rediscache.cache.finalize_cache_writing", GetSpanName(@namespace, typeof(T).Name, null)))
                                             {
                                                 finalizeResult = await cache.ScriptEvaluateAsync(
                                                     _finalizeCacheWriting,
@@ -968,7 +977,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.query_paginated", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.query_paginated", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 if (metrics != null)
                 {
@@ -993,7 +1002,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.load", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.load", GetSpanName(@namespace, typeof(T).Name, key)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
                 ArgumentNullException.ThrowIfNull(key);
@@ -1073,7 +1082,7 @@ return 'written'
                             false,
                             _ => keyFactory.CreateIncompleteKey());
                         RedisResult cacheResult;
-                        using (_managedTracer.StartSpan("db.rediscache.load.write_cached_entity_to_cache", GetSpanName(@namespace, typeof(T).Name)))
+                        using (_managedTracer.StartSpan("db.rediscache.load.write_cached_entity_to_cache", GetSpanName(@namespace, typeof(T).Name, key)))
                         {
                             cacheResult = await cache.ScriptEvaluateAsync(
                                 _writeSingleCachedEntityIntoCache,
@@ -1134,7 +1143,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.load_batched", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.load_batched", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
@@ -1420,7 +1429,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.create", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.create", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 var columns = new HashSet<string>();
                 try
@@ -1448,7 +1457,7 @@ return 'written'
                 {
                     if (columns.Count > 0)
                     {
-                        using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name)))
+                        using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             var db = _redis.GetDatabase();
                             await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, new T()).ConfigureAwait(false);
@@ -1474,7 +1483,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.upsert", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.upsert", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 var columns = new HashSet<string>();
                 try
@@ -1503,7 +1512,7 @@ return 'written'
                 {
                     if (columns.Count > 0)
                     {
-                        using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name)))
+                        using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             var db = _redis.GetDatabase();
                             await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, new T()).ConfigureAwait(false);
@@ -1529,7 +1538,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.update", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.update", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 var columns = new HashSet<string>();
                 try
@@ -1614,7 +1623,7 @@ return 'written'
                 {
                     if (columns.Count > 0)
                     {
-                        using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name)))
+                        using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             var db = _redis.GetDatabase();
                             await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, new T()).ConfigureAwait(false);
@@ -1640,7 +1649,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.delete", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.delete", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 await _datastoreRepositoryLayer.DeleteAsync(
                     @namespace,
@@ -1657,7 +1666,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.allocate_key", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.allocate_key", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 return _datastoreRepositoryLayer.AllocateKeyAsync<T>(@namespace, transaction, metrics, cancellationToken);
             }
@@ -1668,7 +1677,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.get_key_factory", GetSpanName(@namespace, typeof(T).Name)))
+            using (_managedTracer.StartSpan($"db.rediscache.get_key_factory", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 return _datastoreRepositoryLayer.GetKeyFactoryAsync<T>(@namespace, metrics, cancellationToken);
             }
