@@ -8,4 +8,19 @@
 
         void SetTag(string key, string value);
     }
+
+    public interface ICacheSpan : ISpan
+    {
+        string Key { get; set; }
+    }
+
+    public interface ICachePutSpan : ICacheSpan
+    {
+        bool Write { get; set; }
+    }
+
+    public interface ICacheGetSpan : ICacheSpan
+    {
+        bool Hit { get; set; }
+    }
 }

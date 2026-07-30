@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Tracing
 {
-    internal class NullSpan : ISpan
+    internal class NullSpan : ICacheGetSpan, ICachePutSpan
     {
         internal static NullSpan _instance = new NullSpan();
 
@@ -9,6 +9,18 @@
         }
 
         public string DisplayName
+        {
+            get => string.Empty;
+            set
+            {
+            }
+        }
+
+        public bool Hit { get; set; }
+
+        public bool Write { get; set; }
+
+        public string Key
         {
             get => string.Empty;
             set
