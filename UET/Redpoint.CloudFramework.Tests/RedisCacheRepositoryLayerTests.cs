@@ -8,7 +8,9 @@ using Redpoint.CloudFramework.Models;
 using Redpoint.CloudFramework.Repository.Layers;
 using Redpoint.CloudFramework.Repository.Metrics;
 using Redpoint.CloudFramework.Tests.Models;
+using Redpoint.Hashing;
 using StackExchange.Redis;
+using System.Globalization;
 using System.Text;
 using Xunit;
 using Xunit.Sdk;
@@ -151,18 +153,21 @@ namespace Redpoint.CloudFramework.Tests
 
         private string SerializePathElement(PathElement pe)
         {
-            var kind = pe.Kind.Contains('-', StringComparison.Ordinal) ? Convert.ToBase64String(Encoding.UTF8.GetBytes(pe.Kind)) : pe.Kind;
+            // @note: This method now stores kinds and names as XxHash64 to prevent any long keys or weird Redis issues
+            // that previously might have been happening with Base64 encoding.
+
+            var kind = pe.Kind.Contains(':', StringComparison.Ordinal) ? Hash.XxHash64(pe.Kind, Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture) : pe.Kind;
             if (pe.IdTypeCase == PathElement.IdTypeOneofCase.None)
             {
-                return $"{kind}-none";
+                return $"{kind}:none";
             }
             else if (pe.IdTypeCase == PathElement.IdTypeOneofCase.Id)
             {
-                return $"{kind}-id-{pe.Id}";
+                return $"{kind}:id:{pe.Id}";
             }
             else if (pe.IdTypeCase == PathElement.IdTypeOneofCase.Name)
             {
-                return $"{kind}-name-{Convert.ToBase64String(Encoding.UTF8.GetBytes(pe.Name))}";
+                return $"{kind}:name:{Hash.XxHash64(pe.Name, Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture)}";
             }
             throw new NotImplementedException();
         }
@@ -1877,10 +1882,10 @@ namespace Redpoint.CloudFramework.Tests
 
             await directLayer
                 .CreateAsync(
-                    string.Empty, 
-                    new[] { model }.ToAsyncEnumerable(), 
-                    null, 
-                    null, 
+                    string.Empty,
+                    new[] { model }.ToAsyncEnumerable(),
+                    null,
+                    null,
                     TestContext.Current.CancellationToken)
                 .FirstAsync(cancellationToken: TestContext.Current.CancellationToken)
                 .ConfigureAwait(true);
@@ -1902,7 +1907,7 @@ namespace Redpoint.CloudFramework.Tests
             Assert.NotNull(loaded);
             Assert.Equal(
                 (decimal)previous.ToUnixTimeSeconds(),
-                (decimal)loaded.dateEndedUtc!.Value.ToUnixTimeSeconds(), 
+                (decimal)loaded.dateEndedUtc!.Value.ToUnixTimeSeconds(),
                 1);
             Assert.True(loaded.dateEndedUtc < now);
         }
