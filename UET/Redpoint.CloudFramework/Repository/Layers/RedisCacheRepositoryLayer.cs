@@ -415,6 +415,10 @@ return queriesCleared
                     Limit = limit,
                 };
                 var cacheHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cacheKeyJson, RedisCacheJsonSerializerContext.Default.ComplexCacheKeyJson)))).ToLowerInvariant();
+
+                span.SetTag("columns", string.Join(", ", columns.ToArray()));
+                span.SetTag("cache.key", cacheHash);
+
                 return Task.FromResult((cacheHash, columns.ToArray()));
             }
         }
@@ -540,10 +544,20 @@ end
 return readers
 ";
         private const string _writeCachedEntityIntoCache = @"
-if redis.call('GET', KEYS[2]) ~= ARGV[2] then
+-- Read the LASTWRITE key.
+local lastWrite = redis.call('GET', KEYS[2])
+
+-- Handle unset LASTWRITE keys in which case we must assume 0.
+if lastWrite == false then
+    lastWrite = '0'
+end
+
+-- Check last write value against what we last saw.
+if lastWrite ~= ARGV[2] then
     -- Read data is now stale, do not write to cache.
     return
 end
+
 for i = 3, table.getn(ARGV) do
     -- Add the entity JSON to the cache data.
     redis.call('LPUSH', KEYS[1], ARGV[i])
@@ -554,8 +568,16 @@ for i = 3, table.getn(ARGV) do
 end
 ";
         private const string _finalizeCacheWriting = @"
+-- Read the LASTWRITE key.
+local lastWrite = redis.call('GET', KEYS[5])
+
+-- Handle unset LASTWRITE keys in which case we must assume 0.
+if lastWrite == false then
+    lastWrite = '0'
+end
+
 -- Check to see if the read data was invalidated through a concurrent write.
-if redis.call('GET', KEYS[5]) ~= ARGV[2] then    
+if lastWrite ~= ARGV[2] then 
     redis.call('UNLINK', KEYS[1], KEYS[2], KEYS[3], KEYS[4])
     return 'invalidated-by-concurrent-write'
 end
