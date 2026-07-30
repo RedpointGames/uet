@@ -1002,7 +1002,7 @@ return 'written'
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
         {
-            using (_managedTracer.StartSpan($"db.rediscache.load", GetSpanName(@namespace, typeof(T).Name, key)))
+            using (var span = _managedTracer.StartSpan($"db.rediscache.load", GetSpanName(@namespace, typeof(T).Name, key)))
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
                 ArgumentNullException.ThrowIfNull(key);
@@ -1046,27 +1046,36 @@ return 'written'
                         var cache = _redis.GetDatabase();
                         var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, new T()).ConfigureAwait(false);
 
-                        var cacheKey = GetSimpleCacheKey(key);
-                        var cacheEntity = await cache.StringGetAsync(cacheKey).ConfigureAwait(false);
-                        if (cacheEntity.HasValue)
+                        string? cacheKey;
+                        RedisValue cacheEntity;
+                        using (var cacheGetSpan = _managedTracer.StartCacheGetSpan())
                         {
-                            await _metricService.AddPoint(_cacheLookups, 1, null, new Dictionary<string, string?>
+                            cacheKey = GetSimpleCacheKey(key);
+                            cacheGetSpan.Key = cacheKey;
+
+                            cacheEntity = await cache.StringGetAsync(cacheKey).ConfigureAwait(false);
+                            if (cacheEntity.HasValue)
                             {
-                                { "kind", (new T()).GetKind() },
-                                { "namespace", @namespace },
-                                { "result", "hit" },
-                            }).ConfigureAwait(false);
-                            if (metrics != null)
-                            {
-                                metrics.CacheDidRead = true;
+                                await _metricService.AddPoint(_cacheLookups, 1, null, new Dictionary<string, string?>
+                                {
+                                    { "kind", (new T()).GetKind() },
+                                    { "namespace", @namespace },
+                                    { "result", "hit" },
+                                }).ConfigureAwait(false);
+                                if (metrics != null)
+                                {
+                                    metrics.CacheDidRead = true;
+                                }
+                                var model = _jsonConverter.From<T>(
+                                    @namespace,
+                                    (string)cacheEntity!);
+                                if (model != null)
+                                {
+                                    cacheGetSpan.Hit = true;
+                                    return model;
+                                }
                             }
-                            var model = _jsonConverter.From<T>(
-                                @namespace,
-                                (string)cacheEntity!);
-                            if (model != null)
-                            {
-                                return model;
-                            }
+                            cacheGetSpan.Hit = false;
                         }
 
                         var keyFactory = await _datastoreRepositoryLayer.GetKeyFactoryAsync<T>(@namespace, metrics, cancellationToken).ConfigureAwait(false);
@@ -1082,20 +1091,25 @@ return 'written'
                             false,
                             _ => keyFactory.CreateIncompleteKey());
                         RedisResult cacheResult;
-                        using (_managedTracer.StartSpan("db.rediscache.load.write_cached_entity_to_cache", GetSpanName(@namespace, typeof(T).Name, key)))
+                        using (var putSpan = _managedTracer.StartSpan("db.rediscache.load.write_cached_entity_to_cache", GetSpanName(@namespace, typeof(T).Name, key)))
                         {
-                            cacheResult = await cache.ScriptEvaluateAsync(
-                                _writeSingleCachedEntityIntoCache,
-                                new RedisKey[]
-                                {
-                                    cacheKey,
-                                    queryLastWriteKey,
-                                },
-                                new RedisValue[]
-                                {
-                                    new RedisValue(cacheEntity!),
-                                    (RedisValue)queryLastWriteValue,
-                                }).ConfigureAwait(false);
+                            using (var cachePutSpan = _managedTracer.StartCachePutSpan())
+                            {
+                                cachePutSpan.Key = cacheKey;
+                                cacheResult = await cache.ScriptEvaluateAsync(
+                                    _writeSingleCachedEntityIntoCache,
+                                    new RedisKey[]
+                                    {
+                                        cacheKey,
+                                        queryLastWriteKey,
+                                    },
+                                    new RedisValue[]
+                                    {
+                                        new RedisValue(cacheEntity!),
+                                        (RedisValue)queryLastWriteValue,
+                                    }).ConfigureAwait(false);
+                                cachePutSpan.Write = ((string)cacheResult!) != "invalidated";
+                            }
                         }
                         await _metricService.AddPoint(_cacheLookups, 1, null, new Dictionary<string, string?>
                         {
