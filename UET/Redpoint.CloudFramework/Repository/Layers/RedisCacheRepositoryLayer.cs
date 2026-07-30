@@ -581,7 +581,16 @@ redis.call('UNLINK', KEYS[4])
 return 'written'
 ";
         private const string _writeSingleCachedEntityIntoCache = @"
-if redis.call('GET', KEYS[2]) ~= ARGV[2] then
+-- Read the LASTWRITE key.
+local lastWrite = redis.call('GET', KEYS[2])
+
+-- Handle unset LASTWRITE keys in which case we must assume 0.
+if lastWrite == false then
+    lastWrite = '0'
+end
+
+-- Check last write value against what we last saw.
+if lastWrite ~= ARGV[2] then
     -- Read data is now stale, do not write to cache.
     return 'invalidated'
 end
