@@ -33,6 +33,7 @@
     using System.Text.Json;
     using Redpoint.Collections.Batching;
     using Redpoint.CloudFramework.Prefix;
+    using System.Globalization;
 
     internal partial class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
     {
@@ -223,20 +224,23 @@ return queriesCleared
             }
         }
 
-        private string SerializePathElement(PathElement pe)
+        private string SerializePathElementForCacheKey(PathElement pe)
         {
-            var kind = pe.Kind.Contains('-', StringComparison.Ordinal) ? Convert.ToBase64String(Encoding.UTF8.GetBytes(pe.Kind)) : pe.Kind;
+            // @note: This method now stores kinds and names as XxHash64 to prevent any long keys or weird Redis issues
+            // that previously might have been happening with Base64 encoding.
+
+            var kind = pe.Kind.Contains(':', StringComparison.Ordinal) ? Hash.XxHash64(pe.Kind, Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture) : pe.Kind;
             if (pe.IdTypeCase == PathElement.IdTypeOneofCase.None)
             {
-                return $"{kind}-none";
+                return $"{kind}:none";
             }
             else if (pe.IdTypeCase == PathElement.IdTypeOneofCase.Id)
             {
-                return $"{kind}-id-{pe.Id}";
+                return $"{kind}:id:{pe.Id}";
             }
             else if (pe.IdTypeCase == PathElement.IdTypeOneofCase.Name)
             {
-                return $"{kind}-name-{Convert.ToBase64String(Encoding.UTF8.GetBytes(pe.Name))}";
+                return $"{kind}:name:{Hash.XxHash64(pe.Name, Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture)}";
             }
             throw new NotImplementedException();
         }
@@ -248,7 +252,7 @@ return queriesCleared
             if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("key.PartitionId.ProjectId");
             if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("key.PartitionId.NamespaceId");
             if (key.Path == null) throw new ArgumentNullException("key.Path");
-            return $"KEY:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElement))}";
+            return $"KEY:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElementForCacheKey))}";
         }
 
         private string GetSimpleCachedInKey(Key key)
@@ -258,7 +262,7 @@ return queriesCleared
             if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("key.PartitionId.ProjectId");
             if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("key.PartitionId.NamespaceId");
             if (key.Path == null) throw new ArgumentNullException("key.Path");
-            return $"KEYCACHEDIN:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElement))}";
+            return $"KEYCACHEDIN:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElementForCacheKey))}";
         }
 
         private class ComplexCacheKeyFilterJson
@@ -393,7 +397,7 @@ return queriesCleared
                     {
                         Field = x.PropertyFilter.Property.Name,
                         Op = RedisCacheRepositoryLayer.SerializeOp(x.PropertyFilter.Op),
-                        Value = SerializeValue(x.PropertyFilter.Value),
+                        Value = HashValueForComplexCacheKeyFilter(x.PropertyFilter.Value),
                     }).ToArray(),
                     Sort = sort == null ? null : sort.Select(x => new ComplexCacheKeySortJson
                     {
@@ -442,7 +446,7 @@ return queriesCleared
             }
         }
 
-        private string SerializeValue(Value value)
+        private string HashValueForComplexCacheKeyFilter(Value value)
         {
             switch (value.ValueTypeCase)
             {
@@ -457,13 +461,13 @@ return queriesCleared
                 case Value.ValueTypeOneofCase.DoubleValue:
                     return "double:" + JsonSerializer.Serialize(value.DoubleValue, RedisCacheJsonSerializerContext.Default.Double);
                 case Value.ValueTypeOneofCase.KeyValue:
-                    return $"key:{value.KeyValue.PartitionId.ProjectId}/{value.KeyValue.PartitionId.NamespaceId}/{string.Join("/", value.KeyValue.Path.Select(SerializePathElement))}";
+                    return $"key:{value.KeyValue.PartitionId.ProjectId}/{value.KeyValue.PartitionId.NamespaceId}/{string.Join("/", value.KeyValue.Path.Select(SerializePathElementForCacheKey))}";
                 case Value.ValueTypeOneofCase.EntityValue:
                     throw new NotSupportedException();
                 case Value.ValueTypeOneofCase.GeoPointValue:
                     return $"geo:{value.GeoPointValue.Latitude}:{value.GeoPointValue.Longitude}";
                 case Value.ValueTypeOneofCase.ArrayValue:
-                    return "array:" + Hash.XxHash64(string.Join(',', value.ArrayValue.Values.Select(SerializeValue)), Encoding.UTF8);
+                    return "array:" + Hash.XxHash64(string.Join(',', value.ArrayValue.Values.Select(HashValueForComplexCacheKeyFilter)), Encoding.UTF8);
                 case Value.ValueTypeOneofCase.TimestampValue:
                     return $"ts:{_instantTimestampConverter.FromDatastoreValueToNodaTimeInstant(value.TimestampValue)!.Value.ToUnixTimeTicks()}";
                 case Value.ValueTypeOneofCase.StringValue:
