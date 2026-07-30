@@ -2,41 +2,16 @@
 
 namespace Redpoint.CloudFramework.Startup
 {
-    using Google.Api;
-    using Google.Cloud.Datastore.V1;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
     using OpenTelemetry.Metrics;
-    using OpenTelemetry.Resources;
-    using OpenTelemetry.Trace;
-    using RDCommandLine::Microsoft.Extensions.Logging.Console;
     using Redpoint.CloudFramework.BigQuery;
     using Redpoint.CloudFramework.Configuration;
-    using Redpoint.CloudFramework.Counter;
-    using Redpoint.CloudFramework.GoogleInfrastructure;
-    using Redpoint.CloudFramework.Infrastructure;
-    using Redpoint.CloudFramework.Locking;
-    using Redpoint.CloudFramework.Metric;
     using Redpoint.CloudFramework.Prefix;
-    using Redpoint.CloudFramework.Processor;
-    using Redpoint.CloudFramework.Repository;
-    using Redpoint.CloudFramework.Repository.Contention;
-    using Redpoint.CloudFramework.Repository.Converters.Expression;
-    using Redpoint.CloudFramework.Repository.Converters.Model;
-    using Redpoint.CloudFramework.Repository.Converters.Timestamp;
-    using Redpoint.CloudFramework.Repository.Converters.Value;
-    using Redpoint.CloudFramework.Repository.Datastore;
-    using Redpoint.CloudFramework.Repository.Hooks;
-    using Redpoint.CloudFramework.Repository.Layers;
-    using Redpoint.CloudFramework.Repository.Migration;
     using Redpoint.CloudFramework.Storage;
     using Redpoint.CloudFramework.Tracing;
-    using Redpoint.Logging.SingleLine;
-    using Sentry.OpenTelemetry;
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
@@ -161,8 +136,10 @@ namespace Redpoint.CloudFramework.Startup
             services.AddSingleton(typeof(ICurrentTenantService), _currentTenantService);
             services.AddSingleton(sp => sp.GetServices<IPrefixProvider>().ToArray());
 
-            // Add Otel managed tracer. All tracing goes via Otel (including Sentry).
-            services.AddSingleton<IManagedTracer, OtelManagedTracer>();
+            // Add Sentry managed tracer. Only OpenTelemetry metrics are configured at the moment, because
+            // routing Otel tracing and logging to Sentry doesn't seem to work correctly, therefore we trace
+            // directly to Sentry.
+            services.AddSingleton<IManagedTracer, SentryManagedTracer>();
 
             if (_googleCloudUsage != GoogleCloudUsageFlag.None)
             {

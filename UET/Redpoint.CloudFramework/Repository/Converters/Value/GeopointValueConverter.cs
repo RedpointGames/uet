@@ -8,7 +8,6 @@
     using System.Globalization;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
 

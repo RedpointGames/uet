@@ -6,7 +6,6 @@
     using Redpoint.StringEnum;
     using System;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
 

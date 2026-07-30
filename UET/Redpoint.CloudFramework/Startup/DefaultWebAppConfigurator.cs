@@ -7,15 +7,12 @@ namespace Redpoint.CloudFramework.Startup
     using Microsoft.AspNetCore.DataProtection;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.AspNetCore.Mvc.Infrastructure;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Logging.Configuration;
-    using Microsoft.Extensions.Options;
-    using OpenTelemetry.Metrics;
     using Redpoint.CloudFramework.Abstractions;
     using Redpoint.CloudFramework.DataProtection;
     using Redpoint.CloudFramework.Infrastructure;
@@ -24,9 +21,7 @@ namespace Redpoint.CloudFramework.Startup
     using Redpoint.CloudFramework.Processor;
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Datastore;
-    using Redpoint.CloudFramework.Tracing;
     using Sentry.AspNetCore;
-    using Sentry.OpenTelemetry;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;

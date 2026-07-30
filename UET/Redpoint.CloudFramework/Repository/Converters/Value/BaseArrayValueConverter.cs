@@ -5,10 +5,8 @@
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System.Collections;
-    using System.Collections.Generic;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
 

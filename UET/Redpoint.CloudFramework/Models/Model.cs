@@ -2,13 +2,10 @@
 {
     using Google.Cloud.Datastore.V1;
     using NodaTime;
-    using Redpoint.CloudFramework.Repository.Converters.Value;
-    using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using Redpoint.CloudFramework.Repository.Geographic;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using System.Linq;
     using System.Reflection;
 
     /// <summary>

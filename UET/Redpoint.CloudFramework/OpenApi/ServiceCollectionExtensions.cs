@@ -1,9 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.OpenApi
 {
-    using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.ApplicationModels;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Options;
     using Microsoft.OpenApi;
     using NodaTime;
     using System;

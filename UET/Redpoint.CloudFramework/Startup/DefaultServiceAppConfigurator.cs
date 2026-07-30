@@ -11,10 +11,7 @@ namespace Redpoint.CloudFramework.Startup
     using System.Threading.Tasks;
     using System.Linq;
     using Microsoft.Extensions.Logging;
-    using Redpoint.CloudFramework.Tracing;
     using System.Diagnostics.CodeAnalysis;
-    using OpenTelemetry.Metrics;
-    using System.Reflection;
     using Redpoint.Logging.SingleLine;
     using RDCommandLine::Microsoft.Extensions.Logging.Console;
     using Sentry.OpenTelemetry;

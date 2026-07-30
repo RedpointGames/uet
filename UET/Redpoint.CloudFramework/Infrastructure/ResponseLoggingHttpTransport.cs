@@ -1,13 +1,10 @@
 ﻿namespace Redpoint.CloudFramework.Infrastructure
 {
-    using Microsoft.Extensions.Logging;
     using Sentry.Extensibility;
     using Sentry.Http;
     using Sentry.Infrastructure;
     using Sentry.Protocol.Envelopes;
     using System;
-    using System.Collections.Generic;
-    using System.Text;
 
     internal class ResponseLoggingHttpTransport : HttpTransportBase, ITransport, IDisposable
     {

@@ -7,7 +7,6 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
 

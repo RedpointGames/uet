@@ -3,7 +3,6 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Model;
-    using System.Threading.Tasks;
 
     internal class DefaultModelValidator : IModelValidator
     {

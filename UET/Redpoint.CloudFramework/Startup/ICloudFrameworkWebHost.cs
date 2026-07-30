@@ -3,8 +3,6 @@
     using Microsoft.AspNetCore.Hosting;
     using Redpoint.CloudFramework.Abstractions;
     using System;
-    using System.Collections.Generic;
-    using System.Text;
 
     internal class DefaultCloudFrameworkWebHost : ICloudFrameworkWebHost
     {

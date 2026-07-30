@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Startup
 {
-    using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.Extensions.Configuration;
     using Redpoint.CloudFramework.Abstractions;
