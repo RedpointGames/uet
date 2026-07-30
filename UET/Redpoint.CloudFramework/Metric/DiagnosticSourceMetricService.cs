@@ -1,9 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.Metric
 {
     using Google.Cloud.Datastore.V1;
-    using Pipelines.Sockets.Unofficial.Threading;
     using Redpoint.CloudFramework.Prefix;
-    using Redpoint.Concurrency;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;

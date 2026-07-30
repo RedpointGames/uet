@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Google.Type;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.JsonHelpers;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;

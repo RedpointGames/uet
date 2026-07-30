@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Models
 {
     using NodaTime;
-    using System.Collections.Generic;
 
     [Kind("Lock")]
     public class DefaultLockModel : Model<DefaultLockModel>

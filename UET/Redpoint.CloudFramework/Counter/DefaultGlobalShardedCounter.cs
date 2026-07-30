@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Counter
 {
     using Google.Cloud.Datastore.V1;
-    using Redpoint.CloudFramework.Datastore;
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
@@ -11,8 +10,6 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Globalization;
     using System.Linq;
     using System.Security.Cryptography;
     using System.Threading.Tasks;

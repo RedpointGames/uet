@@ -1,11 +1,8 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Migration
 {
-    using Microsoft.Extensions.DependencyInjection;
     using Redpoint.CloudFramework.Models;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using System.Text;
     using System.Threading.Tasks;
 
     internal interface IModelMigratorExecutor

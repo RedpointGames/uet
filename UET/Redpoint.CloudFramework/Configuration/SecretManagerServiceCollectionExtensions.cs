@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Configuration
 {
-    using Google.Cloud.SecretManager.V1;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 

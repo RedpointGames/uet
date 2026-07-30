@@ -9,7 +9,6 @@
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System;
     using System.Collections.Generic;
-    using System.Reflection;
     using Value = Google.Cloud.Datastore.V1.Value;
 
     internal class EntityModelConverter : IModelConverter<Entity>

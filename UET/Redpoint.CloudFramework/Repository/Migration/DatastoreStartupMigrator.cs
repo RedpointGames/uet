@@ -4,11 +4,9 @@
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Redpoint.CloudFramework.Locking;
-    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Layers;
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;

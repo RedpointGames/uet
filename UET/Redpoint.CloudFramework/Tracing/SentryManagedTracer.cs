@@ -1,12 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Tracing
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-
     internal class SentryManagedTracer : IManagedTracer
     {
         private class SentrySpan : ISpan

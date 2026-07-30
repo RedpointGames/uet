@@ -1,10 +1,8 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Timestamp
 {
     using NodaTime;
-    using Redpoint.CloudFramework.Repository.Converters.JsonHelpers;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using System.Text.Json.Serialization.Metadata;
 
     internal class DefaultInstantTimestampJsonConverter : IInstantTimestampJsonConverter
     {

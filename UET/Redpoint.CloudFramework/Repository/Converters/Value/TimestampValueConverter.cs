@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
-    using Google.Type;
     using NodaTime;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
@@ -8,7 +7,6 @@
     using System;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
 

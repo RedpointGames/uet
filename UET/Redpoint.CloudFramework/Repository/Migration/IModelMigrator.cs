@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Migration
 {
     using Redpoint.CloudFramework.Models;
-    using System.Collections.ObjectModel;
     using System.Threading.Tasks;
 
     public interface IModelMigrator<T> : INonTransactionalModelMigrator<T> where T : IModel

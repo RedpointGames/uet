@@ -1,10 +1,8 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Converters.Value
 {
     using Google.Cloud.Datastore.V1;
-    using Google.Protobuf;
     using Google.Protobuf.WellKnownTypes;
     using Google.Type;
-    using Microsoft.Extensions.DependencyInjection;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
@@ -12,7 +10,6 @@
     using System;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
     using Type = System.Type;
     using Value = Google.Cloud.Datastore.V1.Value;
 

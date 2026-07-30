@@ -1,7 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Models
 {
     using System;
-    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Sets the kind of the entity when this model is stored in Datastore.

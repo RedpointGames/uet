@@ -6,7 +6,6 @@
     using Google.Cloud.Datastore.V1;
     using Microsoft.Extensions.Logging;
     using Redpoint.CloudFramework.Prefix;
-    using System.Reflection;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Converters.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;

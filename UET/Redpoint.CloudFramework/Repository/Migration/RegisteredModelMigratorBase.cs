@@ -1,9 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Migration
 {
-    using Google.Cloud.Datastore.V1;
-    using Redpoint.CloudFramework.Models;
-    using Redpoint.CloudFramework.Repository.Layers;
-    using Redpoint.CloudFramework.Repository.Transaction;
     using System;
     using System.Diagnostics.CodeAnalysis;
 

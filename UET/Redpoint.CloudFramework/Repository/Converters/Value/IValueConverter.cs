@@ -6,7 +6,6 @@
     using Value = Google.Cloud.Datastore.V1.Value;
     using Redpoint.CloudFramework.Repository.Converters.Value.Context;
     using System.Text.Json.Nodes;
-    using static Google.Cloud.Datastore.V1.Value;
 
     /// <summary>
     /// Represents a converter that can convert CLR values into Datastore and JSON values and vice versa.

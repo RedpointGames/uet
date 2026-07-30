@@ -1,18 +1,12 @@
 ﻿extern alias RDCommandLine;
 
 using RDCommandLine::Microsoft.Extensions.Logging.Console;
-using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Redpoint.CloudFramework.GoogleInfrastructure;
 using Redpoint.CloudFramework.Tracing;
 using Redpoint.Logging.SingleLine;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 
 namespace Redpoint.CloudFramework.Configuration

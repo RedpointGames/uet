@@ -18,9 +18,6 @@
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Converters.Value;
     using Redpoint.CloudFramework.Metric;
-    using Microsoft.Extensions.DependencyInjection.Extensions;
-    using Microsoft.Extensions.Options;
-    using Redpoint.CloudFramework.Processor;
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Repository.Validation;
 
