@@ -31,7 +31,7 @@
     <PackageVersion Include="Mono.Posix.NETStandard" Version="1.0.0" />
     <PackageVersion Include="NSec.Cryptography" Version="26.4.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.15.3-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
     <PackageVersion Include="SourceGear.sqlite3" Version="3.53.3" />
     <PackageVersion Include="SQLitePCLRaw.provider.dynamic_cdecl" Version="3.0.2" />
     <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.3" />
