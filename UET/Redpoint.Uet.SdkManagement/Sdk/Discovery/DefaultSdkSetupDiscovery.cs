@@ -220,7 +220,9 @@
                                     _serviceProvider.GetRequiredService<WindowsSdkInstaller>(),
                                     _serviceProvider.GetRequiredService<IVersionNumberResolver>(),
                                     _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>(),
-                                    _serviceProvider.GetRequiredService<IMsiExtraction>());
+                                    _serviceProvider.GetRequiredService<IMsiExtraction>(),
+                                    _serviceProvider.GetRequiredService<IPathResolver>(),
+                                    _serviceProvider.GetRequiredService<IPackageManager>());
                             }
                             else
                             {

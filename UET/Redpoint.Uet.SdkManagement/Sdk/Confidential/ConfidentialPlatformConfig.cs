@@ -14,12 +14,18 @@
         [JsonPropertyName("SupportsTemporaryFolderSwapOnInstall")]
         public bool? SupportsTemporaryFolderSwapOnInstall { get; set; }
 
+        [JsonPropertyName("Steps")]
+        [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        public ConfidentialPlatformConfigStep[]? Steps { get; set; }
+
         [JsonPropertyName("Installers")]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        [Obsolete("Steps should be used instead.")]
         public ConfidentialPlatformConfigInstaller[]? Installers { get; set; }
 
         [JsonPropertyName("Extractors")]
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This property is used for JSON serialization.")]
+        [Obsolete("Steps should be used instead.")]
         public ConfidentialPlatformConfigExtractor[]? Extractors { get; set; }
 
         [JsonPropertyName("EnvironmentVariables")]
