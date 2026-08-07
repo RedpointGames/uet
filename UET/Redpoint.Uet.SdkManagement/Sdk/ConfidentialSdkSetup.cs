@@ -2,6 +2,8 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.IO;
+    using Redpoint.PackageManagement;
+    using Redpoint.PathResolution;
     using Redpoint.ProcessExecution;
     using Redpoint.Registry;
     using Redpoint.Uet.Core;
@@ -29,6 +31,8 @@
         private readonly IVersionNumberResolver _versionNumberResolver;
         private readonly ILogger<ConfidentialSdkSetup> _logger;
         private readonly IMsiExtraction _msiExtraction;
+        private readonly IPathResolver _pathResolver;
+        private readonly IPackageManager _packageManager;
 
         public ConfidentialSdkSetup(
             string[] platformNames,
@@ -39,7 +43,9 @@
             WindowsSdkInstaller windowsSdkInstaller,
             IVersionNumberResolver versionNumberResolver,
             ILogger<ConfidentialSdkSetup> logger,
-            IMsiExtraction msiExtraction)
+            IMsiExtraction msiExtraction,
+            IPathResolver pathResolver,
+            IPackageManager packageManager)
         {
             PlatformNames = platformNames;
             _config = config;
@@ -51,6 +57,8 @@
             _versionNumberResolver = versionNumberResolver;
             _logger = logger;
             _msiExtraction = msiExtraction;
+            _pathResolver = pathResolver;
+            _packageManager = packageManager;
         }
 
         public IReadOnlyList<string> PlatformNames { get; }
@@ -83,45 +91,54 @@
             return Task.FromResult(Substitute(_config.Version ?? _substituteVersion, null));
         }
 
-        public virtual async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
+        private async Task RunInstallerAsync(ConfidentialPlatformConfigInstaller installer, string sdkPackagePath, CancellationToken cancellationToken)
         {
-            foreach (var message in _config.Messages ?? [])
+            if (installer.BeforeInstallSetRegistryValue != null)
             {
-                _logger.LogInformation(Substitute(message, sdkPackagePath));
+                ProcessRegistryKeys(installer.BeforeInstallSetRegistryValue, sdkPackagePath);
             }
 
-            foreach (var installer in _config.Installers ?? Array.Empty<ConfidentialPlatformConfigInstaller>())
+            var installerWildcardPath = Substitute(installer.InstallerPath!, sdkPackagePath);
+            string[] installerPaths;
+
+            if (Path.GetFileName(installerWildcardPath).Contains('*', StringComparison.Ordinal))
             {
-                if (installer.BeforeInstallSetRegistryValue != null)
-                {
-                    ProcessRegistryKeys(installer.BeforeInstallSetRegistryValue, sdkPackagePath);
-                }
+                // Search for all files that match the wildcard.
+                installerPaths = Directory.GetFiles(
+                    Path.GetDirectoryName(installerWildcardPath)!,
+                    Path.GetFileName(installerWildcardPath));
+            }
+            else
+            {
+                installerPaths = [installerWildcardPath];
+            }
 
-                var installerPath = Substitute(installer.InstallerPath!, sdkPackagePath);
-
-                try
+            try
+            {
+                if (installer.BeforeInstallDeleteDirectory != null)
                 {
-                    if (installer.BeforeInstallDeleteDirectory != null)
+                    foreach (var e in installer.BeforeInstallDeleteDirectory)
                     {
-                        foreach (var e in installer.BeforeInstallDeleteDirectory)
+                        var eSubstituted = Substitute(e, sdkPackagePath);
+                        if (Directory.Exists(eSubstituted))
                         {
-                            var eSubstituted = Substitute(e, sdkPackagePath);
-                            if (Directory.Exists(eSubstituted))
-                            {
-                                _logger.LogInformation($"Deleting existing installation directory: {eSubstituted} (this might take a while)");
-                                await DirectoryAsync.DeleteAsync(eSubstituted, true);
-                            }
+                            _logger.LogInformation($"Deleting existing installation directory: {eSubstituted} (this might take a while)");
+                            await DirectoryAsync.DeleteAsync(eSubstituted, true);
                         }
                     }
+                }
 
+                var firstInstaller = true;
+                foreach (var installerPath in installerPaths)
+                {
                     var logPath = Path.Combine(sdkPackagePath, _stringUtilities.GetStabilityHash(installerPath, null), "InstallLogs");
                     Directory.CreateDirectory(logPath);
 
                     var interestedLogDirectories = new List<string>
-                    {
-                        logPath,
-                    };
-                    if (installer.InstallerAdditionalLogFileDirectories != null)
+                        {
+                            logPath,
+                        };
+                    if (installer.InstallerAdditionalLogFileDirectories != null && firstInstaller)
                     {
                         foreach (var directoryUnsub in installer.InstallerAdditionalLogFileDirectories)
                         {
@@ -136,6 +153,10 @@
                                 File.Delete(existingLog);
                             }
                         }
+                    }
+                    if (firstInstaller)
+                    {
+                        firstInstaller = false;
                     }
 
                     using var monitoringCts = new CancellationTokenSource();
@@ -204,6 +225,36 @@
                             .Concat(installerArguments)
                             .ToList();
                     }
+                    else if (installerExecutablePath.EndsWith(".vsix", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Make sure we have VSIXBootstrapper installed.
+                        string vsixBootstrapper;
+                        try
+                        {
+                            vsixBootstrapper = await _pathResolver.ResolveBinaryPath("VSIXBootstrapper");
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            _logger.LogInformation("Installing VSIXBootstrapper so we can install VSIX packages...");
+                            await _packageManager.InstallOrUpgradePackageToLatestAsync("Microsoft.VSIXBootstrapper", cancellationToken: cancellationToken);
+
+                            vsixBootstrapper = await _pathResolver.ResolveBinaryPath("VSIXBootstrapper");
+                        }
+
+                        // Use VSIXBootstrapper to install the VSIX.
+                        installerExecutablePath = vsixBootstrapper;
+                        installerArguments =
+                            new LogicalProcessArgument[]
+                            {
+                                "/q",
+                                "/nr",
+                                "/sp",
+                                $"/logFile:{Path.Combine(logPath, Path.GetFileNameWithoutExtension(installerPath) + ".log")}",
+                                installerPath,
+                            }
+                            .Concat(installerArguments)
+                            .ToList();
+                    }
 
                     var exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
@@ -224,56 +275,89 @@
                     {
                     }
 
-                    if (installer.MustExistAfterInstall != null)
-                    {
-                        foreach (var e in installer.MustExistAfterInstall)
-                        {
-                            var eSubstituted = Substitute(e, sdkPackagePath);
-                            if (!Path.Exists(eSubstituted))
-                            {
-                                throw new SdkSetupPackageGenerationFailedException($"Expected the path '{eSubstituted}' to exist after installation, but it did not.");
-                            }
-                        }
-                    }
-
                     if (exitCode != 0 && !installer.PermitNonZeroExitCode)
                     {
                         throw new SdkSetupPackageGenerationFailedException($"Confidential platform process exited with non-zero exit code: {exitCode}");
                     }
                 }
-                finally
+
+                if (installer.MustExistAfterInstall != null)
                 {
-                    if (installer.AfterInstallSetRegistryValue != null)
+                    foreach (var e in installer.MustExistAfterInstall)
                     {
-                        ProcessRegistryKeys(installer.AfterInstallSetRegistryValue, sdkPackagePath);
+                        var eSubstituted = Substitute(e, sdkPackagePath);
+                        if (!Path.Exists(eSubstituted))
+                        {
+                            throw new SdkSetupPackageGenerationFailedException($"Expected the path '{eSubstituted}' to exist after installation, but it did not.");
+                        }
                     }
                 }
+            }
+            finally
+            {
+                if (installer.AfterInstallSetRegistryValue != null)
+                {
+                    ProcessRegistryKeys(installer.AfterInstallSetRegistryValue, sdkPackagePath);
+                }
+            }
+        }
+
+        private async Task RunExtractorAsync(ConfidentialPlatformConfigExtractor extractor, string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            var msiSourceDirectory = Substitute(extractor.MsiSourceDirectory!, sdkPackagePath);
+            var msiFilenameFilter = Substitute(extractor.MsiFilenameFilter ?? "*.msi", sdkPackagePath);
+
+            _logger.LogInformation($"Searching for {msiFilenameFilter} files to extract in: {msiSourceDirectory}");
+
+            var filesFound = 0;
+            foreach (var file in Directory.GetFiles(msiSourceDirectory, msiFilenameFilter))
+            {
+                var targetDirectory = Path.Combine(sdkPackagePath, Substitute(extractor.ExtractionSubdirectoryPath!.Replace('/', '\\'), sdkPackagePath));
+                await _msiExtraction.ExtractMsiAsync(
+                    Substitute(extractor.MsiSourceDirectory!, sdkPackagePath),
+                    Path.GetFileName(file),
+                    targetDirectory,
+                    cancellationToken);
+                filesFound++;
+            }
+
+            if (filesFound == 0)
+            {
+                throw new SdkSetupPackageGenerationFailedException($"Confidential platform process did not find any {msiFilenameFilter} files inside {msiSourceDirectory}.");
+            }
+        }
+
+        public virtual async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
+        {
+            foreach (var message in _config.Messages ?? [])
+            {
+                _logger.LogInformation(Substitute(message, sdkPackagePath));
+            }
+
+            foreach (var step in _config.Steps ?? Array.Empty<ConfidentialPlatformConfigStep>())
+            {
+                if (step.Installer != null)
+                {
+                    await RunInstallerAsync(step.Installer, sdkPackagePath, cancellationToken);
+                }
+
+                if (step.Extractor != null)
+                {
+                    await RunExtractorAsync(step.Extractor, sdkPackagePath, cancellationToken);
+                }
+            }
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            foreach (var installer in _config.Installers ?? Array.Empty<ConfidentialPlatformConfigInstaller>())
+            {
+                await RunInstallerAsync(installer, sdkPackagePath, cancellationToken);
             }
 
             foreach (var extractor in _config.Extractors ?? Array.Empty<ConfidentialPlatformConfigExtractor>())
             {
-                var msiSourceDirectory = Substitute(extractor.MsiSourceDirectory!, sdkPackagePath);
-                var msiFilenameFilter = Substitute(extractor.MsiFilenameFilter ?? "*.msi", sdkPackagePath);
-
-                _logger.LogInformation($"Searching for {msiFilenameFilter} files to extract in: {msiSourceDirectory}");
-
-                var filesFound = 0;
-                foreach (var file in Directory.GetFiles(msiSourceDirectory, msiFilenameFilter))
-                {
-                    var targetDirectory = Path.Combine(sdkPackagePath, Substitute(extractor.ExtractionSubdirectoryPath!.Replace('/', '\\'), sdkPackagePath));
-                    await _msiExtraction.ExtractMsiAsync(
-                        Substitute(extractor.MsiSourceDirectory!, sdkPackagePath),
-                        Path.GetFileName(file),
-                        targetDirectory,
-                        cancellationToken);
-                    filesFound++;
-                }
-
-                if (filesFound == 0)
-                {
-                    throw new SdkSetupPackageGenerationFailedException($"Confidential platform process did not find any {msiFilenameFilter} files inside {msiSourceDirectory}.");
-                }
+                await RunExtractorAsync(extractor, sdkPackagePath, cancellationToken);
             }
+#pragma warning restore CS0618 // Type or member is obsolete
 
             if (_config.AutoSdkSetupScripts != null)
             {
