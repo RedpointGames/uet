@@ -2313,6 +2313,14 @@
                 AssumeLfs = descriptor.QueryString?["lfs"] == "true",
             };
 
+            // If the descriptor requests a clean workspace, delete the entire folder so we can re-initialize from scratch.
+            if (descriptor.RequireCleanWorkspace)
+            {
+                _logger.LogError("Workspace requires clean. Deleting the entire working directory and re-initializing from scratch...");
+                await DirectoryAsync.DeleteAsync(repositoryPath, true);
+                Directory.CreateDirectory(repositoryPath);
+            }
+
             var didAttemptReinitialization = false;
         reinitializeFromScratch:
             GitResolvedReference resolvedReference;

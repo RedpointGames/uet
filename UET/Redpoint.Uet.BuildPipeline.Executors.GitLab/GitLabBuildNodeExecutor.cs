@@ -68,6 +68,7 @@
             string branch,
             IReadOnlyList<string> nodeNames,
             BuildSpecification buildSpecification,
+            bool eraseWorkspace,
             CancellationToken cancellationToken)
         {
             NameValueCollection? queryString = null;
@@ -93,6 +94,7 @@
                     WindowsSharedGitCachePath = null,
                     MacSharedGitCachePath = null,
                     QueryString = queryString,
+                    RequireCleanWorkspace = eraseWorkspace,
                 },
                 cancellationToken).ConfigureAwait(false);
         }
@@ -279,7 +281,8 @@
                 }
 
                 int overallExitCode;
-            retryWithEngineRemount:
+                var eraseWorkspace = false;
+            retryForEngineRemountOrWorkspaceErase:
                 try
                 {
                     if (buildSpecification.Engine.EngineBuildType == BuildEngineSpecificationEngineBuildType.CurrentWorkspace)
@@ -293,6 +296,7 @@
                             branch,
                             nodeNames,
                             buildSpecification,
+                            eraseWorkspace,
                             cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                         {
                             _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
@@ -329,6 +333,7 @@
                                     branch,
                                     nodeNames,
                                     buildSpecification,
+                                    eraseWorkspace,
                                     cancellationToken).ConfigureAwait(false)).AsAsyncDisposable(out var targetWorkspace).ConfigureAwait(false))
                                 {
                                     _logger.LogTrace($"Calling ExecuteNodesInWorkspaceAsync inside allocated workspace.");
@@ -346,7 +351,13 @@
                 {
                     _logger.LogWarning("Retrying with new UEFS engine mount...");
                     buildSpecification.Engine.NoUefsWriteScratchReuse = true;
-                    goto retryWithEngineRemount;
+                    goto retryForEngineRemountOrWorkspaceErase;
+                }
+                catch (WorkspaceCorruptException)
+                {
+                    _logger.LogWarning("Retrying with clean workspace...");
+                    eraseWorkspace = true;
+                    goto retryForEngineRemountOrWorkspaceErase;
                 }
                 _logger.LogTrace($"Returning overall exit code '{overallExitCode}' from ExecuteBuildNodesAsync.");
                 return overallExitCode;

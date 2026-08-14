@@ -33,5 +33,7 @@
         /// Additional options for checkout process.
         /// </summary>
         public NameValueCollection? QueryString { get; set; }
+
+        public bool RequireCleanWorkspace { get; set; }
     }
 }
