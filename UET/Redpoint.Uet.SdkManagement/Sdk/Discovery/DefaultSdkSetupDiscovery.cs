@@ -89,144 +89,148 @@
                         _serviceProvider.GetRequiredService<IPathResolver>());
                 }
 
-                var confidentialPlatformAutoDiscoveryJsonDefaultPath = Path.Combine(
-                    enginePath,
-                    "UET.ConsoleSDK.json");
-                var confidentialPlatformAutoDiscoveryJson = Environment.GetEnvironmentVariable("UET_PLATFORM_SDK_AUTO_DISCOVERY_CONFIG_PATH");
-                if (string.IsNullOrWhiteSpace(confidentialPlatformAutoDiscoveryJson) &&
-                    File.Exists(confidentialPlatformAutoDiscoveryJsonDefaultPath))
+                var ignoreConfidentialPlatforms = Environment.GetEnvironmentVariable("UET_IGNORE_CONFIDENTIAL_PLATFORMS");
+                if (ignoreConfidentialPlatforms != "1")
                 {
-                    confidentialPlatformAutoDiscoveryJson = confidentialPlatformAutoDiscoveryJsonDefaultPath;
-                }
-                if (!string.IsNullOrWhiteSpace(confidentialPlatformAutoDiscoveryJson))
-                {
-                    var autoDiscoveryConfig = JsonSerializer.Deserialize(
-                        File.ReadAllText(confidentialPlatformAutoDiscoveryJson),
-                        new ConfidentialPlatformJsonSerializerContext(new JsonSerializerOptions
-                        {
-                            Converters =
-                            {
-                                new JsonStringEnumConverter(),
-                            }
-                        }).ConfidentialPlatformAutoDiscovery)!;
-
-                    var fileStorageDirectory = new DirectoryInfo(autoDiscoveryConfig.FileStoragePath);
-                    var fileStorageDirectories = fileStorageDirectory.GetDirectories();
-
-                    foreach (var discoverer in autoDiscoveryConfig.Discoverers)
+                    var confidentialPlatformAutoDiscoveryJsonDefaultPath = Path.Combine(
+                        enginePath,
+                        "UET.ConsoleSDK.json");
+                    var confidentialPlatformAutoDiscoveryJson = Environment.GetEnvironmentVariable("UET_PLATFORM_SDK_AUTO_DISCOVERY_CONFIG_PATH");
+                    if (string.IsNullOrWhiteSpace(confidentialPlatformAutoDiscoveryJson) &&
+                        File.Exists(confidentialPlatformAutoDiscoveryJsonDefaultPath))
                     {
-                        var platformConfigPath = Path.Combine(enginePath, discoverer.EnginePlatformConfigJsonPath);
-                        if (File.Exists(platformConfigPath))
-                        {
-                            var platformConfig = JsonSerializer.Deserialize(
-                                File.ReadAllText(platformConfigPath),
-                                ConfidentialPlatformJsonSerializerContext.Default.GenericPlatformConfig)!;
-
-                            if (platformConfig.IncludeSDKFile != null)
+                        confidentialPlatformAutoDiscoveryJson = confidentialPlatformAutoDiscoveryJsonDefaultPath;
+                    }
+                    if (!string.IsNullOrWhiteSpace(confidentialPlatformAutoDiscoveryJson))
+                    {
+                        var autoDiscoveryConfig = JsonSerializer.Deserialize(
+                            File.ReadAllText(confidentialPlatformAutoDiscoveryJson),
+                            new ConfidentialPlatformJsonSerializerContext(new JsonSerializerOptions
                             {
-                                platformConfigPath = platformConfig.IncludeSDKFile
-                                    .Replace("$(EngineDir)", Path.Combine(enginePath, "Engine"), StringComparison.Ordinal)
-                                    .Replace('/', '\\');
-                                if (File.Exists(platformConfigPath))
+                                Converters =
                                 {
-                                    var oldPlatformConfig = platformConfig;
-                                    platformConfig = JsonSerializer.Deserialize(
-                                        File.ReadAllText(platformConfigPath),
-                                        ConfidentialPlatformJsonSerializerContext.Default.GenericPlatformConfig)!;
-
-                                    if (platformConfig.MainVersion == null && oldPlatformConfig.MainVersion != null)
-                                    {
-                                        platformConfig.MainVersion = oldPlatformConfig.MainVersion;
-                                    }
-                                    if (platformConfig.MinVersion == null && oldPlatformConfig.MinVersion != null)
-                                    {
-                                        platformConfig.MinVersion = oldPlatformConfig.MinVersion;
-                                    }
-                                    if (platformConfig.MaxVersion == null && oldPlatformConfig.MaxVersion != null)
-                                    {
-                                        platformConfig.MaxVersion = oldPlatformConfig.MaxVersion;
-                                    }
+                                    new JsonStringEnumConverter(),
                                 }
-                            }
+                            }).ConfidentialPlatformAutoDiscovery)!;
 
-                            if (platformConfig.MainVersion == null && platformConfig.MainGDKVersion != null)
-                            {
-                                platformConfig.MainVersion = platformConfig.MainGDKVersion;
-                            }
-                            if (platformConfig.MinVersion == null && platformConfig.MinGDKVersion != null)
-                            {
-                                platformConfig.MinVersion = platformConfig.MinGDKVersion;
-                            }
-                            if (platformConfig.MaxVersion == null && platformConfig.MaxGDKVersion != null)
-                            {
-                                platformConfig.MaxVersion = platformConfig.MaxGDKVersion;
-                            }
+                        var fileStorageDirectory = new DirectoryInfo(autoDiscoveryConfig.FileStoragePath);
+                        var fileStorageDirectories = fileStorageDirectory.GetDirectories();
 
-                            if (platformConfig.MaxVersion == null ||
-                                platformConfig.MinVersion == null ||
-                                platformConfig.MainVersion == null)
+                        foreach (var discoverer in autoDiscoveryConfig.Discoverers)
+                        {
+                            var platformConfigPath = Path.Combine(enginePath, discoverer.EnginePlatformConfigJsonPath);
+                            if (File.Exists(platformConfigPath))
                             {
-                                continue;
-                            }
+                                var platformConfig = JsonSerializer.Deserialize(
+                                    File.ReadAllText(platformConfigPath),
+                                    ConfidentialPlatformJsonSerializerContext.Default.GenericPlatformConfig)!;
 
-                            var minVersion = GenericPlatformVersion.Parse(platformConfig.MinVersion)!;
-                            var maxVersion = GenericPlatformVersion.Parse(platformConfig.MaxVersion)!;
-                            var mainVersion = GenericPlatformVersion.Parse(platformConfig.MainVersion)!;
-
-                            _logger.LogInformation($"Attempting to discover SDK for {discoverer.PlatformName} between minimum version {minVersion} and maximum version {maxVersion}, with main version {mainVersion}...");
-
-                            var currentProximity = long.MaxValue;
-                            string? selectedVersionString = null;
-                            foreach (var directory in fileStorageDirectories)
-                            {
-                                if (directory.Name.StartsWith($"{discoverer.PlatformName}_", StringComparison.OrdinalIgnoreCase))
+                                if (platformConfig.IncludeSDKFile != null)
                                 {
-                                    var versionString = directory.Name.Substring($"{discoverer.PlatformName}_".Length);
-                                    var candidateVersion = GenericPlatformVersion.Parse(versionString);
-                                    if (candidateVersion == null)
+                                    platformConfigPath = platformConfig.IncludeSDKFile
+                                        .Replace("$(EngineDir)", Path.Combine(enginePath, "Engine"), StringComparison.Ordinal)
+                                        .Replace('/', '\\');
+                                    if (File.Exists(platformConfigPath))
                                     {
-                                        continue;
-                                    }
+                                        var oldPlatformConfig = platformConfig;
+                                        platformConfig = JsonSerializer.Deserialize(
+                                            File.ReadAllText(platformConfigPath),
+                                            ConfidentialPlatformJsonSerializerContext.Default.GenericPlatformConfig)!;
 
-                                    if (GenericPlatformVersion.IsCandidateWithinBounds(candidateVersion, minVersion, maxVersion))
-                                    {
-                                        var candidateProximity = Math.Abs(candidateVersion - mainVersion);
-
-                                        _logger.LogInformation($"  - Considering candidate version {candidateVersion} with proximity {candidateProximity}...");
-
-                                        if (candidateProximity < currentProximity)
+                                        if (platformConfig.MainVersion == null && oldPlatformConfig.MainVersion != null)
                                         {
-                                            currentProximity = candidateProximity;
-                                            selectedVersionString = versionString;
+                                            platformConfig.MainVersion = oldPlatformConfig.MainVersion;
+                                        }
+                                        if (platformConfig.MinVersion == null && oldPlatformConfig.MinVersion != null)
+                                        {
+                                            platformConfig.MinVersion = oldPlatformConfig.MinVersion;
+                                        }
+                                        if (platformConfig.MaxVersion == null && oldPlatformConfig.MaxVersion != null)
+                                        {
+                                            platformConfig.MaxVersion = oldPlatformConfig.MaxVersion;
                                         }
                                     }
-                                    else
+                                }
+
+                                if (platformConfig.MainVersion == null && platformConfig.MainGDKVersion != null)
+                                {
+                                    platformConfig.MainVersion = platformConfig.MainGDKVersion;
+                                }
+                                if (platformConfig.MinVersion == null && platformConfig.MinGDKVersion != null)
+                                {
+                                    platformConfig.MinVersion = platformConfig.MinGDKVersion;
+                                }
+                                if (platformConfig.MaxVersion == null && platformConfig.MaxGDKVersion != null)
+                                {
+                                    platformConfig.MaxVersion = platformConfig.MaxGDKVersion;
+                                }
+
+                                if (platformConfig.MaxVersion == null ||
+                                    platformConfig.MinVersion == null ||
+                                    platformConfig.MainVersion == null)
+                                {
+                                    continue;
+                                }
+
+                                var minVersion = GenericPlatformVersion.Parse(platformConfig.MinVersion)!;
+                                var maxVersion = GenericPlatformVersion.Parse(platformConfig.MaxVersion)!;
+                                var mainVersion = GenericPlatformVersion.Parse(platformConfig.MainVersion)!;
+
+                                _logger.LogInformation($"Attempting to discover SDK for {discoverer.PlatformName} between minimum version {minVersion} and maximum version {maxVersion}, with main version {mainVersion}...");
+
+                                var currentProximity = long.MaxValue;
+                                string? selectedVersionString = null;
+                                foreach (var directory in fileStorageDirectories)
+                                {
+                                    if (directory.Name.StartsWith($"{discoverer.PlatformName}_", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        _logger.LogInformation($"  - Candidate version {candidateVersion} is outside allowed range.");
+                                        var versionString = directory.Name.Substring($"{discoverer.PlatformName}_".Length);
+                                        var candidateVersion = GenericPlatformVersion.Parse(versionString);
+                                        if (candidateVersion == null)
+                                        {
+                                            continue;
+                                        }
+
+                                        if (GenericPlatformVersion.IsCandidateWithinBounds(candidateVersion, minVersion, maxVersion))
+                                        {
+                                            var candidateProximity = Math.Abs(candidateVersion - mainVersion);
+
+                                            _logger.LogInformation($"  - Considering candidate version {candidateVersion} with proximity {candidateProximity}...");
+
+                                            if (candidateProximity < currentProximity)
+                                            {
+                                                currentProximity = candidateProximity;
+                                                selectedVersionString = versionString;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            _logger.LogInformation($"  - Candidate version {candidateVersion} is outside allowed range.");
+                                        }
                                     }
                                 }
-                            }
 
-                            if (selectedVersionString != null)
-                            {
-                                _logger.LogInformation($"  - Best candidate version {discoverer.PlatformName} {selectedVersionString} is selected.");
+                                if (selectedVersionString != null)
+                                {
+                                    _logger.LogInformation($"  - Best candidate version {discoverer.PlatformName} {selectedVersionString} is selected.");
 
-                                yield return new ConfidentialSdkSetup(
-                                    discoverer.RecognisedPlatformNamesForInstall,
-                                    discoverer.Config,
-                                    selectedVersionString,
-                                    _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                                    _serviceProvider.GetRequiredService<IStringUtilities>(),
-                                    _serviceProvider.GetRequiredService<WindowsSdkInstaller>(),
-                                    _serviceProvider.GetRequiredService<IVersionNumberResolver>(),
-                                    _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>(),
-                                    _serviceProvider.GetRequiredService<IMsiExtraction>(),
-                                    _serviceProvider.GetRequiredService<IPathResolver>(),
-                                    _serviceProvider.GetRequiredService<IPackageManager>());
-                            }
-                            else
-                            {
-                                _logger.LogInformation($"  - No viable version for platform {discoverer.PlatformName}; it will not be available for install.");
+                                    yield return new ConfidentialSdkSetup(
+                                        discoverer.RecognisedPlatformNamesForInstall,
+                                        discoverer.Config,
+                                        selectedVersionString,
+                                        _serviceProvider.GetRequiredService<IProcessExecutor>(),
+                                        _serviceProvider.GetRequiredService<IStringUtilities>(),
+                                        _serviceProvider.GetRequiredService<WindowsSdkInstaller>(),
+                                        _serviceProvider.GetRequiredService<IVersionNumberResolver>(),
+                                        _serviceProvider.GetRequiredService<ILogger<ConfidentialSdkSetup>>(),
+                                        _serviceProvider.GetRequiredService<IMsiExtraction>(),
+                                        _serviceProvider.GetRequiredService<IPathResolver>(),
+                                        _serviceProvider.GetRequiredService<IPackageManager>());
+                                }
+                                else
+                                {
+                                    _logger.LogInformation($"  - No viable version for platform {discoverer.PlatformName}; it will not be available for install.");
+                                }
                             }
                         }
                     }
