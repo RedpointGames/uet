@@ -30,10 +30,12 @@
                 _ => "Win64",
             };
 
-            var editorPlatformList = buildConfigDistribution.Build.Editor?.Platforms?.Select(x => x.ToString()).ToList() ?? [];
-            if (editorPlatformList.Count == 0)
+            var editorPlatformList = buildConfigDistribution.Build.Editor?.Platforms?.Select(x => x.ToString())?.ToList();
+            if (editorPlatformList == null)
             {
-                editorPlatformList.Add(primaryHostPlatform);
+                // Only set the default editor if the "Platforms" variable is actually unset. Otherwise,
+                // trust that the developer doesn't want to compile the editor if they've set an empty array.
+                editorPlatformList = [primaryHostPlatform];
             }
 
             await _buildGraphCompileGraphNodesGenerator.WriteBuildGraphNodesToCompileAsync(
