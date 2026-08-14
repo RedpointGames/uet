@@ -55,7 +55,7 @@
     <PackageVersion Include="Google.Cloud.PubSub.V1" Version="3.36.0" />
     <PackageVersion Include="Google.Cloud.SecretManager.V1" Version="2.8.0" />
     <!-- Dependencies for Cloud Framework -->
-    <PackageVersion Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.3.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.3.12" />
     <PackageVersion Include="Microsoft.CodeAnalysis" Version="$(MicrosoftAnalyzersVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(MicrosoftAnalyzersVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(MicrosoftAnalyzersVersion)" />
