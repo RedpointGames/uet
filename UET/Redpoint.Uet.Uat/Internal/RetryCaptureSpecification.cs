@@ -31,6 +31,8 @@
 
         public bool NeedsEngineRemount { get; private set; } = false;
 
+        public bool NeedsWorkspaceErase { get; private set; } = false;
+
         public bool InterceptStandardInput => true;
 
         public bool InterceptStandardOutput => true;
@@ -261,6 +263,12 @@
             {
                 _logger.LogWarning("Detected temporary error in Clang linker. The build will be retried.");
                 NeedsRetry = true;
+            }
+            if (data.Contains("BUILD FAILED: AddBuildProductsFromManifest", StringComparison.Ordinal) &&
+                data.Contains("but could not be found", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("Detected one or more output files were missing for the manifest. The workspace will be erased and the build will be retried.");
+                NeedsWorkspaceErase = true;
             }
         }
 
