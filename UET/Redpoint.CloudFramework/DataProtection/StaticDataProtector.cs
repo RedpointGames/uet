@@ -74,7 +74,7 @@
 
                         var parentJson = JsonObject.Parse(File.ReadAllText(filePath), documentOptions: new JsonDocumentOptions
                         {
-                            CommentHandling = JsonCommentHandling.Allow,
+                            CommentHandling = JsonCommentHandling.Skip,
                         })!.AsObject();
                         var json = CreatePath(parentJson, "CloudFramework", new JsonObject());
                         json = CreatePath(json, "Security", new JsonObject());
