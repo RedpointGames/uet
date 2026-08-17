@@ -10,6 +10,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Security.Cryptography;
     using System.Threading.Tasks;
@@ -24,6 +25,59 @@
         private const int _numShards = 10;
 
         private const int _concurrentLoad = 24;
+
+        // key 1 = GetShardedCounterForRedis
+        // key 2 = GetShardedCounterFetchStoreTokenForRedis
+        // (keys repeat)
+        // argv 1 = randomly generated token
+        internal const string _loadExistingOrFlagFetchStoreOperation = @"
+-- Try to load all of the applicable values, or set fetch-store token for those that don't exist.
+local results = {}
+for i = 1, (#KEYS / 2) do
+    local existing = tonumber(redis.call('GET', KEYS[((i - 1) * 2) + 1]))
+    if existing == nil then
+        redis.call('SET', KEYS[((i - 1) * 2) + 2], ARGV[1])
+        results[i] = ""m""
+    else
+        results[i] = existing
+    end
+end
+return results
+";
+
+        // key 1 = GetShardedCounterForRedis
+        // key 2 = GetShardedCounterFetchStoreTokenForRedis
+        // (keys repeat)
+        // argv 1 = randomly generated token
+        // argv 2 = value fetched from Datastore for key 1
+        // argv 3 = value fetched from Datastore for key 2
+        // (argv repeats)
+        internal const string _storeFetchedValueIfFetchStoreOperationUnbroken = @"
+-- Store all values that haven't been invalidated by token removal
+for i = 1, (#KEYS / 2) do
+    local token = redis.call('GET', KEYS[((i - 1) * 2) + 2])
+    if token == ARGV[1] then
+        redis.call('SET', KEYS[((i - 1) * 2) + 1], ARGV[1 + i])
+        redis.call('DEL', KEYS[((i - 1) * 2) + 2])
+    end
+end
+";
+
+        // key 1 = GetShardedCounterForRedis
+        // key 2 = GetShardedCounterFetchStoreTokenForRedis
+        // argv 1 = incremented by value
+        internal const string _adjustOrBreakFetchStoreOperation = @"
+-- Check if we have an existing value
+local value = tonumber(redis.call('GET', KEYS[1]))
+if value == nil then
+    -- We do not have a value in Redis, but a GetAsync operation might be about to put a stale value
+    -- into it. Prevent that from happening by breaking any fetch-store operation.
+    redis.call('DEL', KEYS[2])
+else
+    -- We have an existing value, perform relative adjustment
+    redis.call('INCRBY', KEYS[1], ARGV[1])
+end
+";
 
         public DefaultGlobalShardedCounter(
             IGlobalRepository globalRepository,
@@ -44,14 +98,19 @@
             }
         }
 
-        private static string GetShardKeyName(ShardedCounterName name, long index)
+        private static string GetShardedCounterIndexForFirestore(ShardedCounterName name, long index)
         {
             return $"{name.name}:{index}";
         }
 
-        private static RedisKey GetShardRedisName(string @namespace, ShardedCounterName name)
+        private static RedisKey GetShardedCounterForRedis(string @namespace, ShardedCounterName name)
         {
-            return $"shard:{@namespace}:{name.name}";
+            return $"shard/{@namespace}/{name.name}";
+        }
+
+        private static RedisKey GetShardedCounterFetchStoreTokenForRedis(string @namespace, ShardedCounterName name)
+        {
+            return $"shard-token/{@namespace}/{name.name}";
         }
 
         private async IAsyncEnumerable<Key> GetAllKeys(string @namespace, ShardedCounterName name)
@@ -59,20 +118,35 @@
             var keyFactory = await _globalRepository.GetKeyFactoryAsync<DefaultShardedCounterModel>(@namespace).ConfigureAwait(false);
             for (var i = 0; i < _numShards; i++)
             {
-                yield return keyFactory.CreateKey(GetShardKeyName(name, i));
+                yield return keyFactory.CreateKey(GetShardedCounterIndexForFirestore(name, i));
             }
         }
 
-        private async Task StoreToRedisAsync(string @namespace, ShardedCounterName name, long total)
+        internal static long?[] RedisResultToArrayOfNumbers(RedisResult result)
         {
-            if (_redisDatabase != null)
+            var converted = new long?[result.Length];
+            for (int i = 0; i < result.Length; i++)
             {
-                await _redisDatabase.StringSetAsync(
-                    GetShardRedisName(@namespace, name),
-                    total,
-                    expiry: null,
-                    When.NotExists).ConfigureAwait(false);
+                if (result[i] != null)
+                {
+                    string? resultAsString = (string?)result[i];
+                    if (resultAsString != null &&
+                        resultAsString != "m" &&
+                        long.TryParse(resultAsString, out long value))
+                    {
+                        converted[i] = value;
+                    }
+                    else
+                    {
+                        converted[i] = null;
+                    }
+                }
+                else
+                {
+                    converted[i] = null;
+                }
             }
+            return converted;
         }
 
         public async Task<long> GetAsync(string @namespace, ShardedCounterName name)
@@ -80,13 +154,22 @@
             using (_managedTracer.StartSpan("db.counter.get", name.name))
             {
                 long total;
+                string? fetchStoreToken = null;
                 if (_redisDatabase != null)
                 {
-                    var shardCache = await _redisDatabase.StringGetAsync(GetShardRedisName(@namespace, name)).ConfigureAwait(false);
-                    // @note: shardCache.IsInteger is incorrect, because that is for when Redis values are exposed as integers, and not when Redis values are integers internally but exposed as strings to clients.
-                    if (shardCache.HasValue && shardCache.TryParse(out total))
+                    fetchStoreToken = Guid.NewGuid().ToString();
+                    var cachedValues = RedisResultToArrayOfNumbers(await _redisDatabase.ScriptEvaluateAsync(
+                        _loadExistingOrFlagFetchStoreOperation,
+                        [
+                            GetShardedCounterForRedis(@namespace, name),
+                            GetShardedCounterFetchStoreTokenForRedis(@namespace, name),
+                        ],
+                        [
+                            fetchStoreToken,
+                        ]).ConfigureAwait(false));
+                    if (cachedValues.Length > 0 && cachedValues[0].HasValue)
                     {
-                        return total;
+                        return cachedValues[0]!.Value;
                     }
                 }
 
@@ -99,7 +182,16 @@
                     .SumAsync().ConfigureAwait(false);
                 if (_redisDatabase != null)
                 {
-                    await StoreToRedisAsync(@namespace, name, total);
+                    await _redisDatabase.ScriptEvaluateAsync(
+                        _storeFetchedValueIfFetchStoreOperationUnbroken,
+                        [
+                            GetShardedCounterForRedis(@namespace, name),
+                            GetShardedCounterFetchStoreTokenForRedis(@namespace, name),
+                        ],
+                        [
+                            fetchStoreToken!,
+                            total,
+                        ]).ConfigureAwait(false);
                 }
                 return total;
             }
@@ -138,25 +230,35 @@
                     // First pass, load all values from Redis. We don't start loading from Datastore until we've done all of
                     // this step, because we want to be able to batch load all of the missing counters.
                     HashSet<ShardedCounterName> notInRedisCache;
+                    string? fetchStoreToken = null;
                     if (_redisDatabase != null)
                     {
                         // Load all of them at once.
+                        fetchStoreToken = Guid.NewGuid().ToString();
                         notInRedisCache = new();
                         var futuresOrdered = futures.ToArray();
                         var redisKeys = new RedisKey[futuresOrdered.Length];
                         for (int i = 0; i < futuresOrdered.Length; i++)
                         {
-                            redisKeys[i] = GetShardRedisName(@namespace, futuresOrdered[i].Key);
+                            redisKeys[i] = GetShardedCounterForRedis(@namespace, futuresOrdered[i].Key);
                         }
-                        var shardCaches = await _redisDatabase.StringGetAsync(
-                            futuresOrdered.Select(kv => GetShardRedisName(@namespace, kv.Key)).ToArray());
+                        var shardCaches = RedisResultToArrayOfNumbers(await _redisDatabase.ScriptEvaluateAsync(
+                            _loadExistingOrFlagFetchStoreOperation,
+                            futuresOrdered.SelectMany(kv => new[]
+                            {
+                                GetShardedCounterForRedis(@namespace, kv.Key),
+                                GetShardedCounterFetchStoreTokenForRedis(@namespace, kv.Key)
+                            }).ToArray(),
+                            [
+                                new RedisValue(fetchStoreToken)
+                            ]).ConfigureAwait(false));
                         for (int i = 0; i < futuresOrdered.Length; i++)
                         {
                             var shardCache = shardCaches[i];
                             var future = futuresOrdered[i];
-                            if (shardCache.HasValue && shardCache.TryParse(out long total))
+                            if (shardCache.HasValue)
                             {
-                                future.Value.SetValue(total);
+                                future.Value.SetValue(shardCache.Value);
                             }
                             else
                             {
@@ -180,7 +282,7 @@
                         {
                             var shards = Enumerable.Range(0, _numShards)
                                 .ToDictionary(
-                                    i => keyFactory.CreateKey(GetShardKeyName(name, i)),
+                                    i => keyFactory.CreateKey(GetShardedCounterIndexForFirestore(name, i)),
                                     i => (long?)null);
                             waitingOn.Add(new WaitingOn
                             {
@@ -234,7 +336,16 @@
                                                 // Update in Redis.
                                                 if (_redisDatabase != null)
                                                 {
-                                                    await StoreToRedisAsync(@namespace, waiting.Name, total);
+                                                    await _redisDatabase.ScriptEvaluateAsync(
+                                                        _storeFetchedValueIfFetchStoreOperationUnbroken,
+                                                        [
+                                                            GetShardedCounterForRedis(@namespace, waiting.Name),
+                                                            GetShardedCounterFetchStoreTokenForRedis(@namespace, waiting.Name),
+                                                        ],
+                                                        [
+                                                            fetchStoreToken,
+                                                            total,
+                                                        ]).ConfigureAwait(false);
                                                     cancellationToken.ThrowIfCancellationRequested();
                                                 }
                                             }
@@ -328,7 +439,7 @@
             {
                 var index = RandomNumberGenerator.GetInt32(_numShards);
                 var keyFactory = await _globalRepository.GetKeyFactoryAsync<DefaultShardedCounterModel>(@namespace).ConfigureAwait(false);
-                var key = keyFactory.CreateKey(GetShardKeyName(name, index));
+                var key = keyFactory.CreateKey(GetShardedCounterIndexForFirestore(name, index));
 
                 var create = false;
                 var counter = await _globalRepository.LoadAsync<DefaultShardedCounterModel>(@namespace, key, transaction).ConfigureAwait(false);
@@ -359,7 +470,15 @@
                 {
                     if (_redisDatabase != null)
                     {
-                        await _redisDatabase.StringIncrementAsync(GetShardRedisName(@namespace, name), modifier, CommandFlags.FireAndForget).ConfigureAwait(false);
+                        await _redisDatabase.ScriptEvaluateAsync(
+                            _adjustOrBreakFetchStoreOperation,
+                            [
+                                GetShardedCounterForRedis(@namespace, name),
+                                GetShardedCounterFetchStoreTokenForRedis(@namespace, name),
+                            ],
+                            [
+                                modifier,
+                            ]).ConfigureAwait(false);
                     }
                 };
             }
