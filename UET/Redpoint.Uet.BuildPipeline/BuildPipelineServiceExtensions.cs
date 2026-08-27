@@ -33,6 +33,10 @@ namespace Redpoint.Uet.BuildPipeline
             {
                 services.AddSingleton<IMobileProvisioning, MacMobileProvisioning>();
             }
+            else if (OperatingSystem.IsWindows())
+            {
+                services.AddSingleton<IMobileProvisioning, WindowsMobileProvisioning>();
+            }
             else
             {
                 services.AddSingleton<IMobileProvisioning, NullMobileProvisioning>();

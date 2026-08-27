@@ -12,6 +12,7 @@
                 {
                     builder.AddCommand<AppleCertCreateCommand>();
                     builder.AddCommand<AppleCertFinalizeCommand>();
+                    builder.AddCommand<AppleCertInstallCommand>();
 
                     var command = new Command("apple-cert", "Generate and export certificates for signing games on iOS.");
                     builder.GlobalContext.CommandRequiresUetVersionInBuildConfig(command);
