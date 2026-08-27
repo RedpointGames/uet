@@ -45,7 +45,7 @@
     <!-- LINQ async support for older frameworks -->
     <PackageVersion Include="System.Linq.Async" Version="7.0.1" />
     <!-- gRPC -->
-    <PackageVersion Include="Google.Protobuf" Version="3.35.1" />
+    <PackageVersion Include="Google.Protobuf" Version="3.36.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.83.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.83.0" />
     <!-- Google Cloud for Cloud Framework -->
