@@ -59,6 +59,7 @@
                             xcode:          Run the version of Xcode that this Unreal Engine version requires.
                             fastlane:       Install and run Fastlane.
                             unrealpak:      Run UnrealPak.
+                            zenserver:      Run the Zen server.
  
                             If --path points to a project file, the target will automatically receive the project file as an argument in an appropriate manner, if possible.
                             """
@@ -129,6 +130,7 @@
                     "xcode",
                     "fastlane",
                     "unrealpak",
+                    "zenserver",
                 ]);
                 Target.Arity = ArgumentArity.ExactlyOne;
                 Target.HelpName = "target";
@@ -681,6 +683,36 @@
                                         new ProcessSpecification
                                         {
                                             FilePath = foundPath,
+                                            Arguments = runArguments,
+                                            WorkingDirectory = engineWorkspace.Path,
+                                        },
+                                        CaptureSpecification.Passthrough,
+                                        context.GetCancellationToken()).ConfigureAwait(false);
+                                }
+                            case "zenserver":
+                                {
+                                    var executableSuffix = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
+
+                                    var zenServerPath = Path.Combine(
+                                        engineWorkspace.Path,
+                                        "Engine",
+                                        "Binaries",
+                                        platformName,
+                                        "zenserver" + executableSuffix);
+                                    if (!File.Exists(zenServerPath))
+                                    {
+                                        _logger.LogError("Can't find existing zenserver executable.");
+                                        return 1;
+                                    }
+
+                                    var runArguments = new List<LogicalProcessArgument>();
+                                    runArguments.AddRange(arguments.Select(x => new LogicalProcessArgument(x)));
+
+                                    LogExecution(zenServerPath, runArguments, false);
+                                    return await _processExecutor.ExecuteAsync(
+                                        new ProcessSpecification
+                                        {
+                                            FilePath = zenServerPath,
                                             Arguments = runArguments,
                                             WorkingDirectory = engineWorkspace.Path,
                                         },
