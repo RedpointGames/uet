@@ -23,8 +23,6 @@
         }
 
         public async Task InstallMobileProvisions(
-            string enginePath,
-            bool isEngineBuild,
             IEnumerable<BuildConfigMobileProvision> mobileProvisions,
             CancellationToken cancellationToken)
         {

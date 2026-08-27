@@ -496,7 +496,7 @@
 
                 if (mobileProvisions != null)
                 {
-                    await _mobileProvisioning.InstallMobileProvisions(engineWorkspacePath, buildGraphScript._forEngine, mobileProvisions, cancellationToken).ConfigureAwait(false);
+                    await _mobileProvisioning.InstallMobileProvisions(mobileProvisions, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (buildGraphEnvironmentVariables.Count == 0)

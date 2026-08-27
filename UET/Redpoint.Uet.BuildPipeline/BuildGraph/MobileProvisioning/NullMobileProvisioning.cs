@@ -7,8 +7,6 @@
     internal class NullMobileProvisioning : IMobileProvisioning
     {
         public Task InstallMobileProvisions(
-            string enginePath,
-            bool isEngineBuild,
             IEnumerable<BuildConfigMobileProvision> mobileProvisions,
             CancellationToken cancellationToken)
         {

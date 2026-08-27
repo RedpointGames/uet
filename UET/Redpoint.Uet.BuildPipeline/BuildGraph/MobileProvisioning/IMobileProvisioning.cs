@@ -4,11 +4,9 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    internal interface IMobileProvisioning
+    public interface IMobileProvisioning
     {
         Task InstallMobileProvisions(
-            string enginePath,
-            bool isEngineBuild,
             IEnumerable<BuildConfigMobileProvision> mobileProvisions,
             CancellationToken cancellationToken);
     }
