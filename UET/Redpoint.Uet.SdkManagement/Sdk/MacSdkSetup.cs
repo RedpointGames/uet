@@ -231,6 +231,29 @@
             {
                 throw new SdkSetupPackageGenerationFailedException("Xcode was unable to install iOS platform support.");
             }
+
+            // Install Metal toolchain if needed.
+            _logger.LogInformation("Installing Metal toolchain...");
+            exitCode = await _processExecutor.ExecuteAsync(
+                new ProcessSpecification
+                {
+                    FilePath = "/usr/bin/xcodebuild",
+                    Arguments = new LogicalProcessArgument[]
+                    {
+                        "-downloadComponent",
+                        "MetalToolchain"
+                    },
+                    EnvironmentVariables = new Dictionary<string, string>
+                    {
+                        { "DEVELOPER_DIR", Path.Combine(sdkPackagePath, "Xcode.app") },
+                    }
+                },
+                CaptureSpecification.Passthrough,
+                cancellationToken).ConfigureAwait(false);
+            if (exitCode != 0)
+            {
+                throw new SdkSetupPackageGenerationFailedException("Xcode was unable to install Metal toolchain support.");
+            }
         }
 
         public async Task GenerateSdkPackage(string unrealEnginePath, string sdkPackagePath, CancellationToken cancellationToken)
