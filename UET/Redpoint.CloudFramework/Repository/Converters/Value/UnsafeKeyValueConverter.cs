@@ -98,7 +98,7 @@
             Type propertyClrType,
             object propertyNonNullClrValue)
         {
-            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal((Key)propertyNonNullClrValue));
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal((Key)propertyNonNullClrValue, PathGenerationMode.NoShortPathComponents));
         }
     }
 }

@@ -126,7 +126,7 @@
                 throw new InvalidOperationException("Cross-namespace data write for key property '" + propertyName + "' in array element.");
             }
 
-            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(keyValue));
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(keyValue, PathGenerationMode.NoShortPathComponents));
         }
     }
 }

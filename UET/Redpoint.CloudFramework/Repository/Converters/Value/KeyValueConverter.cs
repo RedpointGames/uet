@@ -124,7 +124,7 @@
                 throw new InvalidOperationException("Attempted to store cross-namespace key reference in 'key' property");
             }
 
-            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(keyValue));
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(keyValue, PathGenerationMode.NoShortPathComponents));
         }
     }
 }

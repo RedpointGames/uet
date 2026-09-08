@@ -258,8 +258,8 @@
                     return new JsonObject
                     {
                         { "type", "geopoint" },
-                        { 
-                            "value", 
+                        {
+                            "value",
                             new JsonObject
                             {
                                 { "latitude", value.GeoPointValue.Latitude },
@@ -276,7 +276,7 @@
                             new JsonObject
                             {
                                 { "ns", value.KeyValue.PartitionId.NamespaceId },
-                                { "value", _globalPrefix.CreateInternal(value.KeyValue) }
+                                { "value", _globalPrefix.CreateInternal(value.KeyValue, PathGenerationMode.NoShortPathComponents) }
                             }
                         }
                     };

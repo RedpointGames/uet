@@ -163,7 +163,7 @@
                 throw new InvalidOperationException("Value for 'local-key' is not a key referencing an entity in the expected non-global namespace");
             }
 
-            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(localValue));
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(localValue, PathGenerationMode.NoShortPathComponents));
         }
     }
 }

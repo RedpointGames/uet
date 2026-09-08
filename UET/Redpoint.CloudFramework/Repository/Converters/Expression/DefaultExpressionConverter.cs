@@ -477,7 +477,7 @@
                 case Value.ValueTypeOneofCase.TimestampValue:
                     return value.TimestampValue.ToDateTimeOffset().ToString(CultureInfo.InvariantCulture);
                 case Value.ValueTypeOneofCase.KeyValue:
-                    return _globalPrefix.CreateInternal(value.KeyValue);
+                    return _globalPrefix.CreateInternal(value.KeyValue, PathGenerationMode.NoShortPathComponents);
                 case Value.ValueTypeOneofCase.StringValue:
                     return $"\"{value.StringValue.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
                 case Value.ValueTypeOneofCase.BlobValue:

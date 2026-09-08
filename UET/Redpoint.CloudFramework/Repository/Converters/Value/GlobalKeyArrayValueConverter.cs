@@ -145,7 +145,7 @@
                 throw new InvalidOperationException("Non-global-namespace data write for key property '" + propertyName + "' in array element.");
             }
 
-            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(globalValue));
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(globalValue, PathGenerationMode.NoShortPathComponents));
         }
     }
 }

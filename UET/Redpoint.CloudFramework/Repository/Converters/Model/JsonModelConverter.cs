@@ -191,7 +191,7 @@
                     }
                 }
 
-                hashset.Add("_key", _globalPrefix.CreateInternal(model.Key));
+                hashset.Add("_key", _globalPrefix.CreateInternal(model.Key, PathGenerationMode.NoShortPathComponents));
                 hashset.Add("_dateCreatedUtc", _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache(model.dateCreatedUtc));
                 hashset.Add("_dateModifiedUtc", _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache(model.dateModifiedUtc));
                 hashset.Add("_schemaVersion", model.schemaVersion);

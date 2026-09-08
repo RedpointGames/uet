@@ -142,7 +142,7 @@
                 throw new InvalidOperationException("Value for 'global-key' is not a key referencing an entity in the global namespace");
             }
 
-            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(globalValue));
+            return JsonValueAssertions.ToStringJsonNode(propertyName, _globalPrefix.CreateInternal(globalValue, PathGenerationMode.NoShortPathComponents));
         }
     }
 }
