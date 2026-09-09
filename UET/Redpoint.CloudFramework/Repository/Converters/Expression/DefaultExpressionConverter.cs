@@ -5,6 +5,7 @@
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.StringEnum;
     using System;
     using System.Collections.Generic;
@@ -34,7 +35,7 @@
             }
         }
 
-        private string GetFieldReferencedInExpression<T>(Expression expression, ParameterExpression modelExpression, T referenceModel) where T : IModel
+        private string GetFieldReferencedInExpression<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel) where T : IModel
         {
             if (expression.NodeType == ExpressionType.MemberAccess)
             {
@@ -67,8 +68,8 @@
                 {
                     if (access.Member.Name == nameof(IModel.dateCreatedUtc) ||
                         access.Member.Name == nameof(IModel.dateModifiedUtc) ||
-                        (referenceModel.GetIndexes().Contains(access.Member.Name) &&
-                         referenceModel.GetTypes().ContainsKey(access.Member.Name)))
+                        (referenceModel.Indexes.Contains(access.Member.Name) &&
+                         referenceModel.Types.ContainsKey(access.Member.Name)))
                     {
                         return access.Member.Name;
                     }
@@ -130,7 +131,7 @@
             }
         }
 
-        public Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel
+        public Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel
         {
             if (expression.NodeType == ExpressionType.Constant && ((ConstantExpression)expression).Type == typeof(bool) && (bool)((ConstantExpression)expression).Value! == true)
             {
@@ -303,7 +304,7 @@
             throw new InvalidOperationException($"Expression of type '{expression.NodeType}' is not supported in QueryAsync calls.");
         }
 
-        public IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel
+        public IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel
         {
             if (expression.NodeType == ExpressionType.Or)
             {

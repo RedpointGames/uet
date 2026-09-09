@@ -2,14 +2,15 @@
 {
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using System.Collections.Generic;
     using System.Linq.Expressions;
 
     internal interface IExpressionConverter
     {
-        Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel;
+        Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel;
 
-        IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, T referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel;
+        IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel;
 
         Filter? SimplifyFilter(Filter? filter);
 

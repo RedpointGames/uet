@@ -9,6 +9,7 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
 
     public class GlobalPrefix : IGlobalPrefix
     {
@@ -31,7 +32,7 @@
 
             public void RegisterPrefix<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string prefix) where T : class, IModel, new()
             {
-                var kind = new T().GetKind();
+                var kind = ReferenceModelCache.Get<T>().Kind;
 
                 if (_prefixes.TryGetValue(prefix, out string? existingKind))
                 {
@@ -128,7 +129,7 @@
                 identifier,
                 _kindCache.GetOrAdd(
                     typeof(T),
-                    _ => new T().GetKind()));
+                    _ => ReferenceModelCache.Get<T>().Kind));
         }
 
         public bool IsType<T>(string identifier) where T : class, IModel, new()
@@ -141,7 +142,7 @@
                     identifier,
                     _kindCache.GetOrAdd(
                         typeof(T),
-                        _ => new T().GetKind()));
+                        _ => ReferenceModelCache.Get<T>().Kind));
                 return true;
             }
             catch
@@ -159,7 +160,7 @@
                     identifier,
                     _kindCache.GetOrAdd(
                         typeof(T),
-                        _ => new T().GetKind()));
+                        _ => ReferenceModelCache.Get<T>().Kind));
                 return true;
             }
             catch

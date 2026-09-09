@@ -4,36 +4,37 @@
     using Google.Type;
     using Microsoft.Extensions.Caching.Distributed;
     using NodaTime;
-    using Redpoint.Collections;
     using Redpoint.CloudFramework.Metric;
     using Redpoint.CloudFramework.Models;
+    using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Expression;
     using Redpoint.CloudFramework.Repository.Converters.Model;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Metrics;
     using Redpoint.CloudFramework.Repository.Pagination;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
+    using Redpoint.Collections;
+    using Redpoint.Collections.Batching;
+    using Redpoint.Concurrency;
+    using Redpoint.Hashing;
     using StackExchange.Redis;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Runtime.CompilerServices;
     using System.Security.Cryptography;
     using System.Text;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
     using static Google.Cloud.Datastore.V1.Key.Types;
-    using Redpoint.Concurrency;
-    using Redpoint.Hashing;
-    using System.Text.Json.Serialization;
-    using System.Text.Json;
-    using Redpoint.Collections.Batching;
-    using Redpoint.CloudFramework.Prefix;
-    using System.Globalization;
 
     internal partial class RedisCacheRepositoryLayer : IRedisCacheRepositoryLayer
     {
@@ -341,12 +342,12 @@ return queriesCleared
             using (var span = _managedTracer.StartSpan($"db.rediscache.get_complex_cache_hash_and_columns", GetSpanName(@namespace, typeof(T).Name, null)))
             {
                 GeoQueryParameters<T>? geoQuery = null;
-                var referenceModel = new T();
+                var referenceModel = ReferenceModelCache.Get<T>();
                 var hasAncestorQuery = false;
                 var filter = _expressionConverter.SimplifyFilter(_expressionConverter.ConvertExpressionToFilter(where.Body, where.Parameters[0], referenceModel, ref geoQuery, ref hasAncestorQuery));
                 var sort = order == null ? null : _expressionConverter.ConvertExpressionToOrder(order.Body, order.Parameters[0], referenceModel, ref geoQuery)?.ToList();
 
-                span.DisplayName = _expressionConverter.RenderQueryToString(referenceModel.GetKind(), filter, sort);
+                span.DisplayName = _expressionConverter.RenderQueryToString(referenceModel.Kind, filter, sort);
                 span.SetTag("filter", _expressionConverter.RenderFilterToString(filter));
                 span.SetTag("order", _expressionConverter.RenderOrderToString(sort));
 
@@ -375,24 +376,24 @@ return queriesCleared
                 var columns = new HashSet<string>();
                 if (filters.Length == 0)
                 {
-                    columns.Add($"KEYALL:{@namespace}:{referenceModel.GetKind()}");
+                    columns.Add($"KEYALL:{@namespace}:{referenceModel.Kind}");
                 }
                 foreach (var f in filters)
                 {
-                    columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.GetKind()}:{f.PropertyFilter.Property.Name}");
+                    columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.Kind}:{f.PropertyFilter.Property.Name}");
                 }
                 if (sort != null)
                 {
                     foreach (var s in sort)
                     {
-                        columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.GetKind()}:{s.Property.Name}");
+                        columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.Kind}:{s.Property.Name}");
                     }
                 }
 
                 var cacheKeyJson = new ComplexCacheKeyJson
                 {
                     Namespace = @namespace,
-                    Kind = referenceModel.GetKind(),
+                    Kind = referenceModel.Kind,
                     Filter = filters.OrderBy(x => x.PropertyFilter.Property.Name).Select(x => new ComplexCacheKeyFilterJson
                     {
                         Field = x.PropertyFilter.Property.Name,
@@ -622,11 +623,11 @@ redis.call('SET', KEYS[1], ARGV[1])
 return 'written'
 ";
 
-        private async Task<(RedisKey key, string lastWrite)> GetLastWriteAsync(IDatabase cache, string @namespace, IModel model)
+        private async Task<(RedisKey key, string lastWrite)> GetLastWriteAsync(IDatabase cache, string @namespace, IReferenceModel model)
         {
             string queryLastWriteValue = "0";
-            var queryLastWriteKey = new RedisKey($"LASTWRITE:{model.GetKind()}");
-            using (_managedTracer.StartSpan("db.rediscache.load.get_last_write", GetSpanName(@namespace, model.GetType().Name, model.Key)))
+            var queryLastWriteKey = new RedisKey($"LASTWRITE:{model.Kind}");
+            using (_managedTracer.StartSpan("db.rediscache.load.get_last_write", GetSpanName(@namespace, model.CSharpTypeName, null)))
             {
                 var lastWriteValue = await cache.StringGetAsync(queryLastWriteKey).ConfigureAwait(false);
                 if (lastWriteValue.HasValue)
@@ -641,9 +642,9 @@ return 'written'
             return (queryLastWriteKey, queryLastWriteValue);
         }
 
-        private static async Task IncrementLastWriteAsync(IDatabase cache, IModel model)
+        private static async Task IncrementLastWriteAsync(IDatabase cache, IReferenceModel model)
         {
-            await cache.StringIncrementAsync($"LASTWRITE:{model.GetKind()}").ConfigureAwait(false);
+            await cache.StringIncrementAsync($"LASTWRITE:{model.Kind}").ConfigureAwait(false);
         }
 
         private static async Task IncrementLastWriteAsync(IDatabase cache, string kind)
@@ -729,7 +730,7 @@ return 'written'
                         }
 
                         var cache = _redis.GetDatabase();
-                        var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, new T()).ConfigureAwait(false);
+                        var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, ReferenceModelCache.Get<T>()).ConfigureAwait(false);
                         RedisResult obtainCacheResult;
                         using (_managedTracer.StartSpan("db.rediscache.cache.try_obtain_complex_cache", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
@@ -743,7 +744,7 @@ return 'written'
                         }
                         await _metricService.AddPoint(_cacheQueries, 1, null, new Dictionary<string, string?>
                         {
-                            { "kind", (new T()).GetKind() },
+                            { "kind", ReferenceModelCache.Get<T>().Kind },
                             { "namespace", @namespace },
                             { "result", (string)obtainCacheResult! },
                         }).ConfigureAwait(false);
@@ -1079,7 +1080,7 @@ return 'written'
                         // This value ensures that we don't write stale data to the 
                         // cache if there's been a write since we started running.
                         var cache = _redis.GetDatabase();
-                        var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, new T()).ConfigureAwait(false);
+                        var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, ReferenceModelCache.Get<T>()).ConfigureAwait(false);
 
                         string? cacheKey;
                         RedisValue cacheEntity;
@@ -1093,7 +1094,7 @@ return 'written'
                             {
                                 await _metricService.AddPoint(_cacheLookups, 1, null, new Dictionary<string, string?>
                                 {
-                                    { "kind", (new T()).GetKind() },
+                                    { "kind", ReferenceModelCache.Get<T>().Kind },
                                     { "namespace", @namespace },
                                     { "result", "hit" },
                                 }).ConfigureAwait(false);
@@ -1148,7 +1149,7 @@ return 'written'
                         }
                         await _metricService.AddPoint(_cacheLookups, 1, null, new Dictionary<string, string?>
                         {
-                            { "kind", (new T()).GetKind() },
+                            { "kind", ReferenceModelCache.Get<T>().Kind },
                             { "namespace", @namespace },
                             { "result", "miss" },
                         }).ConfigureAwait(false);
@@ -1239,7 +1240,7 @@ return 'written'
                         // This value ensures that we don't write stale data to the 
                         // cache if there's been a write since we started running.
                         var cache = _redis.GetDatabase();
-                        var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, new T()).ConfigureAwait(false);
+                        var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, @namespace, ReferenceModelCache.Get<T>()).ConfigureAwait(false);
 
                         var cacheEvaluation = keys.SelectFast(async key =>
                         {
@@ -1313,7 +1314,7 @@ return 'written'
                         {
                             await _metricService.AddPoint(_cacheLookups, hits, null, new Dictionary<string, string?>
                             {
-                                { "kind", (new T()).GetKind() },
+                                { "kind", ReferenceModelCache.Get<T>().Kind },
                                 { "namespace", @namespace },
                                 { "result", "hit" },
                             }).ConfigureAwait(false);
@@ -1322,7 +1323,7 @@ return 'written'
                         {
                             await _metricService.AddPoint(_cacheLookups, misses, null, new Dictionary<string, string?>
                             {
-                                { "kind", (new T()).GetKind() },
+                                { "kind", ReferenceModelCache.Get<T>().Kind },
                                 { "namespace", @namespace },
                                 { "result", "hit" },
                             }).ConfigureAwait(false);
@@ -1368,7 +1369,7 @@ return 'written'
                     // This value ensures that we don't write stale data to the 
                     // cache if there's been a write since we started running.
                     var cache = _redis.GetDatabase();
-                    var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, "(cross-namespace)", new T()).ConfigureAwait(false);
+                    var (queryLastWriteKey, queryLastWriteValue) = await GetLastWriteAsync(cache, "(cross-namespace)", ReferenceModelCache.Get<T>()).ConfigureAwait(false);
 
                     var cacheEvaluation = keys.SelectFast(async key =>
                     {
@@ -1441,7 +1442,7 @@ return 'written'
                     {
                         await _metricService.AddPoint(_cacheLookups, hits, null, new Dictionary<string, string?>
                         {
-                            { "kind", (new T()).GetKind() },
+                            { "kind", ReferenceModelCache.Get<T>().Kind },
                             { "namespace", "(cross-namespace)" },
                             { "result", "hit" },
                         }).ConfigureAwait(false);
@@ -1450,7 +1451,7 @@ return 'written'
                     {
                         await _metricService.AddPoint(_cacheLookups, misses, null, new Dictionary<string, string?>
                         {
-                            { "kind", (new T()).GetKind() },
+                            { "kind", ReferenceModelCache.Get<T>().Kind },
                             { "namespace", "(cross-namespace)" },
                             { "result", "hit" },
                         }).ConfigureAwait(false);
@@ -1509,14 +1510,14 @@ return 'written'
                         using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             var db = _redis.GetDatabase();
-                            await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, new T()).ConfigureAwait(false);
+                            await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, ReferenceModelCache.Get<T>()).ConfigureAwait(false);
                             var queriesFlushed = await db.ScriptEvaluateAsync(_purgeColumns, columns.Select(x => new RedisKey(x)).ToArray()).ConfigureAwait(false);
                             if (metrics != null)
                             {
                                 metrics.CacheQueriesFlushed += ((long)queriesFlushed);
                                 await _metricService.AddPoint(_cacheInvalidations, ((long)queriesFlushed), null, new Dictionary<string, string?>
                                 {
-                                    { "kind", (new T()).GetKind() },
+                                    { "kind", ReferenceModelCache.Get<T>().Kind},
                                 }).ConfigureAwait(false);
                             }
                         }
@@ -1564,14 +1565,14 @@ return 'written'
                         using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             var db = _redis.GetDatabase();
-                            await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, new T()).ConfigureAwait(false);
+                            await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, ReferenceModelCache.Get<T>()).ConfigureAwait(false);
                             var queriesFlushed = await db.ScriptEvaluateAsync(_purgeColumns, columns.Select(x => new RedisKey(x)).ToArray()).ConfigureAwait(false);
                             if (metrics != null)
                             {
                                 metrics.CacheQueriesFlushed += ((long)queriesFlushed);
                                 await _metricService.AddPoint(_cacheInvalidations, ((long)queriesFlushed), null, new Dictionary<string, string?>
                                 {
-                                    { "kind", (new T()).GetKind() },
+                                    { "kind", ReferenceModelCache.Get<T>().Kind },
                                 }).ConfigureAwait(false);
                             }
                         }
@@ -1675,14 +1676,14 @@ return 'written'
                         using (_managedTracer.StartSpan("db.rediscache.cache.purge_columns", GetSpanName(@namespace, typeof(T).Name, null)))
                         {
                             var db = _redis.GetDatabase();
-                            await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, new T()).ConfigureAwait(false);
+                            await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, ReferenceModelCache.Get<T>()).ConfigureAwait(false);
                             var queriesFlushed = await db.ScriptEvaluateAsync(_purgeColumns, columns.Select(x => new RedisKey(x)).ToArray()).ConfigureAwait(false);
                             if (metrics != null)
                             {
                                 metrics.CacheQueriesFlushed += ((long)queriesFlushed);
                                 await _metricService.AddPoint(_cacheInvalidations, ((long)queriesFlushed), null, new Dictionary<string, string?>
                                 {
-                                    { "kind", (new T()).GetKind() },
+                                    { "kind", ReferenceModelCache.Get<T>().Kind },
                                 }).ConfigureAwait(false);
                             }
                         }

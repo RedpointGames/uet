@@ -15,6 +15,7 @@
     using Redpoint.CloudFramework.Repository.Hooks;
     using Redpoint.CloudFramework.Repository.Metrics;
     using Redpoint.CloudFramework.Repository.Pagination;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
     using Redpoint.Collections;
@@ -142,13 +143,13 @@
                     GeoQueryParameters<T>? geoQuery = null;
 
                     var hasAncestorQuery = false;
-                    var referenceModel = new T();
+                    var referenceModel = ReferenceModelCache.Get<T>();
                     var filter = _expressionConverter.SimplifyFilter(_expressionConverter.ConvertExpressionToFilter(where.Body, where.Parameters[0], referenceModel, ref geoQuery, ref hasAncestorQuery));
                     var sort = order == null ? null : _expressionConverter.ConvertExpressionToOrder(order.Body, order.Parameters[0], referenceModel, ref geoQuery);
 
                     if (geoQuery == null)
                     {
-                        var query = new Query(referenceModel.GetKind());
+                        var query = new Query(referenceModel.Kind);
                         query.Filter = filter;
                         query.Limit = limit;
                         if (sort != null)
@@ -199,19 +200,19 @@
                         await _metricService.AddPoint(_datastoreEntityOperationCount, 1, null, new Dictionary<string, string?>
                         {
                             { "operation", "query" },
-                            { "kind", referenceModel.GetKind() },
+                            { "kind", referenceModel.Kind },
                             { "namespace", @namespace },
                         }).ConfigureAwait(false);
                         await _metricService.AddPoint(_datastoreEntityEntityReadCount, entitiesRead, null, new Dictionary<string, string?>
                         {
-                            { "kind", referenceModel.GetKind() },
+                            { "kind", referenceModel.Kind },
                             { "namespace", @namespace },
                         }).ConfigureAwait(false);
                         totalEntitiesRead += entitiesRead;
                     }
                     else
                     {
-                        var keyLength = ((IGeoModel)referenceModel).GetHashKeyLengthsForGeopointFields()[geoQuery.GeoFieldName];
+                        var keyLength = referenceModel.HashKeyLengthsForGeopointFields[geoQuery.GeoFieldName];
                         var latLngRect = S2Manager.LatLngRectFromQueryRectangleInput(geoQuery.MinPoint, geoQuery.MaxPoint);
                         var ranges = S2Manager.GetGeohashRanges(latLngRect, keyLength);
 
@@ -278,7 +279,7 @@
 
                 if (totalEntitiesRead > 2500)
                 {
-                    _logger.LogWarning($"QueryAsync operation returned more than 2500 '{new T().GetKind()}' entities, which is likely to cause high Datastore costs. Please optimize your application.");
+                    _logger.LogWarning($"QueryAsync operation returned more than 2500 '{ReferenceModelCache.Get<T>().Kind}' entities, which is likely to cause high Datastore costs. Please optimize your application.");
                 }
 
                 span.SetTag("query.total_entities_read", totalEntitiesRead.ToString(CultureInfo.InvariantCulture));
@@ -304,7 +305,7 @@
 
         private async IAsyncEnumerable<IReadOnlyList<T>> QueryGeohashRange<T>(
             string @namespace,
-            T referenceModel,
+            IReferenceModel<T> referenceModel,
             Filter filter,
             S2Manager.GeohashRange range,
             ushort keyLength,
@@ -328,7 +329,7 @@
                         Filter.Equal(geoQuery.GeoFieldName + GeoConstants.HashKeyPropertySuffix, new Value { IntegerValue = (long)hashKey })
                     );
 
-                    query = new Query(referenceModel.GetKind());
+                    query = new Query(referenceModel.Kind);
                     if (filter == null)
                     {
                         query.Filter = filtersGeographic;
@@ -398,12 +399,12 @@
                     {
                         { "operation", "querygeo" },
                         { "hashkey", hashKeyString },
-                        { "kind", referenceModel.GetKind() },
+                        { "kind", referenceModel.Kind },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
                     await _metricService.AddPoint(_datastoreEntityEntityReadCount, entitiesRead, null, new Dictionary<string, string?>
                     {
-                        { "kind", referenceModel.GetKind() },
+                        { "kind", referenceModel.Kind },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
                 }
@@ -436,7 +437,7 @@
                     GeoQueryParameters<T>? geoQuery = null;
 
                     var hasAncestorQuery = false;
-                    var referenceModel = new T();
+                    var referenceModel = ReferenceModelCache.Get<T>();
                     var filter = _expressionConverter.SimplifyFilter(_expressionConverter.ConvertExpressionToFilter(where.Body, where.Parameters[0], referenceModel, ref geoQuery, ref hasAncestorQuery));
                     if (geoQuery != null)
                     {
@@ -444,7 +445,7 @@
                     }
                     var sort = order == null ? null : _expressionConverter.ConvertExpressionToOrder(order.Body, order.Parameters[0], referenceModel, ref geoQuery);
 
-                    var query = new Query(referenceModel.GetKind());
+                    var query = new Query(referenceModel.Kind);
                     query.Filter = filter;
                     query.Limit = limit;
                     query.StartCursor = cursor;
@@ -473,12 +474,12 @@
                     await _metricService.AddPoint(_datastoreEntityOperationCount, 1, null, new Dictionary<string, string?>
                     {
                         { "operation", "querypage" },
-                        { "kind", referenceModel.GetKind() },
+                        { "kind", referenceModel.Kind },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
                     await _metricService.AddPoint(_datastoreEntityEntityReadCount, results.Entities.Count, null, new Dictionary<string, string?>
                     {
-                        { "kind", referenceModel.GetKind() },
+                        { "kind", referenceModel.Kind },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
 
@@ -1428,9 +1429,9 @@
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
-                var referenceModel = new T();
+                var referenceModel = ReferenceModelCache.Get<T>();
                 var db = GetDbForNamespace(@namespace);
-                var factory = db.CreateKeyFactory(referenceModel.GetKind());
+                var factory = db.CreateKeyFactory(referenceModel.Kind);
                 var key = factory.CreateIncompleteKey();
                 return db.AllocateIdAsync(key);
             }
@@ -1445,9 +1446,9 @@
             {
                 ArgumentNullException.ThrowIfNull(@namespace, nameof(@namespace));
 
-                var referenceModel = new T();
+                var referenceModel = ReferenceModelCache.Get<T>();
                 var db = GetDbForNamespace(@namespace);
-                return Task.FromResult(db.CreateKeyFactory(referenceModel.GetKind()));
+                return Task.FromResult(db.CreateKeyFactory(referenceModel.Kind));
             }
         }
 

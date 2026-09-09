@@ -23,9 +23,6 @@
         long GetSchemaVersion();
         string GetDatastoreNamespaceForLocalKeys();
 
-        /// <remarks>
-        /// This function will be made internal in a future release.
-        /// </remarks>
-        IReadOnlyDictionary<string, FieldType> GetTypes();
+        internal IReadOnlyDictionary<string, FieldType> GetTypes();
     }
 }
