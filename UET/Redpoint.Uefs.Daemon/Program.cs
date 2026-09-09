@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.Uefs.Daemon
 {
-    using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -16,7 +15,6 @@
     using Redpoint.Uefs.Daemon.Transactional;
     using Redpoint.Uefs.Package;
     using Redpoint.Uefs.Daemon.Service;
-    using Redpoint.Uefs.Daemon.Integration.Docker;
     using Redpoint.Uefs.Daemon.Transactional.Executors;
     using Redpoint.Logging.SingleLine;
     using Redpoint.Uefs.Package.Vhd;
@@ -117,7 +115,6 @@
             services.AddUefsService();
             services.AddUefsDaemonTransactional();
             services.AddUefsDaemonTransactionalExecutors();
-            services.AddUefsDaemonIntegrationDocker();
             services.AddSingleton<UefsHostedService>();
             services.AddHostedService(sp => sp.GetRequiredService<UefsHostedService>());
             services.AddHostedService<UefsHealthCheckService>();
