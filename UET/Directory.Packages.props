@@ -2,7 +2,7 @@
 	<Import Project="$(MSBuildThisFileDirectory)Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 	<PropertyGroup>
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-		<MicrosoftPackageVersion>10.0.11</MicrosoftPackageVersion>
+		<MicrosoftPackageVersion>10.0.12</MicrosoftPackageVersion>
 		<SentryPackageVersion>6.8.0</SentryPackageVersion>
 		<XunitPackageVersion>3.2.2</XunitPackageVersion>
         <!-- If this changes, it will change the minimum version of Visual Studio the analyzers will work with. -->
