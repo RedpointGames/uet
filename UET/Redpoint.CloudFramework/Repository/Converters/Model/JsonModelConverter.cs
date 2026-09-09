@@ -116,7 +116,7 @@
             {
                 throw new InvalidOperationException("JSON entity in cache has incorrect _key property!");
             }
-            model.Key = _globalPrefix.ParseInternal(@namespace, keyStr);
+            referenceModel.SetDatastoreKey(model, _globalPrefix.ParseInternal(@namespace, keyStr).__InternalDatastoreKey__);
             model.dateCreatedUtc = _instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(hashset["_dateCreatedUtc"]);
             model.dateModifiedUtc = _instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(hashset["_dateModifiedUtc"]);
             model.schemaVersion = hashset["_schemaVersion"]?.GetValue<int>();
@@ -135,7 +135,7 @@
             return model;
         }
 
-        public string To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : class, IModel, new()
+        public string To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key<T>>? incompleteKeyFactory) where T : class, IModel, new()
         {
             var hashset = new JsonObject();
 
@@ -151,6 +151,7 @@
                 {
                     ModelNamespace = @namespace,
                     Model = model,
+                    ReferenceModel = referenceModel,
                 };
 
                 var defaults = referenceModel.DefaultValues;
@@ -195,7 +196,7 @@
                     }
                 }
 
-                hashset.Add("_key", _globalPrefix.CreateInternal(model.Key, PathGenerationMode.NoShortPathComponents));
+                hashset.Add("_key", _globalPrefix.CreateInternal(referenceModel.GetUntypedKey(model)!, PathGenerationMode.NoShortPathComponents));
                 hashset.Add("_dateCreatedUtc", _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache(model.dateCreatedUtc));
                 hashset.Add("_dateModifiedUtc", _instantTimestampJsonConverter.FromNodaTimeInstantToJsonCache(model.dateModifiedUtc));
                 hashset.Add("_schemaVersion", model.schemaVersion);

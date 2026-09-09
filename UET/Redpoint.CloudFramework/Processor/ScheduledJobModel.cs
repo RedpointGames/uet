@@ -10,7 +10,7 @@
     [Kind("redpointScheduledJob")]
     internal sealed class ScheduledJobModel : Model<ScheduledJobModel>
     {
-        public static async Task<Key> GetKey(IGlobalRepository globalRepository, string key)
+        public static async Task<Key<ScheduledJobModel>> GetKey(IGlobalRepository globalRepository, string key)
         {
             var keyFactory = await globalRepository.GetKeyFactoryAsync<ScheduledJobModel>(string.Empty);
             return keyFactory.CreateKey(key);

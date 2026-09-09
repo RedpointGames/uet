@@ -11,7 +11,7 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal class DefaultModelMigratorExecutor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : IModelMigratorExecutor<T> where T : class, IModel, new()
+    internal class DefaultModelMigratorExecutor<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T> : IModelMigratorExecutor<T> where T : class, IModel, new()
     {
         private readonly IGlobalRepository _globalRepository;
         private readonly IDatastoreRepositoryLayer _datastoreRepositoryLayer;
@@ -98,7 +98,7 @@
                         var model = initiallyLoadedModel;
                         for (long i = loadedModelVersion + 1; i <= currentSchemaVersion; i++)
                         {
-                            _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(initiallyLoadedModel.Key)}' from schema version {i - 1} to {i}...");
+                            _logger.LogInformation($"Migrating '{_globalPrefix.CreateInternal(referenceModel.GetUntypedKey(initiallyLoadedModel)!)}' from schema version {i - 1} to {i}...");
 
                             var migrator = _serviceProvider.GetService(migratorsByVersion[i]);
                             if (migrator is ITransactionalModelMigrator<T> transactionalMigrator)
@@ -120,17 +120,17 @@
                                 {
                                     var reloadedModel = await _globalRepository.LoadAsync<T>(
                                         string.Empty,
-                                        model.Key,
+                                        referenceModel.GetTypedKey(model)!,
                                         transaction,
                                         cancellationToken: cancellationToken);
                                     if (reloadedModel == null)
                                     {
-                                        throw new InvalidOperationException($"Model {_globalPrefix.CreateInternal(model.Key)} did not exist after migration!");
+                                        throw new InvalidOperationException($"Model {_globalPrefix.CreateInternal(referenceModel.GetUntypedKey(model)!)} did not exist after migration!");
                                     }
 
                                     if (reloadedModel.schemaVersion < i - 1)
                                     {
-                                        _logger.LogWarning($"Model {_globalPrefix.CreateInternal(model.Key)} should be at schema version {i - 1} prior to transactional migration, but was at schema version {reloadedModel.schemaVersion} in order to progress to schema version {i}. This is likely a delay in the previous migration applying to Datastore and the subsequent reload within a transaction. Delaying by 1 second and then reloading the model again.");
+                                        _logger.LogWarning($"Model {_globalPrefix.CreateInternal(referenceModel.GetUntypedKey(model)!)} should be at schema version {i - 1} prior to transactional migration, but was at schema version {reloadedModel.schemaVersion} in order to progress to schema version {i}. This is likely a delay in the previous migration applying to Datastore and the subsequent reload within a transaction. Delaying by 1 second and then reloading the model again.");
                                         await Task.Delay(1000, cancellationToken);
                                         goto retryLoad;
                                     }

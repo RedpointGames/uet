@@ -8,6 +8,7 @@
     using Redpoint.Collections.Batching;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Runtime.CompilerServices;
@@ -35,7 +36,7 @@
             return currentTenant.DatastoreNamespace;
         }
 
-        public IBatchedAsyncEnumerable<T> QueryAsync<T>(
+        public IBatchedAsyncEnumerable<T> QueryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order = null,
             int? limit = null,
@@ -44,7 +45,7 @@
             CancellationToken cancellationToken = default) where T : class, IModel, new()
             => BatchedQueryAsync(where, order, limit, transaction, metrics, cancellationToken).AsBatchedAsyncEnumerable();
 
-        private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<T>(
+        private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order = null,
             int? limit = null,
@@ -58,7 +59,7 @@
             }
         }
 
-        public async Task<PaginatedQueryResult<T>> QueryPaginatedAsync<T>(
+        public async Task<PaginatedQueryResult<T>> QueryPaginatedAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             PaginatedQueryCursor cursor,
             int limit,
             Expression<Func<T, bool>> where,
@@ -70,8 +71,8 @@
             return await _globalDatastore.QueryPaginatedAsync(await GetDatastoreNamespace().ConfigureAwait(false), cursor, limit, where, order, transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<T?> LoadAsync<T>(
-            Key key,
+        public async Task<T?> LoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
+            Key<T> key,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
             CancellationToken cancellationToken = default) where T : class, IModel, new()
@@ -79,15 +80,15 @@
             return await _globalDatastore.LoadAsync<T>(await GetDatastoreNamespace().ConfigureAwait(false), key, transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
 
-        public IBatchedAsyncEnumerable<KeyValuePair<Key, T?>> LoadAsync<T>(
-            IAsyncEnumerable<Key> keys,
+        public IBatchedAsyncEnumerable<KeyValuePair<Key<T>, T?>> LoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
+            IAsyncEnumerable<Key<T>> keys,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
             CancellationToken cancellationToken = default) where T : class, IModel, new() =>
             BatchedLoadAsync<T>(keys, transaction, metrics, cancellationToken).AsBatchedAsyncEnumerable();
 
-        public async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key, T?>>> BatchedLoadAsync<T>(
-            IAsyncEnumerable<Key> keys,
+        public async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key<T>, T?>>> BatchedLoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
+            IAsyncEnumerable<Key<T>> keys,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : class, IModel, new()
@@ -98,7 +99,7 @@
             }
         }
 
-        public async Task<T> CreateAsync<T>(
+        public async Task<T> CreateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -107,7 +108,7 @@
             return await _globalDatastore.CreateAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public async IAsyncEnumerable<T> CreateAsync<T>(
+        public async IAsyncEnumerable<T> CreateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -119,7 +120,7 @@
             }
         }
 
-        public async Task<T> UpsertAsync<T>(
+        public async Task<T> UpsertAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -128,7 +129,7 @@
             return await _globalDatastore.UpsertAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public async IAsyncEnumerable<T> UpsertAsync<T>(
+        public async IAsyncEnumerable<T> UpsertAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -140,7 +141,7 @@
             }
         }
 
-        public async Task<T> UpdateAsync<T>(
+        public async Task<T> UpdateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -149,7 +150,7 @@
             return await _globalDatastore.UpdateAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).FirstAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public async IAsyncEnumerable<T> UpdateAsync<T>(
+        public async IAsyncEnumerable<T> UpdateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -161,7 +162,7 @@
             }
         }
 
-        public async Task DeleteAsync<T>(
+        public async Task DeleteAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             T model,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -170,7 +171,7 @@
             await _globalDatastore.DeleteAsync(await GetDatastoreNamespace().ConfigureAwait(false), new[] { model }.ToAsyncEnumerable(), transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task DeleteAsync<T>(
+        public async Task DeleteAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction = null,
             RepositoryOperationMetrics? metrics = null,
@@ -179,7 +180,7 @@
             await _globalDatastore.DeleteAsync(await GetDatastoreNamespace().ConfigureAwait(false), models, transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<Key> AllocateKeyAsync<T>(
+        public async Task<Key<T>> AllocateKeyAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics = null,
             CancellationToken cancellationToken = default) where T : class, IModel, new()
@@ -187,7 +188,7 @@
             return await _globalDatastore.AllocateKeyAsync<T>(await GetDatastoreNamespace().ConfigureAwait(false), transaction, metrics, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<KeyFactory> GetKeyFactoryAsync<T>(
+        public async Task<KeyFactory<T>> GetKeyFactoryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             RepositoryOperationMetrics? metrics = null,
             CancellationToken cancellationToken = default) where T : class, IModel, new()
         {

@@ -12,7 +12,7 @@
             CancellationToken cancellationToken);
     }
 
-    internal interface IModelMigratorExecutor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : IModelMigratorExecutor where T : class, IModel, new()
+    internal interface IModelMigratorExecutor<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T> : IModelMigratorExecutor where T : class, IModel, new()
     {
         Task IModelMigratorExecutor.ExecuteMigratorsAsync(
             RegisteredModelMigratorBase[] migrators,

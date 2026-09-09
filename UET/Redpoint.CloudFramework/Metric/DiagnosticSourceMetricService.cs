@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Metric
 {
-    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -26,13 +26,13 @@
             _globalPrefix = globalPrefix;
         }
 
-        public Task AddPoint(string metricType, long amount, Key? projectKey, Dictionary<string, string?>? labels = null)
+        public Task AddPoint(string metricType, long amount, UntypedKey? projectKey, Dictionary<string, string?>? labels = null)
         {
             AddPointSync(metricType, amount, projectKey, labels);
             return Task.CompletedTask;
         }
 
-        public void AddPointSync(string metricType, long amount, Key? projectKey, Dictionary<string, string?>? labels = null)
+        public void AddPointSync(string metricType, long amount, UntypedKey? projectKey, Dictionary<string, string?>? labels = null)
         {
             TagList tagList = new()
             {

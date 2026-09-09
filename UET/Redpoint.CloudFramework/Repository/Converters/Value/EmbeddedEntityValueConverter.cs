@@ -176,7 +176,7 @@
                     case "key":
                         return new Value(_globalPrefix.ParseInternal(
                             valueNode.AsObject()["ns"]?.GetValue<string>() ?? string.Empty,
-                            valueNode.AsObject()["value"]?.GetValue<string>() ?? string.Empty));
+                            valueNode.AsObject()["value"]?.GetValue<string>() ?? string.Empty).__InternalDatastoreKey__);
                     case "timestamp":
                         return new Value(_instantTimestampConverter.FromNodaTimeInstantToDatastoreValue(_instantTimestampJsonConverter.FromJsonCacheToNodaTimeInstant(valueNode), false));
                     default:
@@ -276,7 +276,7 @@
                             new JsonObject
                             {
                                 { "ns", value.KeyValue.PartitionId.NamespaceId },
-                                { "value", _globalPrefix.CreateInternal(value.KeyValue, PathGenerationMode.NoShortPathComponents) }
+                                { "value", _globalPrefix.CreateInternal(new UntypedKey(value.KeyValue), PathGenerationMode.NoShortPathComponents) }
                             }
                         }
                     };

@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.Counter
 {
     using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
@@ -113,7 +114,7 @@ end
             return $"shard-token/{@namespace}/{name.name}";
         }
 
-        private async IAsyncEnumerable<Key> GetAllKeys(string @namespace, ShardedCounterName name)
+        private async IAsyncEnumerable<Key<DefaultShardedCounterModel>> GetAllKeys(string @namespace, ShardedCounterName name)
         {
             var keyFactory = await _globalRepository.GetKeyFactoryAsync<DefaultShardedCounterModel>(@namespace).ConfigureAwait(false);
             for (var i = 0; i < _numShards; i++)
@@ -203,7 +204,7 @@ end
 
             public required ShardedCounterName Name;
 
-            public required Dictionary<Key, long?> Shards;
+            public required Dictionary<Key<DefaultShardedCounterModel>, long?> Shards;
 
             public required int RemainingCount;
 
@@ -277,7 +278,7 @@ end
                     var waitingOn = new List<WaitingOn>();
                     try
                     {
-                        var keysToWaitingOn = new ConcurrentDictionary<Key, WaitingOn>();
+                        var keysToWaitingOn = new ConcurrentDictionary<Key<DefaultShardedCounterModel>, WaitingOn>();
                         foreach (var name in notInRedisCache)
                         {
                             var shards = Enumerable.Range(0, _numShards)

@@ -1,8 +1,9 @@
 ﻿namespace Redpoint.CloudFramework.Locking
 {
+    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using System;
     using System.Threading.Tasks;
-    using Google.Cloud.Datastore.V1;
 
     public class DefaultLockService : ILockService
     {
@@ -17,7 +18,7 @@
             _globalLockService = globalLockService;
         }
 
-        public async Task<ILockHandle> Acquire(Key objectToLock)
+        public async Task<ILockHandle> Acquire(UntypedKey objectToLock)
         {
             var currentTenant = await _currentTenantService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)
@@ -28,7 +29,7 @@
             return await _globalLockService.Acquire(ns, objectToLock).ConfigureAwait(false);
         }
 
-        public async Task AcquireAndUse(Key objectToLock, Func<Task> block)
+        public async Task AcquireAndUse(UntypedKey objectToLock, Func<Task> block)
         {
             var currentTenant = await _currentTenantService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)
@@ -39,7 +40,7 @@
             await _globalLockService.AcquireAndUse(ns, objectToLock, block).ConfigureAwait(false);
         }
 
-        public async Task<T> AcquireAndUse<T>(Key objectToLock, Func<Task<T>> block)
+        public async Task<T> AcquireAndUse<T>(UntypedKey objectToLock, Func<Task<T>> block)
         {
             var currentTenant = await _currentTenantService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)

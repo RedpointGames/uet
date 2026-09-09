@@ -1,9 +1,10 @@
 ﻿namespace Redpoint.CloudFramework.Prefix
 {
-    using System;
-    using System.Threading.Tasks;
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
+    using System;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Threading.Tasks;
 
     public class DefaultPrefix : IPrefix
     {
@@ -16,17 +17,17 @@
             _globalPrefix = globalPrefix;
         }
 
-        public string Create(Key key)
+        public string Create(UntypedKey key)
         {
             return _globalPrefix.Create(key);
         }
 
-        public string CreateInternal(Key key)
+        public string CreateInternal(UntypedKey key)
         {
             return _globalPrefix.CreateInternal(key);
         }
 
-        public async Task<Key> Parse(string identifier)
+        public async Task<UntypedKey> Parse(string identifier)
         {
             var currentTenant = await _currentProjectService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)
@@ -37,7 +38,7 @@
             return _globalPrefix.Parse(ns, identifier);
         }
 
-        public async Task<Key> ParseInternal(string identifier)
+        public async Task<UntypedKey> ParseInternal(string identifier)
         {
             var currentTenant = await _currentProjectService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)
@@ -48,7 +49,7 @@
             return _globalPrefix.ParseInternal(ns, identifier);
         }
 
-        public async Task<Key> ParseLimited(string identifier, string kind)
+        public async Task<UntypedKey> ParseLimited(string identifier, string kind)
         {
             var currentTenant = await _currentProjectService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)
@@ -59,7 +60,7 @@
             return _globalPrefix.ParseLimited(ns, identifier, kind);
         }
 
-        public async Task<Key> ParseLimited<T>(string identifier) where T : class, IModel, new()
+        public async Task<Key<T>> ParseLimited<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(string identifier) where T : class, IModel, new()
         {
             var currentTenant = await _currentProjectService.GetTenant().ConfigureAwait(false);
             if (currentTenant == null)

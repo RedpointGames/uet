@@ -7,9 +7,9 @@
 
     internal interface IExpressionConverter
     {
-        Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel;
+        Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : class, IModel, new();
 
-        IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel;
+        IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : class, IModel, new();
 
         Filter? SimplifyFilter(Filter? filter);
 

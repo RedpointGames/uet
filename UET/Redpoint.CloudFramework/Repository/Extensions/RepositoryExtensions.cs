@@ -1,17 +1,18 @@
 ﻿namespace Redpoint.CloudFramework.Repository
 {
     using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
 
     public static class RepositoryExtensions
     {
-        public static bool HasAncestor(this Key key, Key? parent)
+        public static bool HasAncestor(this UntypedKey key, UntypedKey? parent)
         {
             ArgumentNullException.ThrowIfNull(key);
 
-            var keyParent = key.GetParent();
+            var keyParent = key.__InternalDatastoreKey__.GetParent();
             if (keyParent != null)
             {
-                return keyParent.Equals(parent);
+                return keyParent.Equals(parent?.__InternalDatastoreKey__);
             }
             return false;
         }

@@ -59,7 +59,7 @@ public sealed class <#= variant #>_Model : Model<<#= variant #>_Model>
     public Instant? timestamp { get; set; }
 
     [Type(FieldType.Key)]
-    public Key? keyValue { get; set; }
+    public UntypedKey? keyValue { get; set; }
 
     public TestModel? untracked { get; set; }
     

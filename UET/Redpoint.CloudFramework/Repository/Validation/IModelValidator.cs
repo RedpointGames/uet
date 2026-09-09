@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Validation
 {
     using Redpoint.CloudFramework.Models;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// An interface which can be used to validate that a model type has all of it's fields configured correctly.
@@ -12,6 +13,6 @@
         /// </summary>
         /// <typeparam name="T">The model type to validate.</typeparam>
         /// <returns>Nothing.</returns>
-        void ValidateModelFields<T>() where T : Model<T>, new();
+        void ValidateModelFields<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>() where T : Model<T>, new();
     }
 }

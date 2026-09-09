@@ -34,7 +34,7 @@
             }
         }
 
-        private string GetFieldReferencedInExpression<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel) where T : IModel
+        private string GetFieldReferencedInExpression<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel) where T : class, IModel, new()
         {
             if (expression.NodeType == ExpressionType.MemberAccess)
             {
@@ -59,7 +59,7 @@
                     throw new InvalidOperationException($"Expression must be a member access operation, and the expression that the member access is being performed on must be the model parameter expression. It was a '{access.Expression.NodeType}' type expression instead.");
                 }
 
-                if (access.Member.Name == nameof(IModel.Key))
+                if (access.Member.Name == nameof(Model<>.Key))
                 {
                     throw new InvalidOperationException($"The 'Key' property can only have the 'HasAncestor' extension method called on it; it can not be used in a comparison.");
                 }
@@ -98,7 +98,11 @@
 
             var valueType = valueRaw.GetType();
 
-            if (valueType == typeof(NodaTime.Instant))
+            if (valueType.IsAssignableTo(typeof(UntypedKey)))
+            {
+                return ((UntypedKey)valueRaw).__InternalDatastoreKey__;
+            }
+            else if (valueType == typeof(NodaTime.Instant))
             {
                 return _instantTimestampConverter.FromNodaTimeInstantToDatastoreValue((NodaTime.Instant)valueRaw, false);
             }
@@ -130,7 +134,7 @@
             }
         }
 
-        public Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : IModel
+        public Filter? ConvertExpressionToFilter<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters, ref bool hasAncestorQuery) where T : class, IModel, new()
         {
             if (expression.NodeType == ExpressionType.Constant && ((ConstantExpression)expression).Type == typeof(bool) && (bool)((ConstantExpression)expression).Value! == true)
             {
@@ -182,7 +186,7 @@
                 if (callExpression.Method == typeof(RepositoryExtensions).GetMethod(nameof(RepositoryExtensions.HasAncestor), BindingFlags.Static | BindingFlags.Public) &&
                     callExpression.Arguments.Count == 2)
                 {
-                    if (propertyInfo.Name != nameof(IModel.Key))
+                    if (propertyInfo.Name != nameof(Model<>.Key))
                     {
                         throw new InvalidOperationException($"You can only use 'HasAncestor' on the primary Key and not key properties. Attempted to use member access on property named '{propertyInfo.Name}'.");
                     }
@@ -303,7 +307,7 @@
             throw new InvalidOperationException($"Expression of type '{expression.NodeType}' is not supported in QueryAsync calls.");
         }
 
-        public IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : IModel
+        public IEnumerable<PropertyOrder>? ConvertExpressionToOrder<T>(Expression expression, ParameterExpression modelExpression, IReferenceModel<T> referenceModel, ref GeoQueryParameters<T>? geoParameters) where T : class, IModel, new()
         {
             if (expression.NodeType == ExpressionType.Or)
             {
@@ -477,7 +481,7 @@
                 case Value.ValueTypeOneofCase.TimestampValue:
                     return value.TimestampValue.ToDateTimeOffset().ToString(CultureInfo.InvariantCulture);
                 case Value.ValueTypeOneofCase.KeyValue:
-                    return _globalPrefix.CreateInternal(value.KeyValue, PathGenerationMode.NoShortPathComponents);
+                    return _globalPrefix.CreateInternal(new UntypedKey(value.KeyValue), PathGenerationMode.NoShortPathComponents);
                 case Value.ValueTypeOneofCase.StringValue:
                     return $"\"{value.StringValue.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
                 case Value.ValueTypeOneofCase.BlobValue:

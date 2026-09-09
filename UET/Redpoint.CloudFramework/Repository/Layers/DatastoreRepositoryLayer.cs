@@ -23,12 +23,14 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
+    using DatastoreKey = Google.Cloud.Datastore.V1.Key;
 
     internal class DatastoreRepositoryLayer : IDatastoreRepositoryLayer
     {
@@ -82,7 +84,7 @@
 
         public AsyncEvent<EntitiesModifiedEventArgs> OnNonTransactionalEntitiesModified { get; } = new AsyncEvent<EntitiesModifiedEventArgs>();
 
-        private string GetSpanName(string @namespace, string modelName, Key? key)
+        private string GetSpanName(string @namespace, string modelName, UntypedKey? key)
         {
             if (key != null)
             {
@@ -115,7 +117,7 @@
             }
         }
 
-        private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<T>(
+        private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order,
@@ -285,7 +287,7 @@
             }
         }
 
-        public IBatchedAsyncEnumerable<T> QueryAsync<T>(
+        public IBatchedAsyncEnumerable<T> QueryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order,
@@ -302,7 +304,7 @@
                 metrics,
                 cancellationToken).AsBatchedAsyncEnumerable();
 
-        private async IAsyncEnumerable<IReadOnlyList<T>> QueryGeohashRange<T>(
+        private async IAsyncEnumerable<IReadOnlyList<T>> QueryGeohashRange<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IReferenceModel<T> referenceModel,
             Filter filter,
@@ -410,7 +412,7 @@
             }
         }
 
-        public async Task<PaginatedQueryResult<T>> QueryPaginatedAsync<T>(
+        public async Task<PaginatedQueryResult<T>> QueryPaginatedAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             PaginatedQueryCursor cursor,
             int limit,
@@ -511,9 +513,9 @@
             }
         }
 
-        public async Task<T?> LoadAsync<T>(
+        public async Task<T?> LoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
-            Key key,
+            Key<T> key,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
@@ -536,11 +538,11 @@
                     Entity entity;
                     if (transaction == null)
                     {
-                        entity = await db.LookupAsync(key).ConfigureAwait(false);
+                        entity = await db.LookupAsync(key.__InternalDatastoreKey__).ConfigureAwait(false);
                     }
                     else
                     {
-                        entity = await transaction.Transaction.LookupAsync(key).ConfigureAwait(false);
+                        entity = await transaction.Transaction.LookupAsync(key.__InternalDatastoreKey__).ConfigureAwait(false);
                     }
 
                     if (metrics != null)
@@ -551,14 +553,14 @@
                     await _metricService.AddPoint(_datastoreEntityOperationCount, 1, null, new Dictionary<string, string?>
                     {
                         { "operation", "load" },
-                        { "kind", key.Path.Last().Kind },
+                        { "kind", key.__InternalDatastoreKey__.Path.Last().Kind },
                         { "namespace", @namespace },
                     }).ConfigureAwait(false);
                     if (entity != null)
                     {
                         await _metricService.AddPoint(_datastoreEntityEntityReadCount, 1, null, new Dictionary<string, string?>
                         {
-                            { "kind", key.Path.Last().Kind },
+                            { "kind", key.__InternalDatastoreKey__.Path.Last().Kind },
                             { "namespace", @namespace },
                         }).ConfigureAwait(false);
                     }
@@ -577,9 +579,9 @@
             }
         }
 
-        public IBatchedAsyncEnumerable<KeyValuePair<Key, T?>> LoadAsync<T>(
+        public IBatchedAsyncEnumerable<KeyValuePair<Key<T>, T?>> LoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
-            IAsyncEnumerable<Key> keys,
+            IAsyncEnumerable<Key<T>> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
@@ -590,9 +592,9 @@
                 metrics,
                 cancellationToken).AsBatchedAsyncEnumerable();
 
-        private async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key, T?>>> BatchedLoadAsync<T>(
+        private async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key<T>, T?>>> BatchedLoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
-            IAsyncEnumerable<Key> keys,
+            IAsyncEnumerable<Key<T>> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
@@ -615,7 +617,9 @@
                 {
                     var db = GetDbForNamespace(@namespace);
 
-                    var batch = new HashSet<Key>();
+                    var referenceModel = ReferenceModelCache.Get<T>();
+
+                    var batch = new HashSet<Key<T>>();
                     var hasWrittenOpMetric = false;
                     await foreach (var key in keys.Distinct().WithCancellation(cancellationToken))
                     {
@@ -628,7 +632,7 @@
 
                         if (kind == null)
                         {
-                            kind = key.Path.Last().Kind;
+                            kind = key.__InternalDatastoreKey__.Path.Last().Kind;
                             if (!hasWrittenOpMetric && kind != null)
                             {
                                 await _metricService.AddPoint(_datastoreEntityOperationCount, 1, null, new Dictionary<string, string?>
@@ -647,11 +651,11 @@
                             {
                                 if (transaction == null)
                                 {
-                                    entities = await db.LookupAsync(batch).ConfigureAwait(false);
+                                    entities = await db.LookupAsync(batch.Select(x => x.__InternalDatastoreKey__)).ConfigureAwait(false);
                                 }
                                 else
                                 {
-                                    entities = await transaction.Transaction.LookupAsync(batch).ConfigureAwait(false);
+                                    entities = await transaction.Transaction.LookupAsync(batch.Select(x => x.__InternalDatastoreKey__)).ConfigureAwait(false);
                                 }
                             }
 
@@ -667,22 +671,22 @@
                                     { "namespace", @namespace },
                                 }).ConfigureAwait(false);
 
-                            var expectedKeys = new List<Key>(batch);
+                            var expectedKeys = new List<Key<T>>(batch);
                             batch.Clear();
 
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            var batchResults = new List<KeyValuePair<Key, T?>>();
+                            var batchResults = new List<KeyValuePair<Key<T>, T?>>();
                             for (int i = 0; i < expectedKeys.Count; i++)
                             {
                                 if (entities.Count <= i ||
-                                entities[i] == null)
+                                    entities[i] == null)
                                 {
-                                    batchResults.Add(new KeyValuePair<Key, T?>(expectedKeys[i], null));
+                                    batchResults.Add(new KeyValuePair<Key<T>, T?>(expectedKeys[i], null));
                                 }
                                 else
                                 {
-                                    batchResults.Add(new KeyValuePair<Key, T?>(entities[i].Key, _entityConverter.From<T>(@namespace, entities[i])));
+                                    batchResults.Add(new KeyValuePair<Key<T>, T?>(new Key<T>(entities[i].Key), _entityConverter.From<T>(@namespace, entities[i])));
                                 }
                             }
                             yield return batchResults;
@@ -706,11 +710,11 @@
                         {
                             if (transaction == null)
                             {
-                                entities = await db.LookupAsync(batch).ConfigureAwait(false);
+                                entities = await db.LookupAsync(batch.Select(x => x.__InternalDatastoreKey__)).ConfigureAwait(false);
                             }
                             else
                             {
-                                entities = await transaction.Transaction.LookupAsync(batch).ConfigureAwait(false);
+                                entities = await transaction.Transaction.LookupAsync(batch.Select(x => x.__InternalDatastoreKey__)).ConfigureAwait(false);
                             }
                         }
 
@@ -726,22 +730,22 @@
                             { "namespace", @namespace },
                         }).ConfigureAwait(false);
 
-                        var expectedKeys = new List<Key>(batch);
+                        var expectedKeys = new List<Key<T>>(batch);
                         batch.Clear();
 
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var batchResults = new List<KeyValuePair<Key, T?>>();
+                        var batchResults = new List<KeyValuePair<Key<T>, T?>>();
                         for (int i = 0; i < expectedKeys.Count; i++)
                         {
                             if (entities.Count <= i ||
                             entities[i] == null)
                             {
-                                batchResults.Add(new KeyValuePair<Key, T?>(expectedKeys[i], null));
+                                batchResults.Add(new KeyValuePair<Key<T>, T?>(expectedKeys[i], null));
                             }
                             else
                             {
-                                batchResults.Add(new KeyValuePair<Key, T?>(entities[i].Key, _entityConverter.From<T>(@namespace, entities[i])));
+                                batchResults.Add(new KeyValuePair<Key<T>, T?>(new Key<T>(entities[i].Key), _entityConverter.From<T>(@namespace, entities[i])));
                             }
                         }
                         yield return batchResults;
@@ -762,8 +766,8 @@
             }
         }
 
-        public async IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(
-            IAsyncEnumerable<Key> keys,
+        public async IAsyncEnumerable<KeyValuePair<Key<T>, T?>> LoadAcrossNamespacesAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
+            IAsyncEnumerable<Key<T>> keys,
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
@@ -781,19 +785,19 @@
                     // We don't currently process keys asynchronously; we eagerly fetch them all so we can do
                     // our Any/GroupBy operations.
                     var keysList = await keys.ToListAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-                    var kind = keysList.FirstOrDefault()?.Path?.Last()?.Kind;
+                    var kind = keysList.FirstOrDefault()?.__InternalDatastoreKey__.Path?.Last()?.Kind;
 
                     if (keysList.Any(x => x == null))
                     {
                         throw new ArgumentNullException(nameof(keys), "One or more keys passed to LoadAcrossNamespacesAsync was null.");
                     }
 
-                    foreach (var keyGroup in keysList.GroupBy(x => x.PartitionId.NamespaceId).ToDictionary(k => k.Key, v => v.ToArray()))
+                    foreach (var keyGroup in keysList.GroupBy(x => x.__InternalDatastoreKey__.PartitionId.NamespaceId).ToDictionary(k => k.Key, v => v.ToArray()))
                     {
                         var @namespace = keyGroup.Key;
                         // Datastore APIs enforce that the namespace can't be null, so we don't need to check and throw ArgumentNullException.
 
-                        var batches = new List<Key[]>();
+                        var batches = new List<Key<T>[]>();
                         if (keyGroup.Value.Length <= 1000)
                         {
                             batches.Add(keyGroup.Value);
@@ -803,7 +807,7 @@
                             for (int i = 0; i < keyGroup.Value.Length; i += 1000)
                             {
                                 var batchSize = Math.Min(1000, keyGroup.Value.Length - i);
-                                var batch = new Key[batchSize];
+                                var batch = new Key<T>[batchSize];
                                 Array.Copy(keyGroup.Value, i, batch, 0, batchSize);
                                 batches.Add(batch);
                             }
@@ -822,7 +826,7 @@
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            var entities = await db.LookupAsync(batch).ConfigureAwait(false);
+                            var entities = await db.LookupAsync(batch.Select(x => x.__InternalDatastoreKey__)).ConfigureAwait(false);
 
                             if (metrics != null)
                             {
@@ -842,11 +846,11 @@
                                 if (entities.Count <= i ||
                                 entities[i] == null)
                                 {
-                                    yield return new KeyValuePair<Key, T?>(batch[i], null);
+                                    yield return new KeyValuePair<Key<T>, T?>(batch[i], null);
                                 }
                                 else
                                 {
-                                    yield return new KeyValuePair<Key, T?>(entities[i].Key, _entityConverter.From<T>(@namespace, entities[i]));
+                                    yield return new KeyValuePair<Key<T>, T?>(new Key<T>(entities[i].Key), _entityConverter.From<T>(@namespace, entities[i]));
                                 }
                             }
                         }
@@ -862,7 +866,7 @@
             }
         }
 
-        public async IAsyncEnumerable<T> CreateAsync<T>(
+        public async IAsyncEnumerable<T> CreateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -884,7 +888,7 @@
 
                     List<Entity> entities = new List<Entity>();
                     List<T> modelBuffer = new List<T>();
-                    KeyFactory? keyFactory = null;
+                    KeyFactory<T>? keyFactory = null;
                     await foreach (var model in models.ConfigureAwait(false))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -896,7 +900,7 @@
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
+                            keyFactory = new KeyFactory<T>(db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind));
                         }
 
                         var entity = _entityConverter.To(@namespace, model, true, _ => keyFactory.CreateIncompleteKey());
@@ -910,6 +914,8 @@
 
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    var referenceModel = ReferenceModelCache.Get<T>();
+
                     if (transaction == null)
                     {
                         foreach (var hook in _hooks)
@@ -920,7 +926,7 @@
                             }
                         }
 
-                        var keys = new List<Key>();
+                        var keys = new List<DatastoreKey>();
                         foreach (var batch in entities.BatchInto(500))
                         {
                             keys.AddRange(await db.InsertAsync(batch).ConfigureAwait(false));
@@ -934,7 +940,7 @@
                         {
                             if (keys[i] != null)
                             {
-                                modelBuffer[i].Key = keys[i];
+                                referenceModel.SetDatastoreKey(modelBuffer[i], keys[i]);
                             }
                         }
 
@@ -948,7 +954,7 @@
 
                         await OnNonTransactionalEntitiesModified.BroadcastAsync(new EntitiesModifiedEventArgs
                         {
-                            Keys = modelBuffer.Select(x => x.Key).ToArray(),
+                            Keys = modelBuffer.Select(x => referenceModel.GetTypedKey(x)!).ToArray(),
                             Metrics = metrics,
                         }, cancellationToken).ConfigureAwait(false);
                     }
@@ -988,7 +994,7 @@
 
                         for (int i = 0; i < entities.Count; i++)
                         {
-                            modelBuffer[i].Key = entities[i].Key;
+                            referenceModel.SetDatastoreKey(modelBuffer[i], entities[i].Key);
                         }
                     }
 
@@ -1007,7 +1013,7 @@
             }
         }
 
-        public async IAsyncEnumerable<T> UpsertAsync<T>(
+        public async IAsyncEnumerable<T> UpsertAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1027,10 +1033,12 @@
                 {
                     var db = GetDbForNamespace(@namespace);
 
+                    var referenceModel = ReferenceModelCache.Get<T>();
+
                     List<Entity> entities = new List<Entity>();
                     List<T> modelBuffer = new List<T>();
                     HashSet<Key> seenKeys = new HashSet<Key>();
-                    KeyFactory? keyFactory = null;
+                    KeyFactory<T>? keyFactory = null;
                     await foreach (var model in models.ConfigureAwait(false))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -1042,7 +1050,7 @@
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
+                            keyFactory = new KeyFactory<T>(db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind));
                         }
 
                         var entity = _entityConverter.To(@namespace, model, false, _ => keyFactory.CreateIncompleteKey());
@@ -1051,7 +1059,7 @@
                             throw new InvalidOperationException($"Cross-namespace data write attempted (UpsertAsync called with namespace '{@namespace}', but entity had namespace '{entity.Key.PartitionId.NamespaceId}').");
                         }
 
-                        if (model.Key != null && seenKeys.Contains(entity.Key))
+                        if (referenceModel.HasKey(model) && seenKeys.Contains(entity.Key))
                         {
                             continue;
                         }
@@ -1087,7 +1095,7 @@
                         {
                             if (keys[i] != null)
                             {
-                                modelBuffer[i].Key = keys[i];
+                                referenceModel.SetDatastoreKey(modelBuffer[i], keys[i]);
                             }
                         }
 
@@ -1101,7 +1109,7 @@
 
                         await OnNonTransactionalEntitiesModified.BroadcastAsync(new EntitiesModifiedEventArgs
                         {
-                            Keys = modelBuffer.Select(x => x.Key).ToArray(),
+                            Keys = modelBuffer.Select(x => referenceModel.GetTypedKey(x)!).ToArray(),
                             Metrics = metrics,
                         }, cancellationToken).ConfigureAwait(false);
                     }
@@ -1141,7 +1149,7 @@
 
                         for (int i = 0; i < entities.Count; i++)
                         {
-                            modelBuffer[i].Key = entities[i].Key;
+                            referenceModel.SetDatastoreKey(modelBuffer[i], entities[i].Key);
                         }
                     }
 
@@ -1160,7 +1168,7 @@
             }
         }
 
-        public async IAsyncEnumerable<T> UpdateAsync<T>(
+        public async IAsyncEnumerable<T> UpdateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1180,22 +1188,24 @@
                 {
                     var db = GetDbForNamespace(@namespace);
 
+                    var referenceModel = ReferenceModelCache.Get<T>();
+
                     List<Entity> entities = new List<Entity>();
                     List<T> modelBuffer = new List<T>();
                     HashSet<Key> seenKeys = new HashSet<Key>();
-                    KeyFactory? keyFactory = null;
+                    KeyFactory<T>? keyFactory = null;
                     await foreach (var model in models.ConfigureAwait(false))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        if (model == null || model.Key == null)
+                        if (model == null || !referenceModel.HasKey(model))
                         {
                             throw new ArgumentNullException(nameof(models), "Input models contained a null value or had a null Key on the model; filter nulls out of the input enumerable before calling UpdateAsync().");
                         }
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
+                            keyFactory = new KeyFactory<T>(db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind));
                         }
 
                         var entity = _entityConverter.To(@namespace, model, false, _ => keyFactory.CreateIncompleteKey());
@@ -1204,7 +1214,7 @@
                             throw new InvalidOperationException($"Cross-namespace data write attempted (UpdateAsync called with namespace '{@namespace}', but entity had namespace '{entity.Key.PartitionId.NamespaceId}').");
                         }
 
-                        if (model.Key != null && seenKeys.Contains(entity.Key))
+                        if (referenceModel.HasKey(model) && seenKeys.Contains(entity.Key))
                         {
                             continue;
                         }
@@ -1246,7 +1256,7 @@
 
                         await OnNonTransactionalEntitiesModified.BroadcastAsync(new EntitiesModifiedEventArgs
                         {
-                            Keys = modelBuffer.Select(x => x.Key).ToArray(),
+                            Keys = modelBuffer.Select(x => referenceModel.GetTypedKey(x)!).ToArray(),
                             Metrics = metrics,
                         }, cancellationToken).ConfigureAwait(false);
                     }
@@ -1292,7 +1302,7 @@
             }
         }
 
-        public async Task DeleteAsync<T>(
+        public async Task DeleteAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1312,22 +1322,24 @@
                 {
                     var db = GetDbForNamespace(@namespace);
 
+                    var referenceModel = ReferenceModelCache.Get<T>();
+
                     List<Entity> entities = new List<Entity>();
                     List<T> modelBuffer = new List<T>();
                     HashSet<Key> seenKeys = new HashSet<Key>();
-                    KeyFactory? keyFactory = null;
+                    KeyFactory<T>? keyFactory = null;
                     await foreach (var model in models.ConfigureAwait(false))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        if (model == null || model.Key == null)
+                        if (model == null || !referenceModel.HasKey(model))
                         {
                             throw new ArgumentNullException(nameof(models), "Input models contained a null value or had a null Key on the model; filter nulls out of the input enumerable before calling DeleteAsync().");
                         }
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
+                            keyFactory = new KeyFactory<T>(db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind));
                         }
 
                         var entity = _entityConverter.To(@namespace, model, false, _ => keyFactory.CreateIncompleteKey());
@@ -1336,7 +1348,7 @@
                             throw new InvalidOperationException($"Cross-namespace data write attempted (DeleteAsync called with namespace '{@namespace}', but entity had namespace '{entity.Key.PartitionId.NamespaceId}').");
                         }
 
-                        if (model.Key != null && seenKeys.Contains(entity.Key))
+                        if (referenceModel.HasKey(model) && seenKeys.Contains(entity.Key))
                         {
                             continue;
                         }
@@ -1377,7 +1389,7 @@
 
                         await OnNonTransactionalEntitiesModified.BroadcastAsync(new EntitiesModifiedEventArgs
                         {
-                            Keys = modelBuffer.Select(x => x.Key).ToArray(),
+                            Keys = modelBuffer.Select(x => referenceModel.GetTypedKey(x)!).ToArray(),
                             Metrics = metrics,
                         }, cancellationToken).ConfigureAwait(false);
                     }
@@ -1418,7 +1430,7 @@
             }
         }
 
-        public Task<Key> AllocateKeyAsync<T>(
+        public async Task<Key<T>> AllocateKeyAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
@@ -1432,11 +1444,11 @@
                 var db = GetDbForNamespace(@namespace);
                 var factory = db.CreateKeyFactory(referenceModel.Kind);
                 var key = factory.CreateIncompleteKey();
-                return db.AllocateIdAsync(key);
+                return new Key<T>(await db.AllocateIdAsync(key));
             }
         }
 
-        public Task<KeyFactory> GetKeyFactoryAsync<T>(
+        public Task<KeyFactory<T>> GetKeyFactoryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
@@ -1447,7 +1459,7 @@
 
                 var referenceModel = ReferenceModelCache.Get<T>();
                 var db = GetDbForNamespace(@namespace);
-                return Task.FromResult(db.CreateKeyFactory(referenceModel.Kind));
+                return Task.FromResult(new KeyFactory<T>(db.CreateKeyFactory(referenceModel.Kind)));
             }
         }
 

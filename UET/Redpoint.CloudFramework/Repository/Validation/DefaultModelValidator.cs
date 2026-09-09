@@ -3,6 +3,7 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Repository.Converters.Model;
+    using System.Diagnostics.CodeAnalysis;
 
     internal class DefaultModelValidator : IModelValidator
     {
@@ -17,17 +18,17 @@
             _jsonConverter = jsonConverter;
         }
 
-        public void ValidateModelFields<T>() where T : Model<T>, new()
+        public void ValidateModelFields<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>() where T : Model<T>, new()
         {
             var referenceModel = ReferenceModelCache.Get<T>();
 
             var t = referenceModel.ConstructNewModel();
 
-            var key = new Key
+            var key = new Key<T>(new Key
             {
                 PartitionId = new PartitionId("test"),
                 Path = { new Key.Types.PathElement { Kind = referenceModel.Kind, Id = 1 } }
-            };
+            });
 
             t.Key = key;
 

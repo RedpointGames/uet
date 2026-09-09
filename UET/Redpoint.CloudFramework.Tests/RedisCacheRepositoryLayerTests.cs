@@ -88,35 +88,9 @@ namespace Redpoint.CloudFramework.Tests
             Assert.True(metrics.CacheDidRead);
         }
 
-        private string SerializePathElement(PathElement pe)
+        private string GetSimpleCacheKey(UntypedKey key)
         {
-            // @note: This method now stores kinds and names as XxHash64 to prevent any long keys or weird Redis issues
-            // that previously might have been happening with Base64 encoding.
-
-            var kind = pe.Kind.Contains(':', StringComparison.Ordinal) ? Hash.XxHash64(pe.Kind, Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture) : pe.Kind;
-            if (pe.IdTypeCase == PathElement.IdTypeOneofCase.None)
-            {
-                return $"{kind}:none";
-            }
-            else if (pe.IdTypeCase == PathElement.IdTypeOneofCase.Id)
-            {
-                return $"{kind}:id:{pe.Id}";
-            }
-            else if (pe.IdTypeCase == PathElement.IdTypeOneofCase.Name)
-            {
-                return $"{kind}:name:{Hash.XxHash64(pe.Name, Encoding.UTF8).Hash.ToString(CultureInfo.InvariantCulture)}";
-            }
-            throw new NotImplementedException();
-        }
-
-        private string GetSimpleCacheKey(Key key)
-        {
-            ArgumentNullException.ThrowIfNull(key);
-            if (key.PartitionId == null) throw new ArgumentNullException("key.PartitionId");
-            if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("key.PartitionId.ProjectId");
-            if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("key.PartitionId.NamespaceId");
-            if (key.Path == null) throw new ArgumentNullException("key.Path");
-            return $"KEY:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElement))}";
+            return RedisCacheRepositoryLayer.GetSimpleCacheKey(key);
         }
 
         [Fact]
@@ -1346,7 +1320,7 @@ namespace Redpoint.CloudFramework.Tests
             entity["blob"] = ByteString.CopyFromUtf8("test");
             entity["entity"] = subentity3;
             entity["geopoint"] = new LatLng { Latitude = 20, Longitude = 40 };
-            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true)).CreateKey(1);
+            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true)).CreateKey(1).__InternalDatastoreKey__;
             entity["timestamp"] = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow);
 
             var model = new EmbeddedEntityModel
@@ -1417,7 +1391,7 @@ namespace Redpoint.CloudFramework.Tests
             entity["blob"] = ByteString.CopyFromUtf8("test");
             entity["entity"] = subentity3;
             entity["geopoint"] = new LatLng { Latitude = 20, Longitude = 40 };
-            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true)).CreateKey(1);
+            entity["key"] = (await layer.GetKeyFactoryAsync<EmbeddedEntityModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true)).CreateKey(1).__InternalDatastoreKey__;
             entity["timestamp"] = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow);
 
             const string name = "TestCreateAndQueryWithEmbeddedEntityRedis";
