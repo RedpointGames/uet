@@ -8,6 +8,7 @@
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Datastore;
     using Redpoint.CloudFramework.Repository.Layers;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.Collections;
     using System;
@@ -120,7 +121,7 @@
         [Obsolete("Use QueryAsync<T> instead.")]
         public static Task<ModelQuery<T>> CreateQuery<T>(this IGlobalRepository globalRepository, string @namespace) where T : class, IModel, new()
         {
-            return Task.FromResult(new ModelQuery<T>(@namespace, new Query(new T().GetKind())));
+            return Task.FromResult(new ModelQuery<T>(@namespace, new Query(ReferenceModelCache.Get<T>().Kind)));
         }
 
         [Obsolete("Use QueryAsync<T> instead.")]

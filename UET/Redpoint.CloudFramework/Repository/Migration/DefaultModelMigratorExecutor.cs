@@ -5,6 +5,7 @@
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Layers;
+    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.Collections.Batching;
     using System;
     using System.Diagnostics.CodeAnalysis;
@@ -58,8 +59,8 @@
             RegisteredModelMigrator<T>[] migrators,
             CancellationToken cancellationToken)
         {
-            var referenceModel = new T();
-            var currentSchemaVersion = referenceModel.GetSchemaVersion();
+            var referenceModel = ReferenceModelCache.Get<T>();
+            var currentSchemaVersion = referenceModel.SchemaVersion;
 
             var migratorsByVersion = migrators.ToDictionary(k => k.ToSchemaVersion, v => v.MigratorType);
             for (long i = 2; i <= currentSchemaVersion; i++)
@@ -82,13 +83,13 @@
             // any individual model is processed.
             try
             {
-                _logger.LogInformation($"Acquiring lock to perform migrations for '{referenceModel.GetKind()}'...");
+                _logger.LogInformation($"Acquiring lock to perform migrations for '{referenceModel.Kind}'...");
                 var keyFactory = await _globalRepository.GetKeyFactoryAsync<MigrationLockModel>(string.Empty, cancellationToken: cancellationToken).ConfigureAwait(false);
-                var key = keyFactory.CreateKey(referenceModel.GetKind());
+                var key = keyFactory.CreateKey(referenceModel.Kind);
                 var handler = await _globalLock.Acquire(string.Empty, key).ConfigureAwait(false);
                 try
                 {
-                    _logger.LogInformation($"Performing migrations for '{referenceModel.GetKind()}'...");
+                    _logger.LogInformation($"Performing migrations for '{referenceModel.Kind}'...");
 
                     await foreach (var initiallyLoadedModel in QueryForOutdatedModelsAsync(currentSchemaVersion).ConfigureAwait(false))
                     {
@@ -183,13 +184,13 @@
                 }
                 catch (Exception ex) when (!ex.GetType().FullName!.StartsWith("Xunit.", StringComparison.Ordinal))
                 {
-                    _logger.LogError(ex, $"'{ex.GetType().Name}': Failed to apply migrations for '{referenceModel.GetKind()}': {ex.Message}");
+                    _logger.LogError(ex, $"'{ex.GetType().Name}': Failed to apply migrations for '{referenceModel.Kind}': {ex.Message}");
                 }
                 finally
                 {
-                    _logger.LogInformation($"Releasing lock that was used to perform migrations for '{referenceModel.GetKind()}'...");
+                    _logger.LogInformation($"Releasing lock that was used to perform migrations for '{referenceModel.Kind}'...");
                     await handler.DisposeAsync().ConfigureAwait(false);
-                    _logger.LogInformation($"Released lock that was used to perform migrations for '{referenceModel.GetKind()}'.");
+                    _logger.LogInformation($"Released lock that was used to perform migrations for '{referenceModel.Kind}'.");
                 }
             }
             catch (LockAcquisitionException)
