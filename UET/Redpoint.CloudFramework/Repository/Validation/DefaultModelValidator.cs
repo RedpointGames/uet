@@ -19,12 +19,14 @@
 
         public void ValidateModelFields<T>() where T : Model<T>, new()
         {
-            var t = new T();
+            var referenceModel = ReferenceModelCache.Get<T>();
+
+            var t = referenceModel.ConstructNewModel();
 
             var key = new Key
             {
                 PartitionId = new PartitionId("test"),
-                Path = { new Key.Types.PathElement { Kind = t.GetKind(), Id = 1 } }
+                Path = { new Key.Types.PathElement { Kind = referenceModel.Kind, Id = 1 } }
             };
 
             t.Key = key;

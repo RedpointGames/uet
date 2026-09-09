@@ -8,7 +8,6 @@
     using Redpoint.CloudFramework.Repository;
     using Redpoint.CloudFramework.Repository.Datastore;
     using Redpoint.CloudFramework.Repository.Layers;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.Collections;
     using System;

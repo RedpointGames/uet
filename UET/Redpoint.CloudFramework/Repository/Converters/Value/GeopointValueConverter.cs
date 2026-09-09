@@ -61,10 +61,10 @@
 
                 if (propertyIndexed)
                 {
-                    var geomodel = context.Model as IGeoModel;
-                    if (geomodel != null)
+                    var reference = ReferenceModelCache.Get(context.Model);
+                    if (reference.IsGeoModel)
                     {
-                        var geopointFieldLengths = geomodel.GetHashKeyLengthsForGeopointFields();
+                        var geopointFieldLengths = reference.HashKeyLengthsForGeopointFields;
                         if (geopointFieldLengths.ContainsKey(propertyName))
                         {
                             context.Entity[propertyName + GeoConstants.GeoHashPropertySuffix] = new Value
@@ -91,10 +91,10 @@
 
                 if (propertyIndexed)
                 {
-                    var geomodel = context.Model as IGeoModel;
-                    if (geomodel != null)
+                    var referenceModel = ReferenceModelCache.Get(context.Model);
+                    if (referenceModel.IsGeoModel)
                     {
-                        var geopointFieldLengths = geomodel.GetHashKeyLengthsForGeopointFields();
+                        var geopointFieldLengths = referenceModel.HashKeyLengthsForGeopointFields;
                         if (geopointFieldLengths.TryGetValue(propertyName, out ushort geopointKeyLength))
                         {
                             var geohash = S2Manager.GenerateGeohash(geopoint);

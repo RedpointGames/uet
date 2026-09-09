@@ -10,4 +10,23 @@
     </ProjectReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="GeneratedModels\RedisTestModel.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RedisTestModel.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="GeneratedModels\RedisTestModel.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RedisTestModel.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
 </Project>

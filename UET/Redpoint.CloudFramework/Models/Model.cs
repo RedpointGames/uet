@@ -2,11 +2,9 @@
 {
     using Google.Cloud.Datastore.V1;
     using NodaTime;
-    using Redpoint.CloudFramework.Repository.Geographic;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using System.Reflection;
 
     /// <summary>
     /// A version of <c>Model</c> that you can inherit from, where the Datastore schema is defined
@@ -17,10 +15,8 @@
     /// model class, it's slightly faster than the naive implementation of returning newly
     /// constructed objects from the <c>Model</c> methods.
     /// </summary>
-    public class Model<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IModel, IGeoModel where T : Model<T>
+    public class Model<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IModel where T : class, IModel, new()
     {
-        private readonly ModelInfo _modelInfo;
-
         /// <summary>
         /// The key for the entity in the database.
         /// </summary>
@@ -53,47 +49,12 @@
         public Model()
 #pragma warning restore CS8618
         {
-            _modelInfo = ModelInfoRegistry.InitModel(this);
+            ReferenceModelCache.InitModel(this);
         }
-
-        [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-        string IModel.GetKind() => _modelInfo._kind;
-
-        /// <remarks>
-        /// This accessor is only for unit tests so they don't need to cast to IModel.
-        /// </remarks>
-        internal string GetKind() => _modelInfo._kind;
-
-        [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-
-        [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-        HashSet<string> IModel.GetIndexes() => _modelInfo._indexes;
-
-        [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-        Dictionary<string, object>? IModel.GetDefaultValues() => _modelInfo._defaultValues;
-
-        [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-        PropertyInfo[] IModel.GetPropertyInfos() => _modelInfo._propertyInfos;
-
-        [SuppressMessage("Design", "CA1033:Interface methods should be callable by child types", Justification = "This method will not be called by child classes.")]
-        PropertyInfo? IModel.GetPropertyInfo(string name)
-        {
-            if (_modelInfo._propertyInfoByName.TryGetValue(name, out var propertyInfo))
-            {
-                return propertyInfo;
-            }
-            return null;
-        }
-
-        public virtual long GetSchemaVersion() => _modelInfo._schemaVersion;
 
         public virtual string GetDatastoreNamespaceForLocalKeys()
         {
             throw new NotSupportedException("This model has a property of type 'local-key', but does not implement GetDatastoreNamespaceForLocalKeys");
         }
-
-        public virtual Dictionary<string, ushort> GetHashKeyLengthsForGeopointFields() => _modelInfo._geoHashKeyLengths;
-
-        public virtual IReadOnlyDictionary<string, FieldType> GetTypes() => _modelInfo._types;
     }
 }

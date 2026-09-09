@@ -15,7 +15,6 @@
     using Redpoint.CloudFramework.Repository.Hooks;
     using Redpoint.CloudFramework.Repository.Metrics;
     using Redpoint.CloudFramework.Repository.Pagination;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
     using Redpoint.Collections;
@@ -897,7 +896,7 @@
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(model.GetKind());
+                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
                         }
 
                         var entity = _entityConverter.To(@namespace, model, true, _ => keyFactory.CreateIncompleteKey());
@@ -1043,7 +1042,7 @@
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(model.GetKind());
+                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
                         }
 
                         var entity = _entityConverter.To(@namespace, model, false, _ => keyFactory.CreateIncompleteKey());
@@ -1196,7 +1195,7 @@
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(model.GetKind());
+                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
                         }
 
                         var entity = _entityConverter.To(@namespace, model, false, _ => keyFactory.CreateIncompleteKey());
@@ -1328,7 +1327,7 @@
 
                         if (keyFactory == null)
                         {
-                            keyFactory = db.CreateKeyFactory(model.GetKind());
+                            keyFactory = db.CreateKeyFactory(ReferenceModelCache.Get(model).Kind);
                         }
 
                         var entity = _entityConverter.To(@namespace, model, false, _ => keyFactory.CreateIncompleteKey());

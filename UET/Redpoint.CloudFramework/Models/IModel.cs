@@ -14,15 +14,6 @@
 
         internal Dictionary<string, object?>? _originalData { get; set; }
 
-        internal string GetKind();
-        internal HashSet<string> GetIndexes();
-        internal Dictionary<string, object>? GetDefaultValues();
-        internal PropertyInfo[] GetPropertyInfos();
-        internal PropertyInfo? GetPropertyInfo(string name);
-
-        long GetSchemaVersion();
         string GetDatastoreNamespaceForLocalKeys();
-
-        internal IReadOnlyDictionary<string, FieldType> GetTypes();
     }
 }
