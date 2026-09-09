@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Layers
 {
-    using Google.Apis.Bigquery.v2.Data;
     using Google.Cloud.Datastore.V1;
     using Google.Type;
     using Microsoft.Extensions.Caching.Distributed;

@@ -54,6 +54,7 @@
         /// <summary>
         /// Use Google Cloud BigQuery.
         /// </summary>
+        [Obsolete("Support for versioned BigQuery tables has been removed.", true)]
         BigQuery = 32,
 
         /// <summary>
