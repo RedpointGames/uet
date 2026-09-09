@@ -10,5 +10,7 @@
         public required string ModelNamespace { get; init; }
 
         public required IModel Model { get; init; }
+
+        public required IReferenceModel ReferenceModel { get; init; }
     }
 }

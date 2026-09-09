@@ -5,7 +5,8 @@
 		<MicrosoftPackageVersion>10.0.11</MicrosoftPackageVersion>
 		<SentryPackageVersion>6.8.0</SentryPackageVersion>
 		<XunitPackageVersion>3.2.2</XunitPackageVersion>
-		<MicrosoftAnalyzersVersion>5.9.0</MicrosoftAnalyzersVersion>
+        <!-- If this changes, it will change the minimum version of Visual Studio the analyzers will work with. -->
+		<MicrosoftAnalyzersVersion>5.3.0</MicrosoftAnalyzersVersion>
 		<MicrosoftTestingAnalyzersVersion>1.1.4</MicrosoftTestingAnalyzersVersion>
 	</PropertyGroup>
 	<ItemGroup>

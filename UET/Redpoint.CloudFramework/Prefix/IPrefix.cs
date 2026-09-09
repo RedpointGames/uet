@@ -1,16 +1,16 @@
 ﻿namespace Redpoint.CloudFramework.Prefix
 {
-    using System.Threading.Tasks;
-    using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Threading.Tasks;
 
     public interface IPrefix
     {
-        string Create(Key key);
-        string CreateInternal(Key key);
-        Task<Key> Parse(string identifier);
-        Task<Key> ParseInternal(string identifier);
-        Task<Key> ParseLimited(string identifier, string kind);
-        Task<Key> ParseLimited<T>(string identifier) where T : class, IModel, new();
+        string Create(UntypedKey key);
+        string CreateInternal(UntypedKey key);
+        Task<UntypedKey> Parse(string identifier);
+        Task<UntypedKey> ParseInternal(string identifier);
+        Task<UntypedKey> ParseLimited(string identifier, string kind);
+        Task<Key<T>> ParseLimited<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(string identifier) where T : class, IModel, new();
     }
 }

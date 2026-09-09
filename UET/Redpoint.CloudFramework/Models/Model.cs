@@ -1,6 +1,5 @@
 ﻿namespace Redpoint.CloudFramework.Models
 {
-    using Google.Cloud.Datastore.V1;
     using NodaTime;
     using System;
     using System.Collections.Generic;
@@ -15,7 +14,7 @@
     /// model class, it's slightly faster than the naive implementation of returning newly
     /// constructed objects from the <c>Model</c> methods.
     /// </summary>
-    public class Model<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IModel where T : class, IModel, new()
+    public class Model<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T> : IModel where T : class, IModel, new()
     {
         /// <summary>
         /// The key for the entity in the database.
@@ -23,7 +22,7 @@
         /// <remarks>
         /// Declaring this field as nullable would make 99% of reading code overly verbose handling scenarios that can never happen (it will never be null for entities loaded from the database). The only time that the key can be null is if you are creating an entity and haven't called CreateAsync yet.
         /// </remarks>
-        public Key Key { get; set; }
+        public Key<T> Key { get; set; }
 
         /// <summary>
         /// The date that the entity was created. Setting this field has no effect when updating entities.
@@ -49,7 +48,11 @@
         public Model()
 #pragma warning restore CS8618
         {
-            ReferenceModelCache.InitModel(this);
+            ReferenceModelCache.InitModel(
+                this,
+                model => model.Key?.__InternalDatastoreKey__,
+                (model, key) => model.Key = key == null ? null! : new Key<T>(key),
+                model => model.Key);
         }
 
         public virtual string GetDatastoreNamespaceForLocalKeys()

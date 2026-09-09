@@ -53,22 +53,22 @@
             services.AddSingleton<IValueConverter, DoubleValueConverter>();
             services.AddSingleton<IValueConverter, EmbeddedEntityValueConverter>();
             services.AddSingleton<IValueConverter, GeopointValueConverter>();
-            services.AddSingleton<IValueConverter, GlobalKeyArrayValueConverter>();
-            services.AddSingleton<IValueConverter, GlobalKeyValueConverter>();
             services.AddSingleton<IValueConverter, IntegerValueConverter>();
             services.AddSingleton<IValueConverter, UnsignedIntegerValueConverter>();
             services.AddSingleton<IValueConverter, UnsignedIntegerArrayValueConverter>();
             services.AddSingleton<IValueConverter, JsonValueConverter>();
-            services.AddSingleton<IValueConverter, KeyArrayValueConverter>();
-            services.AddSingleton<IValueConverter, KeyValueConverter>();
-            services.AddSingleton<IValueConverter, LocalKeyValueConverter>();
             services.AddSingleton<IValueConverter, StringArrayValueConverter>();
             services.AddSingleton<IValueConverter, StringEnumSetValueConverter>();
             services.AddSingleton<IValueConverter, StringEnumArrayValueConverter>();
             services.AddSingleton<IValueConverter, StringEnumValueConverter>();
             services.AddSingleton<IValueConverter, StringValueConverter>();
             services.AddSingleton<IValueConverter, TimestampValueConverter>();
-            services.AddSingleton<IValueConverter, UnsafeKeyValueConverter>();
+            services.AddSingleton<IValueConverter>(sp => new PolicyBasedUntypedKeyArrayValueConverter(sp.GetRequiredService<IGlobalPrefix>(), KeyConverterPolicy.Default));
+            services.AddSingleton<IValueConverter>(sp => new PolicyBasedUntypedKeyArrayValueConverter(sp.GetRequiredService<IGlobalPrefix>(), KeyConverterPolicy.Global));
+            services.AddSingleton<IValueConverter>(sp => new PolicyBasedUntypedKeyValueConverter(sp.GetRequiredService<IGlobalPrefix>(), KeyConverterPolicy.Default));
+            services.AddSingleton<IValueConverter>(sp => new PolicyBasedUntypedKeyValueConverter(sp.GetRequiredService<IGlobalPrefix>(), KeyConverterPolicy.Local));
+            services.AddSingleton<IValueConverter>(sp => new PolicyBasedUntypedKeyValueConverter(sp.GetRequiredService<IGlobalPrefix>(), KeyConverterPolicy.Global));
+            services.AddSingleton<IValueConverter>(sp => new PolicyBasedUntypedKeyValueConverter(sp.GetRequiredService<IGlobalPrefix>(), KeyConverterPolicy.Unsafe));
             services.AddSingleton<IValueConverterProvider, DefaultValueConverterProvider>();
         }
 

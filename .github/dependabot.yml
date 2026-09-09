@@ -7,10 +7,8 @@ version: 2
 updates:
   - package-ecosystem: "nuget"
     directory: "/UET/"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "gomod"
-    directory: "/UET/Redpoint.Uefs.Daemon.Integration.Kubernetes/go-forward"
+    ignore:
+    - dependency-name: "Microsoft.CodeAnalysis*"
     schedule:
       interval: "weekly"
   # @note: We are currently not maintaining Io build monitor, and it needs a complete rewrite.

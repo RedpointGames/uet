@@ -8,6 +8,6 @@
     {
         T? From<T>(string @namespace, TOther data) where T : class, IModel, new();
 
-        TOther To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : class, IModel, new();
+        TOther To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key<T>>? incompleteKeyFactory) where T : class, IModel, new();
     }
 }

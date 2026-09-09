@@ -34,14 +34,14 @@
             public required JsonValueConvertFromContext JsonFromContext;
         }
 
-        [Kind("converterTest")]
+        [Kind("key")]
         public sealed class ConverterTestModel : Model<ConverterTestModel>
         {
             [Type(FieldType.String), Indexed]
             public string? @namespace { get; set; }
 
             [Type(FieldType.LocalKey), Indexed]
-            public Key? localKey { get; set; }
+            public Key<ConverterTestModel>? localKey { get; set; }
 
             public override string GetDatastoreNamespaceForLocalKeys()
             {
@@ -56,7 +56,7 @@
                 ModelNamespace = string.Empty,
                 Model = new ConverterTestModel
                 {
-                    Key = new Key
+                    Key = new Key<ConverterTestModel>(new Key
                     {
                         PartitionId = new PartitionId
                         {
@@ -66,9 +66,10 @@
                         {
                             new Key.Types.PathElement("key", 1)
                         }
-                    },
+                    }),
                     @namespace = "local",
                 },
+                ReferenceModel = ReferenceModelCache.Get<ConverterTestModel>(),
                 Entity = new Entity
                 {
                     Key = new Key
@@ -93,7 +94,7 @@
                 ModelNamespace = string.Empty,
                 Model = new ConverterTestModel
                 {
-                    Key = new Key
+                    Key = new Key<ConverterTestModel>(new Key
                     {
                         PartitionId = new PartitionId
                         {
@@ -103,9 +104,10 @@
                         {
                             new Key.Types.PathElement("key", 1)
                         }
-                    },
+                    }),
                     @namespace = "local",
                 },
+                ReferenceModel = ReferenceModelCache.Get<ConverterTestModel>(),
             },
             JsonFromContext = new JsonValueConvertFromContext
             {
@@ -120,7 +122,7 @@
                 ModelNamespace = "local",
                 Model = new ConverterTestModel
                 {
-                    Key = new Key
+                    Key = new Key<ConverterTestModel>(new Key
                     {
                         PartitionId = new PartitionId
                         {
@@ -131,9 +133,10 @@
                         {
                             new Key.Types.PathElement("key", 1)
                         }
-                    },
+                    }),
                     @namespace = "local",
                 },
+                ReferenceModel = ReferenceModelCache.Get<ConverterTestModel>(),
                 Entity = new Entity
                 {
                     Key = new Key
@@ -159,7 +162,7 @@
                 ModelNamespace = "local",
                 Model = new ConverterTestModel
                 {
-                    Key = new Key
+                    Key = new Key<ConverterTestModel>(new Key
                     {
                         PartitionId = new PartitionId
                         {
@@ -170,9 +173,10 @@
                         {
                             new Key.Types.PathElement("key", 1)
                         }
-                    },
+                    }),
                     @namespace = "local",
                 },
+                ReferenceModel = ReferenceModelCache.Get<ConverterTestModel>(),
             },
             JsonFromContext = new JsonValueConvertFromContext
             {
@@ -192,6 +196,20 @@
                 .GetServices<IValueConverter>();
             Assert.NotEmpty(converters);
             return (T)converters.First(x => x is T);
+        }
+
+        private IValueConverter GetConverter(FieldType fieldType)
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<IHostEnvironment>(_ => new TestHostEnvironment());
+            services.AddSingleton<IManagedTracer, NullManagedTracer>();
+            services.AddCloudFrameworkCore();
+            services.AddCloudFrameworkGoogleCloud();
+            var converters = services
+                .BuildServiceProvider()
+                .GetServices<IValueConverter>();
+            Assert.NotEmpty(converters);
+            return converters.First(x => x.GetFieldType() == fieldType);
         }
 
         private void AssertConversion<TClr>(
@@ -366,9 +384,9 @@
         [Fact]
         public void UnsafeKey()
         {
-            var converter = GetConverter<UnsafeKeyValueConverter>();
+            var converter = GetConverter(FieldType.UnsafeKey);
 
-            var key = new Key
+            var key = new UntypedKey(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -378,14 +396,14 @@
                 {
                     new Key.Types.PathElement("key", 1)
                 }
-            };
+            });
 
             AssertConversion(
                 _global,
                 converter,
                 value =>
                 {
-                    Assert.Equal(key, value.KeyValue);
+                    Assert.Equal(key, new UntypedKey(value.KeyValue));
                 },
                 FieldType.UnsafeKey,
                 "\"#v1|project||key:id=1\"",
@@ -468,10 +486,10 @@
                     { "geopoint", new Value { GeoPointValue = new LatLng { Latitude = 100, Longitude = 50 } } },
                     { "key", new Value { KeyValue = key } },
                     { "timestamp", new Value { TimestampValue = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(DateTimeOffset.MinValue) } },
-                    { 
-                        "array", 
-                        new Value 
-                        { 
+                    {
+                        "array",
+                        new Value
+                        {
                             ArrayValue = new ArrayValue
                             {
                                 Values =
@@ -485,8 +503,8 @@
                                     new Value { KeyValue = key },
                                     new Value { TimestampValue = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(DateTimeOffset.MinValue) },
                                 }
-                            } 
-                        } 
+                            }
+                        }
                     },
                 }
             };
@@ -670,11 +688,11 @@
         }
 
         [Fact]
-        public void Key()
+        public void Key_Untyped()
         {
-            var converter = GetConverter<KeyValueConverter>();
+            var converter = GetConverter(FieldType.Key);
 
-            var key = new Key
+            var key = new UntypedKey(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -684,14 +702,14 @@
                 {
                     new Key.Types.PathElement("key", 1)
                 }
-            };
+            });
 
             AssertConversion(
                 _global,
                 converter,
                 value =>
                 {
-                    Assert.Equal(key, value.KeyValue);
+                    Assert.Equal(key, new UntypedKey(value.KeyValue));
                 },
                 FieldType.Key,
                 "\"#v1|project||key:id=1\"",
@@ -699,11 +717,13 @@
         }
 
         [Fact]
-        public void GlobalKey()
+        public void Key_Typed()
         {
-            var converter = GetConverter<GlobalKeyValueConverter>();
+            var converter = GetConverter(FieldType.Key);
 
-            var key = new Key
+            _ = ReferenceModelCache.Get<ConverterTestModel>();
+
+            var key = new Key<ConverterTestModel>(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -713,14 +733,43 @@
                 {
                     new Key.Types.PathElement("key", 1)
                 }
-            };
+            });
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(key, new Key<ConverterTestModel>(value.KeyValue));
+                },
+                FieldType.Key,
+                "\"#v1|project||key:id=1\"",
+                key);
+        }
+
+        [Fact]
+        public void GlobalKey_Untyped()
+        {
+            var converter = GetConverter(FieldType.GlobalKey);
+
+            var key = new UntypedKey(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            });
 
             AssertConversion(
                 _local,
                 converter,
                 value =>
                 {
-                    Assert.Equal(key, value.KeyValue);
+                    Assert.Equal(key, new UntypedKey(value.KeyValue));
                 },
                 FieldType.GlobalKey,
                 "\"#v1|project||key:id=1\"",
@@ -728,11 +777,42 @@
         }
 
         [Fact]
-        public void LocalKey()
+        public void GlobalKey_Typed()
         {
-            var converter = GetConverter<LocalKeyValueConverter>();
+            var converter = GetConverter(FieldType.GlobalKey);
 
-            var key = new Key
+            _ = ReferenceModelCache.Get<ConverterTestModel>();
+
+            var key = new Key<ConverterTestModel>(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            });
+
+            AssertConversion(
+                _local,
+                converter,
+                value =>
+                {
+                    Assert.Equal(key, new Key<ConverterTestModel>(value.KeyValue));
+                },
+                FieldType.GlobalKey,
+                "\"#v1|project||key:id=1\"",
+                key);
+        }
+
+        [Fact]
+        public void LocalKey_Untyped()
+        {
+            var converter = GetConverter(FieldType.LocalKey);
+
+            var key = new UntypedKey(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -743,14 +823,14 @@
                 {
                     new Key.Types.PathElement("key", 1)
                 }
-            };
+            });
 
             AssertConversion(
                 _global,
                 converter,
                 value =>
                 {
-                    Assert.Equal(key, value.KeyValue);
+                    Assert.Equal(key, new UntypedKey(value.KeyValue));
                 },
                 FieldType.LocalKey,
                 "\"#v1|project|local|key:id=1\"",
@@ -758,11 +838,43 @@
         }
 
         [Fact]
-        public void KeyArray()
+        public void LocalKey_Typed()
         {
-            var converter = GetConverter<KeyArrayValueConverter>();
+            var converter = GetConverter(FieldType.LocalKey);
 
-            var key1 = new Key
+            _ = ReferenceModelCache.Get<ConverterTestModel>();
+
+            var key = new Key<ConverterTestModel>(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                    NamespaceId = "local",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            });
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(key, new Key<ConverterTestModel>(value.KeyValue));
+                },
+                FieldType.LocalKey,
+                "\"#v1|project|local|key:id=1\"",
+                key);
+        }
+
+        [Fact]
+        public void KeyArray_Untyped()
+        {
+            var converter = GetConverter(FieldType.KeyArray);
+
+            var key1 = new UntypedKey(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -772,8 +884,8 @@
                 {
                     new Key.Types.PathElement("key", 1)
                 }
-            };
-            var key2 = new Key
+            });
+            var key2 = new UntypedKey(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -783,8 +895,8 @@
                 {
                     new Key.Types.PathElement("key", 2)
                 }
-            };
-            var key3 = new Key
+            });
+            var key3 = new UntypedKey(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -794,8 +906,8 @@
                 {
                     new Key.Types.PathElement("key", 3)
                 }
-            };
-            var keys = new Key[]
+            });
+            var keys = new UntypedKey[]
             {
                 key1,
                 key2,
@@ -808,9 +920,9 @@
                 value =>
                 {
                     Assert.Equal(3, value.ArrayValue.Values.Count);
-                    Assert.Equal(key1, value.ArrayValue.Values[0].KeyValue);
-                    Assert.Equal(key2, value.ArrayValue.Values[1].KeyValue);
-                    Assert.Equal(key3, value.ArrayValue.Values[2].KeyValue);
+                    Assert.Equal(key1, new UntypedKey(value.ArrayValue.Values[0].KeyValue));
+                    Assert.Equal(key2, new UntypedKey(value.ArrayValue.Values[1].KeyValue));
+                    Assert.Equal(key3, new UntypedKey(value.ArrayValue.Values[2].KeyValue));
                 },
                 FieldType.KeyArray,
                 "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
@@ -818,11 +930,13 @@
         }
 
         [Fact]
-        public void GlobalKeyArray()
+        public void KeyArray_Typed()
         {
-            var converter = GetConverter<GlobalKeyArrayValueConverter>();
+            var converter = GetConverter(FieldType.KeyArray);
 
-            var key1 = new Key
+            _ = ReferenceModelCache.Get<ConverterTestModel>();
+
+            var key1 = new Key<ConverterTestModel>(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -832,8 +946,8 @@
                 {
                     new Key.Types.PathElement("key", 1)
                 }
-            };
-            var key2 = new Key
+            });
+            var key2 = new Key<ConverterTestModel>(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -843,8 +957,8 @@
                 {
                     new Key.Types.PathElement("key", 2)
                 }
-            };
-            var key3 = new Key
+            });
+            var key3 = new Key<ConverterTestModel>(new Key
             {
                 PartitionId = new PartitionId
                 {
@@ -854,7 +968,67 @@
                 {
                     new Key.Types.PathElement("key", 3)
                 }
+            });
+            var keys = new Key<ConverterTestModel>[]
+            {
+                key1,
+                key2,
+                key3,
             };
+
+            AssertConversion(
+                _global,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal(key1, new Key<ConverterTestModel>(value.ArrayValue.Values[0].KeyValue));
+                    Assert.Equal(key2, new Key<ConverterTestModel>(value.ArrayValue.Values[1].KeyValue));
+                    Assert.Equal(key3, new Key<ConverterTestModel>(value.ArrayValue.Values[2].KeyValue));
+                },
+                FieldType.KeyArray,
+                "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
+                keys);
+        }
+
+        [Fact]
+        public void GlobalKeyArray_Untyped()
+        {
+            var converter = GetConverter(FieldType.GlobalKeyArray);
+
+            var key1 = new UntypedKey(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            });
+            var key2 = new UntypedKey(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 2)
+                }
+            });
+            var key3 = new UntypedKey(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 3)
+                }
+            });
 
             AssertConversion(
                 _local,
@@ -862,13 +1036,13 @@
                 value =>
                 {
                     Assert.Equal(3, value.ArrayValue.Values.Count);
-                    Assert.Equal(key1, value.ArrayValue.Values[0].KeyValue);
-                    Assert.Equal(key2, value.ArrayValue.Values[1].KeyValue);
-                    Assert.Equal(key3, value.ArrayValue.Values[2].KeyValue);
+                    Assert.Equal(key1, new UntypedKey(value.ArrayValue.Values[0].KeyValue));
+                    Assert.Equal(key2, new UntypedKey(value.ArrayValue.Values[1].KeyValue));
+                    Assert.Equal(key3, new UntypedKey(value.ArrayValue.Values[2].KeyValue));
                 },
                 FieldType.GlobalKeyArray,
                 "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
-                new Key[]
+                new UntypedKey[]
                 {
                     key1,
                     key2,
@@ -880,13 +1054,92 @@
                 value =>
                 {
                     Assert.Equal(3, value.ArrayValue.Values.Count);
-                    Assert.Equal(key1, value.ArrayValue.Values[0].KeyValue);
-                    Assert.Equal(key2, value.ArrayValue.Values[1].KeyValue);
-                    Assert.Equal(key3, value.ArrayValue.Values[2].KeyValue);
+                    Assert.Equal(key1, new UntypedKey(value.ArrayValue.Values[0].KeyValue));
+                    Assert.Equal(key2, new UntypedKey(value.ArrayValue.Values[1].KeyValue));
+                    Assert.Equal(key3, new UntypedKey(value.ArrayValue.Values[2].KeyValue));
                 },
                 FieldType.GlobalKeyArray,
                 "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
-                new List<Key>
+                new List<UntypedKey>
+                {
+                    key1,
+                    key2,
+                    key3,
+                });
+        }
+
+        [Fact]
+        public void GlobalKeyArray_Typed()
+        {
+            var converter = GetConverter(FieldType.GlobalKeyArray);
+
+            _ = ReferenceModelCache.Get<ConverterTestModel>();
+
+            var key1 = new Key<ConverterTestModel>(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 1)
+                }
+            });
+            var key2 = new Key<ConverterTestModel>(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 2)
+                }
+            });
+            var key3 = new Key<ConverterTestModel>(new Key
+            {
+                PartitionId = new PartitionId
+                {
+                    ProjectId = "project",
+                },
+                Path =
+                {
+                    new Key.Types.PathElement("key", 3)
+                }
+            });
+
+            AssertConversion(
+                _local,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal(key1, new Key<ConverterTestModel>(value.ArrayValue.Values[0].KeyValue));
+                    Assert.Equal(key2, new Key<ConverterTestModel>(value.ArrayValue.Values[1].KeyValue));
+                    Assert.Equal(key3, new Key<ConverterTestModel>(value.ArrayValue.Values[2].KeyValue));
+                },
+                FieldType.GlobalKeyArray,
+                "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
+                new Key<ConverterTestModel>[]
+                {
+                    key1,
+                    key2,
+                    key3,
+                });
+            AssertConversion(
+                _local,
+                converter,
+                value =>
+                {
+                    Assert.Equal(3, value.ArrayValue.Values.Count);
+                    Assert.Equal(key1, new Key<ConverterTestModel>(value.ArrayValue.Values[0].KeyValue));
+                    Assert.Equal(key2, new Key<ConverterTestModel>(value.ArrayValue.Values[1].KeyValue));
+                    Assert.Equal(key3, new Key<ConverterTestModel>(value.ArrayValue.Values[2].KeyValue));
+                },
+                FieldType.GlobalKeyArray,
+                "[\"#v1|project||key:id=1\",\"#v1|project||key:id=2\",\"#v1|project||key:id=3\"]",
+                new List<Key<ConverterTestModel>>
                 {
                     key1,
                     key2,

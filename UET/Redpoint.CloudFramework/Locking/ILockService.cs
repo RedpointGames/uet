@@ -1,6 +1,7 @@
 ﻿namespace Redpoint.CloudFramework.Locking
 {
     using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using System;
     using System.Threading.Tasks;
 
@@ -16,24 +17,24 @@
         /// </summary>
         /// <param name="objectToLock">The object key to lock on.</param>
         /// <returns>The lock handle which you should then call and await <see cref="IAsyncDisposable.DisposeAsync"/>.</returns>
-        Task<ILockHandle> Acquire(Key objectToLock);
+        Task<ILockHandle> Acquire(UntypedKey objectToLock);
 
         /// <summary>
-        /// Acquires a lock in the current tenant's namespace using <see cref="Acquire(Key)"/>, and then calls
+        /// Acquires a lock in the current tenant's namespace using <see cref="Acquire(UntypedKey)"/>, and then calls
         /// the given lambda asynchronously. When the lambda completes for any reason, the lock is released.
         /// </summary>
         /// <param name="objectToLock">The object key to lock on.</param>
         /// <param name="block">The lambda to execute while the lock is held.</param>
         /// <returns>The task that you should await on.</returns>
-        Task AcquireAndUse(Key objectToLock, Func<Task> block);
+        Task AcquireAndUse(UntypedKey objectToLock, Func<Task> block);
 
         /// <summary>
-        /// Acquires a lock in the current tenant's namespace using <see cref="Acquire(Key)"/>, and then calls
+        /// Acquires a lock in the current tenant's namespace using <see cref="Acquire(UntypedKey)"/>, and then calls
         /// the given lambda asynchronously. When the lambda completes for any reason, the lock is released.
         /// </summary>
         /// <param name="objectToLock">The object key to lock on.</param>
         /// <param name="block">The lambda to execute while the lock is held.</param>
         /// <returns>The task with return value that you should await on.</returns>
-        Task<T> AcquireAndUse<T>(Key objectToLock, Func<Task<T>> block);
+        Task<T> AcquireAndUse<T>(UntypedKey objectToLock, Func<Task<T>> block);
     }
 }

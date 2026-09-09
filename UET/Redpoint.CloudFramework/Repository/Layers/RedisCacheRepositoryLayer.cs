@@ -23,6 +23,7 @@
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
@@ -170,7 +171,7 @@ end
 return queriesCleared
 ";
 
-        private string GetSpanName(string @namespace, string modelName, Key? key)
+        private string GetSpanName(string @namespace, string modelName, UntypedKey? key)
         {
             if (key != null)
             {
@@ -224,7 +225,7 @@ return queriesCleared
             }
         }
 
-        private string SerializePathElementForCacheKey(PathElement pe)
+        private static string SerializePathElementForCacheKey(PathElement pe)
         {
             // @note: This method now stores kinds and names as XxHash64 to prevent any long keys or weird Redis issues
             // that previously might have been happening with Base64 encoding.
@@ -245,23 +246,25 @@ return queriesCleared
             throw new NotImplementedException();
         }
 
-        private string GetSimpleCacheKey(Key key)
+        internal static string GetSimpleCacheKey(UntypedKey untypedKey)
         {
-            ArgumentNullException.ThrowIfNull(key);
-            if (key.PartitionId == null) throw new ArgumentNullException("key.PartitionId");
-            if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("key.PartitionId.ProjectId");
-            if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("key.PartitionId.NamespaceId");
-            if (key.Path == null) throw new ArgumentNullException("key.Path");
+            ArgumentNullException.ThrowIfNull(untypedKey);
+            var key = untypedKey.__InternalDatastoreKey__;
+            if (key.PartitionId == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.PartitionId");
+            if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.PartitionId.ProjectId");
+            if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.PartitionId.NamespaceId");
+            if (key.Path == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.Path");
             return $"KEY:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElementForCacheKey))}";
         }
 
-        private string GetSimpleCachedInKey(Key key)
+        private string GetSimpleCachedInKey(UntypedKey untypedKey)
         {
-            ArgumentNullException.ThrowIfNull(key);
-            if (key.PartitionId == null) throw new ArgumentNullException("key.PartitionId");
-            if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("key.PartitionId.ProjectId");
-            if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("key.PartitionId.NamespaceId");
-            if (key.Path == null) throw new ArgumentNullException("key.Path");
+            ArgumentNullException.ThrowIfNull(untypedKey);
+            var key = untypedKey.__InternalDatastoreKey__;
+            if (key.PartitionId == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.PartitionId");
+            if (key.PartitionId.ProjectId == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.PartitionId.ProjectId");
+            if (key.PartitionId.NamespaceId == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.PartitionId.NamespaceId");
+            if (key.Path == null) throw new ArgumentNullException("untypedKey.__InternalDatastoreKey__.Path");
             return $"KEYCACHEDIN:{key.PartitionId.ProjectId}/{key.PartitionId.NamespaceId}:{string.Join(":", key.Path.Select(SerializePathElementForCacheKey))}";
         }
 
@@ -651,7 +654,7 @@ return 'written'
             await cache.StringIncrementAsync($"LASTWRITE:{kind}").ConfigureAwait(false);
         }
 
-        public IBatchedAsyncEnumerable<T> QueryAsync<T>(
+        public IBatchedAsyncEnumerable<T> QueryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order,
@@ -668,7 +671,7 @@ return 'written'
                 metrics,
                 cancellationToken).AsBatchedAsyncEnumerable();
 
-        private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<T>(
+        private async IAsyncEnumerable<IReadOnlyList<T>> BatchedQueryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             Expression<Func<T, bool>> where,
             Expression<Func<T, bool>>? order,
@@ -849,11 +852,11 @@ return 'written'
                                                         new RedisValue(cacheHash),
                                                         (RedisValue)queryLastWriteValue,
                                                     };
-                                                    foreach (var entity in batch)
+                                                    foreach (var model in batch)
                                                     {
-                                                        var cachedEntity = _jsonConverter.To(@namespace, entity, false, null);
+                                                        var cachedEntity = _jsonConverter.To(@namespace, model, false, null);
 
-                                                        keys.Add(new RedisKey(GetSimpleCachedInKey(entity.Key)));
+                                                        keys.Add(new RedisKey(GetSimpleCachedInKey(ReferenceModelCache.Get(model).GetUntypedKey(model)!)));
                                                         values.Add(new RedisValue(cachedEntity));
                                                     }
 
@@ -1002,7 +1005,7 @@ return 'written'
             }
         }
 
-        public async Task<PaginatedQueryResult<T>> QueryPaginatedAsync<T>(
+        public async Task<PaginatedQueryResult<T>> QueryPaginatedAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             PaginatedQueryCursor cursor,
             int limit,
@@ -1030,9 +1033,9 @@ return 'written'
             }
         }
 
-        public async Task<T?> LoadAsync<T>(
+        public async Task<T?> LoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
-            Key key,
+            Key<T> key,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
@@ -1172,9 +1175,9 @@ return 'written'
             }
         }
 
-        public IBatchedAsyncEnumerable<KeyValuePair<Key, T?>> LoadAsync<T>(
+        public IBatchedAsyncEnumerable<KeyValuePair<Key<T>, T?>> LoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
-            IAsyncEnumerable<Key> keys,
+            IAsyncEnumerable<Key<T>> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
@@ -1185,9 +1188,9 @@ return 'written'
                 metrics,
                 cancellationToken).AsBatchedAsyncEnumerable();
 
-        private async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key, T?>>> BatchedLoadAsync<T>(
+        private async IAsyncEnumerable<IReadOnlyList<KeyValuePair<Key<T>, T?>>> BatchedLoadAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
-            IAsyncEnumerable<Key> keys,
+            IAsyncEnumerable<Key<T>> keys,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
@@ -1256,7 +1259,7 @@ return 'written'
                         var hits = 0;
                         var misses = 0;
                         var entities = cacheEvaluation
-                            .Classify<(Key key, string? cacheEntity), KeyValuePair<Key, T?>>(x => x.cacheEntity != null ? "hit" : "miss")
+                            .Classify<(Key<T> key, string? cacheEntity), KeyValuePair<Key<T>, T?>>(x => x.cacheEntity != null ? "hit" : "miss")
                             .AndForClassification("hit", x =>
                             {
                                 hits++;
@@ -1264,7 +1267,7 @@ return 'written'
                                 {
                                     metrics.CacheDidRead = true;
                                 }
-                                return new KeyValuePair<Key, T?>(
+                                return new KeyValuePair<Key<T>, T?>(
                                     x.key,
                                     _jsonConverter.From<T>(@namespace, x.cacheEntity!));
                             })
@@ -1346,8 +1349,8 @@ return 'written'
             }
         }
 
-        public async IAsyncEnumerable<KeyValuePair<Key, T?>> LoadAcrossNamespacesAsync<T>(
-            IAsyncEnumerable<Key> keys,
+        public async IAsyncEnumerable<KeyValuePair<Key<T>, T?>> LoadAcrossNamespacesAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
+            IAsyncEnumerable<Key<T>> keys,
             RepositoryOperationMetrics? metrics,
             [EnumeratorCancellation] CancellationToken cancellationToken) where T : class, IModel, new()
         {
@@ -1385,7 +1388,7 @@ return 'written'
                     var hits = 0;
                     var misses = 0;
                     var entities = cacheEvaluation
-                        .Classify<(Key key, string? cacheEntity), KeyValuePair<Key, T?>>(x => x.cacheEntity != null ? "hit" : "miss")
+                        .Classify<(Key<T> key, string? cacheEntity), KeyValuePair<Key<T>, T?>>(x => x.cacheEntity != null ? "hit" : "miss")
                         .AndForClassification("hit", x =>
                         {
                             hits++;
@@ -1393,9 +1396,9 @@ return 'written'
                             {
                                 metrics.CacheDidRead = true;
                             }
-                            return new KeyValuePair<Key, T?>(
+                            return new KeyValuePair<Key<T>, T?>(
                                 x.key,
-                                _jsonConverter.From<T>(x.key.PartitionId.NamespaceId, x.cacheEntity!));
+                                _jsonConverter.From<T>(x.key.__InternalDatastoreKey__.PartitionId.NamespaceId, x.cacheEntity!));
                         })
                         .AndForClassificationStream("miss", inputs =>
                         {
@@ -1408,10 +1411,10 @@ return 'written'
                                 .SelectFast(async v =>
                                 {
                                     // Store in the cache as we get the results from Datastore.
-                                    var keyFactory = await _datastoreRepositoryLayer.GetKeyFactoryAsync<T>(v.Key.PartitionId.NamespaceId, metrics, cancellationToken).ConfigureAwait(false);
+                                    var keyFactory = await _datastoreRepositoryLayer.GetKeyFactoryAsync<T>(v.Key.__InternalDatastoreKey__.PartitionId.NamespaceId, metrics, cancellationToken).ConfigureAwait(false);
                                     var cacheKey = GetSimpleCacheKey(v.Key);
                                     var cacheEntity = _jsonConverter.To(
-                                        v.Key.PartitionId.NamespaceId,
+                                        v.Key.__InternalDatastoreKey__.PartitionId.NamespaceId,
                                         v.Value,
                                         false,
                                         _ => keyFactory.CreateIncompleteKey());
@@ -1471,7 +1474,7 @@ return 'written'
             }
         }
 
-        public async IAsyncEnumerable<T> CreateAsync<T>(
+        public async IAsyncEnumerable<T> CreateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1527,7 +1530,7 @@ return 'written'
             }
         }
 
-        public async IAsyncEnumerable<T> UpsertAsync<T>(
+        public async IAsyncEnumerable<T> UpsertAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1584,7 +1587,7 @@ return 'written'
             }
         }
 
-        public async IAsyncEnumerable<T> UpdateAsync<T>(
+        public async IAsyncEnumerable<T> UpdateAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1697,7 +1700,7 @@ return 'written'
             }
         }
 
-        public async Task DeleteAsync<T>(
+        public async Task DeleteAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IAsyncEnumerable<T> models,
             IModelTransaction? transaction,
@@ -1715,7 +1718,7 @@ return 'written'
             }
         }
 
-        public Task<Key> AllocateKeyAsync<T>(
+        public Task<Key<T>> AllocateKeyAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             IModelTransaction? transaction,
             RepositoryOperationMetrics? metrics,
@@ -1727,7 +1730,7 @@ return 'written'
             }
         }
 
-        public Task<KeyFactory> GetKeyFactoryAsync<T>(
+        public Task<KeyFactory<T>> GetKeyFactoryAsync<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(
             string @namespace,
             RepositoryOperationMetrics? metrics,
             CancellationToken cancellationToken) where T : class, IModel, new()
@@ -1781,7 +1784,7 @@ return 'written'
                 }
 
                 // Clear simple cache keys.
-                var keys = transaction.ModifiedModels.Select(x => GetSimpleCacheKey(x.Key)).ToArray();
+                var keys = transaction.ModifiedModels.Select(x => GetSimpleCacheKey(ReferenceModelCache.Get(x).GetUntypedKey(x)!)).ToArray();
                 for (int i = 0; i < keys.Length; i += 50)
                 {
                     var buffer = new RedisKey[(int)Math.Min(i + 50, keys.Length - i)];
@@ -1801,7 +1804,7 @@ return 'written'
                 }
 
                 // Clear complex caches.
-                foreach (var key in transaction.ModifiedModels.Select(x => GetSimpleCachedInKey(x.Key)))
+                foreach (var key in transaction.ModifiedModels.Select(x => GetSimpleCachedInKey(ReferenceModelCache.Get(x).GetUntypedKey(x)!)))
                 {
                     using (_managedTracer.StartSpan("db.rediscache.cache.purge_queries", $"{key}"))
                     {

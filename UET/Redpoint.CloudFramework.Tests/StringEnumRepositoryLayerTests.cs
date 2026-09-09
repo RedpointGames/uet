@@ -90,7 +90,7 @@
         {
             var layer = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
 
-            Key modelKey;
+            Key<TestStringModel> modelKey;
             {
                 var instant = SystemClock.Instance.GetCurrentInstant();
                 var model = new TestStringModel
@@ -163,7 +163,7 @@
             var datastore = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redisCache = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
 
-            Key modelKey;
+            Key<TestStringModel> modelKey;
             {
                 var instant = SystemClock.Instance.GetCurrentInstant();
                 var model = new TestStringModel
@@ -194,7 +194,7 @@
             var datastore = _env.Services.GetRequiredService<IDatastoreRepositoryLayer>();
             var redisCache = _env.Services.GetRequiredService<IRedisCacheRepositoryLayer>();
 
-            Key modelKey;
+            Key<TestStringModel> modelKey;
             {
                 var instant = SystemClock.Instance.GetCurrentInstant();
                 var model = new TestStringModel

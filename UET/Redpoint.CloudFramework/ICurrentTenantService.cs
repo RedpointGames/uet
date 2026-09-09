@@ -1,13 +1,13 @@
 ﻿namespace Redpoint.CloudFramework
 {
-    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using System.Threading.Tasks;
 
     public interface ICurrentTenantService
     {
         Task<ICurrentTenant?> GetTenant();
 
-        Task<Key?> GetTenantDatastoreKeyFromNamespace(string @namespace);
+        Task<UntypedKey?> GetTenantDatastoreKeyFromNamespace(string @namespace);
     }
 
     public interface ICurrentTenant

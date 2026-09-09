@@ -1,14 +1,15 @@
 ﻿namespace Redpoint.CloudFramework.Prefix
 {
+    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.GoogleInfrastructure;
+    using Redpoint.CloudFramework.Models;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.Linq;
-    using Google.Cloud.Datastore.V1;
-    using Redpoint.CloudFramework.GoogleInfrastructure;
-    using Redpoint.CloudFramework.Models;
+    using DatastoreKey = Google.Cloud.Datastore.V1.Key;
 
     public class GlobalPrefix : IGlobalPrefix
     {
@@ -74,21 +75,9 @@
         /// <param name="datastoreNamespace">The datastore namespace of the resulting key.</param>
         /// <param name="identifier">The identifier to parse.</param>
         /// <returns>A key object.</returns>
-        public Key Parse(string datastoreNamespace, string identifier)
+        public UntypedKey Parse(string datastoreNamespace, string identifier)
         {
-            var prefix = ParsePathElement(identifier);
-
-            if (_googleServices == null)
-            {
-                throw new NotSupportedException("IGlobalPrefix.Parse can not be called if Google Cloud usage is set to None.");
-            }
-
-            var k = new Key
-            {
-                PartitionId = new PartitionId(_googleServices.ProjectId, datastoreNamespace)
-            };
-            k.Path.Add(prefix);
-            return k;
+            return new UntypedKey(ParseToDatastoreKey(datastoreNamespace, identifier));
         }
 
         /// <summary>
@@ -98,20 +87,20 @@
         /// <param name="identifier">The identifier to parse.</param>
         /// <param name="kind">The resulting kind that the key must match.</param>
         /// <returns>A key object.</returns>
-        public Key ParseLimited(string datastoreNamespace, string identifier, string kind)
+        public UntypedKey ParseLimited(string datastoreNamespace, string identifier, string kind)
         {
             if (string.IsNullOrWhiteSpace(kind))
             {
                 throw new ArgumentNullException(nameof(kind));
             }
 
-            var result = Parse(datastoreNamespace, identifier);
+            var result = ParseToDatastoreKey(datastoreNamespace, identifier);
             if (result.Path.Last().Kind != kind)
             {
                 throw new IdentifierWrongTypeException(identifier, kind);
             }
 
-            return result;
+            return new UntypedKey(result);
         }
 
         /// <summary>
@@ -121,28 +110,31 @@
         /// <param name="datastoreNamespace">The datastore namespace of the resulting key.</param>
         /// <param name="identifier">The identifier to parse.</param>
         /// <returns>A key object.</returns>
-        public Key ParseLimited<T>(string datastoreNamespace, string identifier) where T : class, IModel, new()
+        public Key<T> ParseLimited<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(string datastoreNamespace, string identifier) where T : class, IModel, new()
         {
-            return ParseLimited(
-                datastoreNamespace,
-                identifier,
-                _kindCache.GetOrAdd(
-                    typeof(T),
-                    _ => ReferenceModelCache.Get<T>().Kind));
+            var kind = _kindCache.GetOrAdd(
+                typeof(T),
+                _ => ReferenceModelCache.Get<T>().Kind);
+
+            var result = ParseToDatastoreKey(datastoreNamespace, identifier);
+            if (result.Path.Last().Kind != kind)
+            {
+                throw new IdentifierWrongTypeException(identifier, kind);
+            }
+
+            return new Key<T>(result);
         }
 
         public bool IsType<T>(string identifier) where T : class, IModel, new()
         {
+            var kind = _kindCache.GetOrAdd(
+                typeof(T),
+                _ => ReferenceModelCache.Get<T>().Kind);
+
             try
             {
-                ParseLimited(
-                    // Namespace does not matter because we don't use the key result.
-                    string.Empty,
-                    identifier,
-                    _kindCache.GetOrAdd(
-                        typeof(T),
-                        _ => ReferenceModelCache.Get<T>().Kind));
-                return true;
+                var result = ParseToDatastoreKey(string.Empty, identifier);
+                return result.Path.Last().Kind == kind;
             }
             catch
             {
@@ -150,16 +142,13 @@
             }
         }
 
-        public bool TryParseLimited<T>(string datastoreNamespace, string identifier, out Key validatedKey) where T : class, IModel, new()
+        public bool TryParseLimited<[DynamicallyAccessedMembers(DynamicReferencePolicy.ModelPolicy)] T>(string datastoreNamespace, string identifier, out Key<T> validatedKey) where T : class, IModel, new()
         {
             try
             {
-                validatedKey = ParseLimited(
+                validatedKey = ParseLimited<T>(
                     datastoreNamespace,
-                    identifier,
-                    _kindCache.GetOrAdd(
-                        typeof(T),
-                        _ => ReferenceModelCache.Get<T>().Kind));
+                    identifier);
                 return true;
             }
             catch
@@ -175,7 +164,104 @@
         /// <param name="datastoreNamespace">The datastore namespace of the resulting key.</param>
         /// <param name="identifier">The identifier to parse.</param>
         /// <returns>A key object.</returns>
-        public Key ParseInternal(string datastoreNamespace, string identifier)
+        public UntypedKey ParseInternal(string datastoreNamespace, string identifier)
+        {
+            return new UntypedKey(ParseInternalToDatastoreKey(datastoreNamespace, identifier));
+        }
+
+        /// <summary>
+        /// Creates a public identifier from a Datastore key.
+        /// </summary>
+        /// <param name="key">The datastore key to create an identifier from.</param>
+        /// <returns>The public identifier.</returns>
+        public string Create(UntypedKey key)
+        {
+            ArgumentNullException.ThrowIfNull(key);
+
+            var datastoreKey = key.__InternalDatastoreKey__;
+
+            if (datastoreKey.Path.Count == 0)
+            {
+                throw new InvalidOperationException("Datastore key does not have any path elements; can not generate public identifier");
+            }
+            if (datastoreKey.Path.Count > 1)
+            {
+                throw new InvalidOperationException("Datastore key has more than one path element (nested children), can not generate public identifier");
+            }
+            return CreatePathElement(datastoreKey.Path[0]);
+        }
+
+        /// <summary>
+        /// Creates a public or internal identifier from a Datastore key.
+        /// </summary>
+        /// <param name="key">The datastore key to create an identifier from.</param>
+        /// <param name="pathGenerationMode"></param>
+        /// <returns>The public or internal identifier.</returns>
+        public string CreateInternal(UntypedKey key, PathGenerationMode pathGenerationMode = PathGenerationMode.Default)
+        {
+            ArgumentNullException.ThrowIfNull(key);
+
+            var datastoreKey = key.__InternalDatastoreKey__;
+
+            var keyComponents = new List<string>
+            {
+                "v1",
+                datastoreKey.PartitionId.ProjectId,
+                datastoreKey.PartitionId.NamespaceId
+            };
+
+            for (var i = 0; i < datastoreKey.Path.Count; i++)
+            {
+                var pathElement = datastoreKey.Path[i];
+
+                if (!_reversePrefixes.ContainsKey(pathElement.Kind) ||
+                    pathGenerationMode == PathGenerationMode.NoShortPathComponents ||
+                    pathElement.IdTypeCase != Key.Types.PathElement.IdTypeOneofCase.Id)
+                {
+                    if (pathElement.IdTypeCase == Key.Types.PathElement.IdTypeOneofCase.Id)
+                    {
+                        if (pathElement.Id <= 0)
+                        {
+                            throw new InvalidOperationException("Numeric component must be a positive value");
+                        }
+                    }
+
+                    if (pathElement.IdTypeCase == Key.Types.PathElement.IdTypeOneofCase.Name)
+                    {
+                        keyComponents.Add(pathElement.Kind + ":name=" + pathElement.Name.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal));
+                    }
+                    else
+                    {
+                        keyComponents.Add(pathElement.Kind + ":id=" + pathElement.Id);
+                    }
+                }
+                else
+                {
+                    keyComponents.Add(CreatePathElement(pathElement));
+                }
+            }
+
+            return "#" + string.Join("|", keyComponents);
+        }
+
+        private DatastoreKey ParseToDatastoreKey(string datastoreNamespace, string identifier)
+        {
+            var prefix = ParsePathElement(identifier);
+
+            if (_googleServices == null)
+            {
+                throw new NotSupportedException("IGlobalPrefix.Parse can not be called if Google Cloud usage is set to None.");
+            }
+
+            var k = new DatastoreKey
+            {
+                PartitionId = new Google.Cloud.Datastore.V1.PartitionId(_googleServices.ProjectId, datastoreNamespace)
+            };
+            k.Path.Add(prefix);
+            return k;
+        }
+
+        private DatastoreKey ParseInternalToDatastoreKey(string datastoreNamespace, string identifier)
         {
             if (string.IsNullOrWhiteSpace(identifier))
             {
@@ -248,82 +334,12 @@
                 }
             }
 
-            var k = new Key
+            var k = new DatastoreKey
             {
                 PartitionId = new PartitionId(projectId, namespaceId)
             };
             k.Path.AddRange(pathElements);
             return k;
-        }
-
-        /// <summary>
-        /// Creates a public identifier from a Datastore key.
-        /// </summary>
-        /// <param name="key">The datastore key to create an identifier from.</param>
-        /// <returns>The public identifier.</returns>
-        public string Create(Key key)
-        {
-            ArgumentNullException.ThrowIfNull(key);
-            if (key.Path.Count == 0)
-            {
-                throw new InvalidOperationException("Datastore key does not have any path elements; can not generate public identifier");
-            }
-            if (key.Path.Count > 1)
-            {
-                throw new InvalidOperationException("Datastore key has more than one path element (nested children), can not generate public identifier");
-            }
-            return CreatePathElement(key.Path[0]);
-        }
-
-        /// <summary>
-        /// Creates a public or internal identifier from a Datastore key.
-        /// </summary>
-        /// <param name="key">The datastore key to create an identifier from.</param>
-        /// <param name="pathGenerationMode"></param>
-        /// <returns>The public or internal identifier.</returns>
-        public string CreateInternal(Key key, PathGenerationMode pathGenerationMode = PathGenerationMode.Default)
-        {
-            ArgumentNullException.ThrowIfNull(key);
-
-            var keyComponents = new List<string>
-            {
-                "v1",
-                key.PartitionId.ProjectId,
-                key.PartitionId.NamespaceId
-            };
-
-            for (var i = 0; i < key.Path.Count; i++)
-            {
-                var pathElement = key.Path[i];
-
-                if (!_reversePrefixes.ContainsKey(pathElement.Kind) ||
-                    pathGenerationMode == PathGenerationMode.NoShortPathComponents ||
-                    pathElement.IdTypeCase != Key.Types.PathElement.IdTypeOneofCase.Id)
-                {
-                    if (pathElement.IdTypeCase == Key.Types.PathElement.IdTypeOneofCase.Id)
-                    {
-                        if (pathElement.Id <= 0)
-                        {
-                            throw new InvalidOperationException("Numeric component must be a positive value");
-                        }
-                    }
-
-                    if (pathElement.IdTypeCase == Key.Types.PathElement.IdTypeOneofCase.Name)
-                    {
-                        keyComponents.Add(pathElement.Kind + ":name=" + pathElement.Name.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal));
-                    }
-                    else
-                    {
-                        keyComponents.Add(pathElement.Kind + ":id=" + pathElement.Id);
-                    }
-                }
-                else
-                {
-                    keyComponents.Add(CreatePathElement(pathElement));
-                }
-            }
-
-            return "#" + string.Join("|", keyComponents);
         }
 
         private static string[] ParsePipeSeperated(string value)

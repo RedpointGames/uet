@@ -25,7 +25,7 @@ namespace Redpoint.CloudFramework.Tests.Models
         public Instant? timestamp { get; set; }
 
         [Type(FieldType.Key)]
-        public Key? keyValue { get; set; }
+        public Key<TestModel>? keyValue { get; set; }
 
         public TestModel? untracked { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Tests
 {
-    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using System;
     using System.Threading.Tasks;
 
@@ -16,7 +16,7 @@
             return Task.FromResult<ICurrentTenant?>((ICurrentTenant)new TestTenant());
         }
 
-        public Task<Key?> GetTenantDatastoreKeyFromNamespace(string @namespace)
+        public Task<UntypedKey?> GetTenantDatastoreKeyFromNamespace(string @namespace)
         {
             throw new NotImplementedException();
         }

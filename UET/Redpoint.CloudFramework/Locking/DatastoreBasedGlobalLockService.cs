@@ -14,6 +14,7 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using DatastoreKey = Google.Cloud.Datastore.V1.Key;
 
     internal partial class DatastoreBasedGlobalLockService : IGlobalLockService
     {
@@ -42,7 +43,7 @@
             _metricService = metricService;
         }
 
-        public async Task<ILockHandle> Acquire(string @namespace, Key objectToLock)
+        public async Task<ILockHandle> Acquire(string @namespace, UntypedKey objectToLock)
         {
             var objectToLockName = _globalPrefix.CreateInternal(objectToLock);
             _logger?.LogBeginningAcquisitionOfLock(@namespace, objectToLockName);
@@ -97,7 +98,7 @@
                             new Dictionary<string, string?>
                             {
                                 { "namespace", @namespace },
-                                { "object_kind", objectToLock.Path.Last().Kind },
+                                { "object_kind", objectToLock.__InternalDatastoreKey__.Path.Last().Kind },
                             }).ConfigureAwait(false);
 
                         throw new LockAcquisitionException(objectToLockName);
@@ -116,7 +117,7 @@
                     new Dictionary<string, string?>
                     {
                         { "namespace", @namespace },
-                        { "object_kind", objectToLock.Path.Last().Kind },
+                        { "object_kind", objectToLock.__InternalDatastoreKey__.Path.Last().Kind },
                     }).ConfigureAwait(false);
 
                 return new LockHandle(
@@ -126,7 +127,7 @@
                     existingLock.Key,
                     @namespace,
                     acquisitionGuid,
-                    objectToLock.Path.Last().Kind);
+                    objectToLock.__InternalDatastoreKey__.Path.Last().Kind);
             }
             catch (LockAcquisitionException)
             {
@@ -144,7 +145,7 @@
                     new Dictionary<string, string?>
                     {
                         { "namespace", @namespace },
-                        { "object_kind", objectToLock.Path.Last().Kind },
+                        { "object_kind", objectToLock.__InternalDatastoreKey__.Path.Last().Kind },
                     }).ConfigureAwait(false);
 
                 throw new LockAcquisitionException(objectToLockName);
@@ -160,7 +161,7 @@
                     new Dictionary<string, string?>
                     {
                         { "namespace", @namespace },
-                        { "object_kind", objectToLock.Path.Last().Kind },
+                        { "object_kind", objectToLock.__InternalDatastoreKey__.Path.Last().Kind },
                     }).ConfigureAwait(false);
 
                 throw new LockAcquisitionException(objectToLockName);
@@ -177,7 +178,7 @@
             }
         }
 
-        public async Task AcquireAndUse(string @namespace, Key objectToLock, Func<Task> block)
+        public async Task AcquireAndUse(string @namespace, UntypedKey objectToLock, Func<Task> block)
         {
             await using ((await Acquire(@namespace, objectToLock).ConfigureAwait(false)).ConfigureAwait(false))
             {
@@ -185,7 +186,7 @@
             }
         }
 
-        public async Task<T> AcquireAndUse<T>(string @namespace, Key objectToLock, Func<Task<T>> block)
+        public async Task<T> AcquireAndUse<T>(string @namespace, UntypedKey objectToLock, Func<Task<T>> block)
         {
             await using ((await Acquire(@namespace, objectToLock).ConfigureAwait(false)).ConfigureAwait(false))
             {
@@ -199,7 +200,7 @@
             private readonly ILogger<DatastoreBasedGlobalLockService>? _logger;
             private readonly IMetricService _metricService;
             private readonly string _objectKind;
-            private readonly Key _lockKey;
+            private readonly Key<DefaultLockModel> _lockKey;
             private readonly string _namespace;
             private readonly string _acquisitionGuid;
             private readonly CancellationTokenSource _cancellationTokenSource;
@@ -210,7 +211,7 @@
                 IDatastoreRepositoryLayer datastoreRepositoryLayer,
                 ILogger<DatastoreBasedGlobalLockService>? logger,
                 IMetricService metricService,
-                Key realLockKey,
+                Key<DefaultLockModel> realLockKey,
                 string @namespace,
                 string acquisitionGuid,
                 string objectKind)
@@ -225,24 +226,26 @@
                 _metricService = metricService;
                 _objectKind = objectKind;
 
-                _logger?.LogLockHandleCreated(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                _logger?.LogLockHandleCreated(_acquisitionGuid, _namespace, LockKeyName);
 
                 _automaticRenewalTask = Task.Run(AutomaticRenewal);
             }
 
+            private string LockKeyName => _lockKey.GetNameFromKey();
+
             private async Task AutomaticRenewal()
             {
-                _logger?.LogAutomaticRenewalTaskRunning(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                _logger?.LogAutomaticRenewalTaskRunning(_acquisitionGuid, _namespace, LockKeyName);
 
                 while (!_isReleased)
                 {
-                    _logger?.LogLockHandleIsNotReleased(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey(), (int)_defaultRenewalDuration.TotalMilliseconds);
+                    _logger?.LogLockHandleIsNotReleased(_acquisitionGuid, _namespace, LockKeyName, (int)_defaultRenewalDuration.TotalMilliseconds);
 
                     await Task.Delay((int)_defaultRenewalDuration.TotalMilliseconds, _cancellationTokenSource.Token).ConfigureAwait(false);
 
                     if (_isReleased)
                     {
-                        _logger?.LogLockHandleWasReleasedSinceRenewalDelayBegan(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogLockHandleWasReleasedSinceRenewalDelayBegan(_acquisitionGuid, _namespace, LockKeyName);
 
                         await _metricService.AddPoint(
                             _lockReleaseMetric,
@@ -257,17 +260,17 @@
                         return;
                     }
 
-                    _logger?.LogBeginningRenewalTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                    _logger?.LogBeginningRenewalTransaction(_acquisitionGuid, _namespace, LockKeyName);
                     var transaction = await _datastoreRepositoryLayer.BeginTransactionAsync(_namespace, Repository.Transaction.TransactionMode.ReadWrite, null, CancellationToken.None).ConfigureAwait(false);
-                    _logger?.LogBegunRenewalTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                    _logger?.LogBegunRenewalTransaction(_acquisitionGuid, _namespace, LockKeyName);
                     var doRollback = false;
                     try
                     {
-                        _logger?.LogLoadingExistingLockModelRenewal(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogLoadingExistingLockModelRenewal(_acquisitionGuid, _namespace, LockKeyName);
                         var existingLock = await _datastoreRepositoryLayer.LoadAsync<DefaultLockModel>(_namespace, _lockKey, transaction, null, CancellationToken.None).ConfigureAwait(false);
                         if (existingLock == null)
                         {
-                            _logger?.LogUnreleasedLockDuringRenewalAcquiredAndReleasedElsewhere(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                            _logger?.LogUnreleasedLockDuringRenewalAcquiredAndReleasedElsewhere(_acquisitionGuid, _namespace, LockKeyName);
 
                             await _metricService.AddPoint(
                                 _lockReleaseMetric,
@@ -290,7 +293,7 @@
                             // Existing lock, check if we still have the handle on it.
                             if (existingLock.acquisitionGuid == _acquisitionGuid)
                             {
-                                _logger?.LogUpdatingExpiryTime(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                                _logger?.LogUpdatingExpiryTime(_acquisitionGuid, _namespace, LockKeyName);
 
                                 // Update the lock's expiry time to our current time plus the default expiry.
                                 existingLock.dateExpiresUtc = SystemClock.Instance.GetCurrentInstant().Plus(_defaultExpiryDuration);
@@ -298,7 +301,7 @@
                             }
                             else
                             {
-                                _logger?.LogUnreleasedLockDuringRenewalAcquiredElsewhere(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                                _logger?.LogUnreleasedLockDuringRenewalAcquiredElsewhere(_acquisitionGuid, _namespace, LockKeyName);
 
                                 await _metricService.AddPoint(
                                     _lockReleaseMetric,
@@ -316,10 +319,10 @@
                             }
                         }
 
-                        _logger?.LogAttemptingCommitRenewalTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogAttemptingCommitRenewalTransaction(_acquisitionGuid, _namespace, LockKeyName);
                         await _datastoreRepositoryLayer.CommitAsync(_namespace, transaction, null, CancellationToken.None).ConfigureAwait(false);
                         doRollback = false;
-                        _logger?.LogSuccessfulCommitRenewalTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogSuccessfulCommitRenewalTransaction(_acquisitionGuid, _namespace, LockKeyName);
 
                         await _metricService.AddPoint(
                             _lockRenewedMetric,
@@ -333,21 +336,21 @@
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogExceptionDuringRenewal(ex, _acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogExceptionDuringRenewal(ex, _acquisitionGuid, _namespace, LockKeyName);
                     }
                     finally
                     {
-                        _logger?.LogReachedFinallyBlockRenewal(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogReachedFinallyBlockRenewal(_acquisitionGuid, _namespace, LockKeyName);
                         if (doRollback)
                         {
-                            _logger?.LogAttemptingRollbackTransactionRenewal(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                            _logger?.LogAttemptingRollbackTransactionRenewal(_acquisitionGuid, _namespace, LockKeyName);
                             await _datastoreRepositoryLayer.RollbackAsync(_namespace, transaction, null, CancellationToken.None).ConfigureAwait(false);
-                            _logger?.LogSuccessfulRollbackTransactionRenewal(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                            _logger?.LogSuccessfulRollbackTransactionRenewal(_acquisitionGuid, _namespace, LockKeyName);
                         }
                     }
                 }
 
-                _logger?.LogAutomaticRenewalTaskFinished(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                _logger?.LogAutomaticRenewalTaskFinished(_acquisitionGuid, _namespace, LockKeyName);
             }
 
             public async Task Release()
@@ -364,7 +367,7 @@
 
                 try
                 {
-                    _logger?.LogStartingReleaseOfLock(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                    _logger?.LogStartingReleaseOfLock(_acquisitionGuid, _namespace, LockKeyName);
 
                     _isReleased = true;
                     _cancellationTokenSource.Cancel();
@@ -373,18 +376,18 @@
                     // of the lock or the renewal just happening (we might still get contention from other processes).
                     await Task.Delay(1500).ConfigureAwait(false);
 
-                    _logger?.LogBeginningReleaseTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                    _logger?.LogBeginningReleaseTransaction(_acquisitionGuid, _namespace, LockKeyName);
                     var transaction = await _datastoreRepositoryLayer.BeginTransactionAsync(_namespace, Repository.Transaction.TransactionMode.ReadWrite, null, CancellationToken.None).ConfigureAwait(false);
-                    _logger?.LogBegunReleaseTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                    _logger?.LogBegunReleaseTransaction(_acquisitionGuid, _namespace, LockKeyName);
                     var doRollback = false;
                     try
                     {
-                        _logger?.LogLoadingExistingLockModelForRelease(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogLoadingExistingLockModelForRelease(_acquisitionGuid, _namespace, LockKeyName);
 
                         var existingLock = await _datastoreRepositoryLayer.LoadAsync<DefaultLockModel>(_namespace, _lockKey, transaction, null, CancellationToken.None).ConfigureAwait(false);
                         if (existingLock == null)
                         {
-                            _logger?.LogUnreleasedLockDuringReleaseAcquiredAndReleasedElsewhere(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                            _logger?.LogUnreleasedLockDuringReleaseAcquiredAndReleasedElsewhere(_acquisitionGuid, _namespace, LockKeyName);
 
                             // No lock? Someone else might have already grabbed it and released it (see
                             // the comment in renewal logic).
@@ -395,14 +398,14 @@
                             // Existing lock, check if we still have the handle on it.
                             if (existingLock.acquisitionGuid == _acquisitionGuid)
                             {
-                                _logger?.LogDeletingLockModel(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                                _logger?.LogDeletingLockModel(_acquisitionGuid, _namespace, LockKeyName);
 
                                 // We can explicitly delete the lock because we still own it.
                                 await _datastoreRepositoryLayer.DeleteAsync(_namespace, new[] { existingLock }.ToAsyncEnumerable(), transaction, null, CancellationToken.None).ConfigureAwait(false);
                             }
                             else
                             {
-                                _logger?.LogUnreleasedLockDuringReleasedAcquiredElsewhere(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                                _logger?.LogUnreleasedLockDuringReleasedAcquiredElsewhere(_acquisitionGuid, _namespace, LockKeyName);
 
                                 // Someone else now owns the lock! Treat it as released from us.
                                 _isReleased = true;
@@ -410,10 +413,10 @@
                             }
                         }
 
-                        _logger?.LogAttemptingCommitReleaseTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogAttemptingCommitReleaseTransaction(_acquisitionGuid, _namespace, LockKeyName);
                         await _datastoreRepositoryLayer.CommitAsync(_namespace, transaction, null, CancellationToken.None).ConfigureAwait(false);
                         doRollback = false;
-                        _logger?.LogSuccessfulCommitReleaseTransaction(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogSuccessfulCommitReleaseTransaction(_acquisitionGuid, _namespace, LockKeyName);
 
                         await _metricService.AddPoint(
                             _lockReleaseMetric,
@@ -427,17 +430,17 @@
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogExceptionDuringRelease(ex, _acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogExceptionDuringRelease(ex, _acquisitionGuid, _namespace, LockKeyName);
                         throw;
                     }
                     finally
                     {
-                        _logger?.LogReachedFinallyBlockRelease(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                        _logger?.LogReachedFinallyBlockRelease(_acquisitionGuid, _namespace, LockKeyName);
                         if (doRollback)
                         {
-                            _logger?.LogAttemptingRollbackTransactionRelease(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                            _logger?.LogAttemptingRollbackTransactionRelease(_acquisitionGuid, _namespace, LockKeyName);
                             await _datastoreRepositoryLayer.RollbackAsync(_namespace, transaction, null, CancellationToken.None).ConfigureAwait(false);
-                            _logger?.LogSuccessfulRollbackTransactionRelease(_acquisitionGuid, _namespace, _lockKey.GetNameFromKey());
+                            _logger?.LogSuccessfulRollbackTransactionRelease(_acquisitionGuid, _namespace, LockKeyName);
                         }
                     }
                 }

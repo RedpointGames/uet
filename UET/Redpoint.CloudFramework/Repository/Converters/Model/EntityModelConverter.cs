@@ -96,7 +96,7 @@
 
             model.dateCreatedUtc = _instantTimestampConversion.FromDatastoreValueToNodaTimeInstant(entity["dateCreatedUtc"]);
             model.dateModifiedUtc = _instantTimestampConversion.FromDatastoreValueToNodaTimeInstant(entity["dateModifiedUtc"]);
-            model.Key = entity.Key;
+            referenceModel.SetDatastoreKey(model, entity.Key);
             if (entity["schemaVersion"]?.IsNull ?? true || entity["schemaVersion"].ValueTypeCase != Value.ValueTypeOneofCase.IntegerValue)
             {
                 model.schemaVersion = null;
@@ -120,7 +120,7 @@
             return model;
         }
 
-        public Entity To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : class, IModel, new()
+        public Entity To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key<T>>? incompleteKeyFactory) where T : class, IModel, new()
         {
             ArgumentNullException.ThrowIfNull(model);
 
@@ -132,6 +132,7 @@
             {
                 ModelNamespace = @namespace,
                 Model = model,
+                ReferenceModel = referenceModel,
                 Entity = entity,
             };
 
@@ -147,7 +148,15 @@
                 }
                 var value = propInfo.GetValue(model);
 
-                var converter = _valueConverterProvider.GetConverter(kv.Value, propInfo.PropertyType);
+                IValueConverter converter;
+                try
+                {
+                    converter = _valueConverterProvider.GetConverter(kv.Value, propInfo.PropertyType);
+                }
+                catch (NotSupportedException)
+                {
+                    throw new NotSupportedException($"Model field type '{kv.Value}' and property CLR type '{propInfo.PropertyType}' has no matching value converter for field named '{propInfo.Name}' on model type '{referenceModel.CSharpTypeName}'!");
+                }
 
                 if (value == null &&
                     defaults != null &&
@@ -168,16 +177,16 @@
                     indexes.Contains(kv.Key));
             }
 
-            if (model.Key == null)
+            if (!referenceModel.HasKey(model))
             {
                 // @note: This used to call CreateIncompleteKey for the caller, but since the database context
                 // isn't available here, it's now a callback instead.
                 ArgumentNullException.ThrowIfNull(incompleteKeyFactory);
-                entity.Key = incompleteKeyFactory(model);
+                entity.Key = incompleteKeyFactory(model).__InternalDatastoreKey__;
             }
             else
             {
-                entity.Key = model.Key;
+                entity.Key = referenceModel.GetDatastoreKey(model);
             }
 
             var now = SystemClock.Instance.GetCurrentInstant();

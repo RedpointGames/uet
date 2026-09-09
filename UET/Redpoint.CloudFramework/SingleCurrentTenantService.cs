@@ -1,6 +1,6 @@
 ﻿namespace Redpoint.CloudFramework
 {
-    using Google.Cloud.Datastore.V1;
+    using Redpoint.CloudFramework.Models;
     using System.Threading.Tasks;
 
     internal class SingleCurrentTenantService : ICurrentTenantService
@@ -10,9 +10,9 @@
             return Task.FromResult<ICurrentTenant?>(null);
         }
 
-        public Task<Key?> GetTenantDatastoreKeyFromNamespace(string @namespace)
+        public Task<UntypedKey?> GetTenantDatastoreKeyFromNamespace(string @namespace)
         {
-            return Task.FromResult<Key?>(null);
+            return Task.FromResult<UntypedKey?>(null);
         }
     }
 }
