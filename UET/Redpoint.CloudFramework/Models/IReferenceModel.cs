@@ -1,6 +1,5 @@
-﻿namespace Redpoint.CloudFramework.Repository.ReferenceCache
+﻿namespace Redpoint.CloudFramework.Models
 {
-    using Redpoint.CloudFramework.Models;
     using System.Collections.Generic;
     using System.Reflection;
 
@@ -15,9 +14,11 @@
         PropertyInfo? GetPropertyInfo(string name);
         long SchemaVersion { get; }
         Dictionary<string, ushort> HashKeyLengthsForGeopointFields { get; }
+        bool IsGeoModel { get; }
     }
 
     public interface IReferenceModel<T> : IReferenceModel
     {
+        T ConstructNewModel();
     }
 }

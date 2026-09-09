@@ -29,8 +29,10 @@
 
         public T From<T>(string @namespace, Entity entity) where T : class, IModel, new()
         {
-            var @ref = new T();
-            @ref._originalData = new Dictionary<string, object?>();
+            var referenceModel = ReferenceModelCache.Get<T>();
+
+            var model = referenceModel.ConstructNewModel();
+            model._originalData = new Dictionary<string, object?>();
 
             var delayedLoads = new List<Action<string>>();
 
@@ -39,11 +41,11 @@
                 ModelNamespace = @namespace,
             };
 
-            var defaults = @ref.GetDefaultValues();
-            var types = @ref.GetTypes();
+            var defaults = referenceModel.DefaultValues;
+            var types = referenceModel.Types;
             foreach (var kv in types)
             {
-                var propInfo = @ref.GetPropertyInfo(kv.Key);
+                var propInfo = referenceModel.GetPropertyInfo(kv.Key);
                 if (propInfo == null)
                 {
                     _logger.LogWarning($"Model {typeof(T).FullName} declares property {kv.Key} but is missing C# declaration");
@@ -70,8 +72,8 @@
                             delayedLoads.Add((localNamespace) =>
                             {
                                 var delayedValue = callback(localNamespace);
-                                propInfo.SetValue(@ref, delayedValue);
-                                @ref._originalData[kv.Key] = delayedValue;
+                                propInfo.SetValue(model, delayedValue);
+                                model._originalData[kv.Key] = delayedValue;
                             });
                         });
                 }
@@ -87,42 +89,44 @@
                         defaultValue);
                 }
 
-                propInfo.SetValue(@ref, value);
+                propInfo.SetValue(model, value);
 
-                @ref._originalData[kv.Key] = value;
+                model._originalData[kv.Key] = value;
             }
 
-            @ref.dateCreatedUtc = _instantTimestampConversion.FromDatastoreValueToNodaTimeInstant(entity["dateCreatedUtc"]);
-            @ref.dateModifiedUtc = _instantTimestampConversion.FromDatastoreValueToNodaTimeInstant(entity["dateModifiedUtc"]);
-            @ref.Key = entity.Key;
+            model.dateCreatedUtc = _instantTimestampConversion.FromDatastoreValueToNodaTimeInstant(entity["dateCreatedUtc"]);
+            model.dateModifiedUtc = _instantTimestampConversion.FromDatastoreValueToNodaTimeInstant(entity["dateModifiedUtc"]);
+            model.Key = entity.Key;
             if (entity["schemaVersion"]?.IsNull ?? true || entity["schemaVersion"].ValueTypeCase != Value.ValueTypeOneofCase.IntegerValue)
             {
-                @ref.schemaVersion = null;
+                model.schemaVersion = null;
             }
             else
             {
-                @ref.schemaVersion = entity["schemaVersion"].IntegerValue;
+                model.schemaVersion = entity["schemaVersion"].IntegerValue;
             }
 
             // If we have any delayed local key assignments, run them now (before migrations, in case
             // migrations want to handle local-key properties).
             if (delayedLoads.Count > 0)
             {
-                var localNamespace = @ref.GetDatastoreNamespaceForLocalKeys();
+                var localNamespace = model.GetDatastoreNamespaceForLocalKeys();
                 foreach (var delayedLoad in delayedLoads)
                 {
                     delayedLoad(localNamespace);
                 }
             }
 
-            return @ref;
+            return model;
         }
 
         public Entity To<T>(string @namespace, T? model, bool isCreateContext, Func<T, Key>? incompleteKeyFactory) where T : class, IModel, new()
         {
-            var entity = new Entity();
-
             ArgumentNullException.ThrowIfNull(model);
+
+            var referenceModel = ReferenceModelCache.Get(model);
+
+            var entity = new Entity();
 
             var conversionContext = new DatastoreValueConvertToContext
             {
@@ -131,12 +135,12 @@
                 Entity = entity,
             };
 
-            var defaults = model.GetDefaultValues();
-            var types = model.GetTypes();
-            var indexes = model.GetIndexes();
+            var defaults = referenceModel.DefaultValues;
+            var types = referenceModel.Types;
+            var indexes = referenceModel.Indexes;
             foreach (var kv in types)
             {
-                var propInfo = model.GetPropertyInfo(kv.Key);
+                var propInfo = referenceModel.GetPropertyInfo(kv.Key);
                 if (propInfo == null)
                 {
                     throw new InvalidOperationException($"The property '{kv.Key}' could not be found on '{model.GetType().FullName}'. Ensure the datastore type declarations are correct.");
@@ -187,7 +191,7 @@
             // @note: We changed this behaviour so that the schema version is only automatically set on creation. This ensures that when migrators update models, the models don't skip to the latest schema version - they must always get to the latest version via a migrator.
             if (isCreateContext || model.schemaVersion == null)
             {
-                model.schemaVersion = model.GetSchemaVersion();
+                model.schemaVersion = referenceModel.SchemaVersion;
             }
 
             entity["dateCreatedUtc"] = _instantTimestampConversion.FromNodaTimeInstantToDatastoreValue(model.dateCreatedUtc, false);

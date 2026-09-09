@@ -5,7 +5,6 @@
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.StringEnum;
     using System;
     using System.Collections.Generic;

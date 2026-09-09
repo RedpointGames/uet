@@ -50,69 +50,6 @@ namespace Redpoint.CloudFramework.Tests
             await task().ConfigureAwait(true);
         }
 
-        [Kind("cf_TestLoadedEntityMatchesCreatedEntity")]
-        private class TestLoadedEntityMatchesCreatedEntity_Model : RedisTestModel { }
-
-        [Kind("cf_TestLoadedEntityIsInCache")]
-        private class TestLoadedEntityIsInCache_Model : RedisTestModel { }
-
-        [Kind("cf_TestMultipleEntityLoadWorks")]
-        private class TestMultipleEntityLoadWorks_Model : RedisTestModel { }
-
-        [Kind("cf_TestMultipleEntityLoadWorksWithoutCacheClear")]
-        private class TestMultipleEntityLoadWorksWithoutCacheClear_Model : RedisTestModel { }
-
-        [Kind("cf_TestUpdatedEntityIsNotInCache")]
-        private class TestUpdatedEntityIsNotInCache_Model : RedisTestModel { }
-
-        [Kind("cf_TestUpsertedEntityIsNotInCache")]
-        private class TestUpsertedEntityIsNotInCache_Model : RedisTestModel { }
-
-        [Kind("cf_TestDeletedEntityIsNotInCache")]
-        private class TestDeletedEntityIsNotInCache_Model : RedisTestModel { }
-
-        [Kind("cf_TestCreateThenQuery")]
-        private class TestCreateThenQuery_Model : RedisTestModel { }
-
-        [Kind("cf_TestCreateThenQueryThenUpdateThenQuery")]
-        private class TestCreateThenQueryThenUpdateThenQuery_Model : RedisTestModel { }
-
-        [Kind("cf_TestReaderCountIsSetWhileReading")]
-        private class TestReaderCountIsSetWhileReading_Model : RedisTestModel { }
-
-        [Kind("cf_TestTransactionalUpdateInvalidatesQuery")]
-        private class TestTransactionalUpdateInvalidatesQuery_Model : RedisTestModel { }
-
-        [Kind("cf_TestCreateInvalidatesQuery")]
-        private class TestCreateInvalidatesQuery_Model : RedisTestModel { }
-
-        [Kind("cf_TestUpdateWithNoOriginalDataDoesNotCrash")]
-        private class TestUpdateWithNoOriginalDataDoesNotCrash_Model : RedisTestModel { }
-
-        [Kind("cf_TestUpdateInvalidatesRelevantQuery")]
-        private class TestUpdateInvalidatesRelevantQuery_Model : RedisTestModel { }
-
-        [Kind("cf_TestUpdateDoesNotInvalidateIrrelevantQuery")]
-        private class TestUpdateDoesNotInvalidateIrrelevantQuery_Model : RedisTestModel { }
-
-        [Kind("cf_TestTransactionalUpdateDoesNotInvalidateCacheUntilCommit")]
-        private class TestTransactionalUpdateDoesNotInvalidateCacheUntilCommit_Model : RedisTestModel { }
-
-        [Kind("cf_TestTransactionalUpdateFromNull")]
-        private class TestTransactionalUpdateFromNull_Model : RedisTestModel { }
-
-        [Kind("cf_TestNonTransactionalUpdateFromNull")]
-        private class TestNonTransactionalUpdateFromNull_Model : RedisTestModel { }
-
-        [Kind("cf_TestQueryOrdering")]
-        private class TestQueryOrdering_Model : RedisTestModel { }
-
-        [Kind("cf_TestQueryEverything")]
-        private class TestQueryEverything_Model : RedisTestModel { }
-
-        [Kind("cf_TestDeletedEntityIsNotInCachedQueryEverything")]
-        private class TestDeletedEntityIsNotInCachedQueryEverything_Model : RedisTestModel { }
-
         [Fact]
         public async Task TestLoadedEntityMatchesCreatedEntity()
         {

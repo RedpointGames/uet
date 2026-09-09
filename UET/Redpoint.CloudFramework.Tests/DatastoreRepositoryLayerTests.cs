@@ -5,6 +5,7 @@ using Google.Type;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
+using Redpoint.CloudFramework.Models;
 using Redpoint.CloudFramework.Repository;
 using Redpoint.CloudFramework.Repository.Layers;
 using Redpoint.CloudFramework.Tests.Models;
@@ -591,7 +592,7 @@ namespace Redpoint.CloudFramework.Tests
 
             var factory = await layer.GetKeyFactoryAsync<TestModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
             var parentKey = await layer.AllocateKeyAsync<TestModel>(string.Empty, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
-            var childKey = parentKey.WithElement(new TestModel().GetKind(), "child");
+            var childKey = parentKey.WithElement(ReferenceModelCache.Get<TestModel>().Kind, "child");
 
             var models = new[]
             {
@@ -816,7 +817,7 @@ namespace Redpoint.CloudFramework.Tests
             {
                 await layer.QueryAsync<TestModel>(
                     string.Empty,
-                    x => x.GetKind() == null,
+                    x => ReferenceModelCache.Get(x).Kind == null,
                     null,
                     null,
                     null,
@@ -935,7 +936,7 @@ namespace Redpoint.CloudFramework.Tests
 
             var factory = await layer.GetKeyFactoryAsync<TestModel>(string.Empty, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
             var parentKey = await layer.AllocateKeyAsync<TestModel>(string.Empty, null, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
-            var childKey = parentKey.WithElement(new PathElement { Kind = new TestModel().GetKind() });
+            var childKey = parentKey.WithElement(new PathElement { Kind = ReferenceModelCache.Get<TestModel>().Kind });
 
             var transaction = await layer.BeginTransactionAsync(string.Empty, Repository.Transaction.TransactionMode.ReadWrite, null, TestContext.Current.CancellationToken).ConfigureAwait(true);
 

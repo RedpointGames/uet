@@ -5,7 +5,6 @@
     using Redpoint.CloudFramework.Models;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Repository.Layers;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.Collections.Batching;
     using System;
     using System.Diagnostics.CodeAnalysis;

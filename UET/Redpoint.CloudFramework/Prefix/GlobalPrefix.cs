@@ -9,7 +9,6 @@
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.GoogleInfrastructure;
     using Redpoint.CloudFramework.Models;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
 
     public class GlobalPrefix : IGlobalPrefix
     {
@@ -30,7 +29,7 @@
                 _reversePrefixes = new Dictionary<string, string>();
             }
 
-            public void RegisterPrefix<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(string prefix) where T : class, IModel, new()
+            public void RegisterPrefix<T>(string prefix) where T : class, IModel, new()
             {
                 var kind = ReferenceModelCache.Get<T>().Kind;
 

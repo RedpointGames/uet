@@ -2,7 +2,6 @@
 {
     using Google.Cloud.Datastore.V1;
     using Redpoint.CloudFramework.Models;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using System.Collections.Generic;
     using System.Linq.Expressions;
 

@@ -1,5 +1,6 @@
 ﻿namespace Redpoint.CloudFramework.Repository.Layers
 {
+    using Google.Apis.Bigquery.v2.Data;
     using Google.Cloud.Datastore.V1;
     using Google.Type;
     using Microsoft.Extensions.Caching.Distributed;
@@ -12,7 +13,6 @@
     using Redpoint.CloudFramework.Repository.Converters.Timestamp;
     using Redpoint.CloudFramework.Repository.Metrics;
     using Redpoint.CloudFramework.Repository.Pagination;
-    using Redpoint.CloudFramework.Repository.ReferenceCache;
     using Redpoint.CloudFramework.Repository.Transaction;
     using Redpoint.CloudFramework.Tracing;
     using Redpoint.Collections;
@@ -1484,7 +1484,7 @@ return 'written'
                 var columns = new HashSet<string>();
                 try
                 {
-                    await foreach (var entity in _datastoreRepositoryLayer.CreateAsync<T>(
+                    await foreach (var model in _datastoreRepositoryLayer.CreateAsync<T>(
                         @namespace,
                         models,
                         transaction,
@@ -1493,14 +1493,16 @@ return 'written'
                     {
                         if (transaction == null)
                         {
-                            columns.Add($"KEYALL:{@namespace}:{entity.GetKind()}");
-                            foreach (var kv in entity.GetTypes())
+                            var referenceModel = ReferenceModelCache.Get(model);
+
+                            columns.Add($"KEYALL:{@namespace}:{referenceModel.Kind}");
+                            foreach (var kv in referenceModel.Types)
                             {
-                                columns.Add($"KEYCOLUMN:{@namespace}:{entity.GetKind()}:{kv.Key}");
+                                columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.Kind}:{kv.Key}");
                             }
                         }
 
-                        yield return entity;
+                        yield return model;
                     }
                 }
                 finally
@@ -1538,7 +1540,7 @@ return 'written'
                 var columns = new HashSet<string>();
                 try
                 {
-                    await foreach (var entity in _datastoreRepositoryLayer.UpsertAsync<T>(
+                    await foreach (var model in _datastoreRepositoryLayer.UpsertAsync<T>(
                         @namespace,
                         models,
                         transaction,
@@ -1547,15 +1549,17 @@ return 'written'
                     {
                         if (transaction == null)
                         {
-                            columns.Add($"KEYALL:{@namespace}:{entity.GetKind()}");
-                            foreach (var kv in entity.GetTypes())
+                            var referenceModel = ReferenceModelCache.Get(model);
+
+                            columns.Add($"KEYALL:{@namespace}:{referenceModel.Kind}");
+                            foreach (var kv in referenceModel.Types)
                             {
                                 // We must assume upserts are creates, therefore we don't compare values.
-                                columns.Add($"KEYCOLUMN:{@namespace}:{entity.GetKind()}:{kv.Key}");
+                                columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.Kind}:{kv.Key}");
                             }
                         }
 
-                        yield return entity;
+                        yield return model;
                     }
                 }
                 finally
@@ -1593,7 +1597,7 @@ return 'written'
                 var columns = new HashSet<string>();
                 try
                 {
-                    await foreach (var entity in _datastoreRepositoryLayer.UpdateAsync<T>(
+                    await foreach (var model in _datastoreRepositoryLayer.UpdateAsync<T>(
                         @namespace,
                         models,
                         transaction,
@@ -1602,18 +1606,20 @@ return 'written'
                     {
                         if (transaction == null)
                         {
-                            columns.Add($"KEYALL:{@namespace}:{entity.GetKind()}");
+                            var referenceModel = ReferenceModelCache.Get(model);
 
-                            foreach (var kv in entity.GetTypes())
+                            columns.Add($"KEYALL:{@namespace}:{referenceModel.Kind}");
+
+                            foreach (var kv in referenceModel.Types)
                             {
                                 var wasColumnModified = false;
-                                if (entity._originalData == null || !entity._originalData.TryGetValue(kv.Key, out object? oldValue))
+                                if (model._originalData == null || !model._originalData.TryGetValue(kv.Key, out object? oldValue))
                                 {
                                     wasColumnModified = true;
                                 }
                                 else
                                 {
-                                    var newValue = entity.GetPropertyInfo(kv.Key)!.GetValue(entity);
+                                    var newValue = referenceModel.GetPropertyInfo(kv.Key)!.GetValue(model);
                                     if (newValue == null)
                                     {
                                         wasColumnModified = oldValue != null;
@@ -1661,12 +1667,12 @@ return 'written'
 
                                 if (wasColumnModified)
                                 {
-                                    columns.Add($"KEYCOLUMN:{@namespace}:{entity.GetKind()}:{kv.Key}");
+                                    columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.Kind}:{kv.Key}");
                                 }
                             }
                         }
 
-                        yield return entity;
+                        yield return model;
                     }
                 }
                 finally
@@ -1770,9 +1776,9 @@ return 'written'
                 var db = _redis.GetDatabase();
 
                 // For all the model types involved, prevent stale cache stores.
-                foreach (var kind in transaction.ModifiedModels.Select(x => x.GetKind()).Distinct())
+                foreach (var kind in transaction.ModifiedModels.Select(x => ReferenceModelCache.Get(x).Kind).Distinct())
                 {
-                    await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, kind).ConfigureAwait(false); ;
+                    await RedisCacheRepositoryLayer.IncrementLastWriteAsync(db, kind).ConfigureAwait(false);
                 }
 
                 // Clear simple cache keys.
@@ -1814,20 +1820,22 @@ return 'written'
 
                 // Clear column keys.
                 var columns = new HashSet<string>();
-                foreach (var entity in transaction.ModifiedModels)
+                foreach (var model in transaction.ModifiedModels)
                 {
-                    columns.Add($"KEYALL:{@namespace}:{entity.GetKind()}");
+                    var referenceModel = ReferenceModelCache.Get(model);
 
-                    foreach (var kv in entity.GetTypes())
+                    columns.Add($"KEYALL:{@namespace}:{referenceModel.Kind}");
+
+                    foreach (var kv in referenceModel.Types)
                     {
                         var wasColumnModified = false;
-                        if (entity._originalData == null || !entity._originalData.TryGetValue(kv.Key, out object? oldValue))
+                        if (model._originalData == null || !model._originalData.TryGetValue(kv.Key, out object? oldValue))
                         {
                             wasColumnModified = true;
                         }
                         else
                         {
-                            var newValue = entity.GetPropertyInfo(kv.Key)!.GetValue(entity);
+                            var newValue = referenceModel.GetPropertyInfo(kv.Key)!.GetValue(model);
                             if (newValue == null)
                             {
                                 wasColumnModified = oldValue != null;
@@ -1875,7 +1883,7 @@ return 'written'
 
                         if (wasColumnModified)
                         {
-                            columns.Add($"KEYCOLUMN:{@namespace}:{entity.GetKind()}:{kv.Key}");
+                            columns.Add($"KEYCOLUMN:{@namespace}:{referenceModel.Kind}:{kv.Key}");
                         }
                     }
                 }

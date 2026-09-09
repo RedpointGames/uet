@@ -33,8 +33,10 @@
 
         public T? From<T>(string @namespace, string jsonCache) where T : class, IModel, new()
         {
-            var model = new T();
-            model._originalData = new Dictionary<string, object?>();
+            var referenceModel = ReferenceModelCache.Get<T>();
+
+            var model = referenceModel.ConstructNewModel();
+            model._originalData = [];
 
             var hashsetValue = JsonObject.Parse(jsonCache);
             if (hashsetValue == null ||
@@ -55,11 +57,11 @@
                 ModelNamespace = @namespace,
             };
 
-            var defaults = model.GetDefaultValues();
-            var types = model.GetTypes();
+            var defaults = referenceModel.DefaultValues;
+            var types = referenceModel.Types;
             foreach (var kv in types)
             {
-                var propInfo = model.GetPropertyInfo(kv.Key);
+                var propInfo = referenceModel.GetPropertyInfo(kv.Key);
                 if (propInfo == null)
                 {
                     _logger.LogWarning($"Model {typeof(T).FullName} declares property {kv.Key} but is missing C# declaration");
@@ -143,17 +145,19 @@
             }
             else
             {
+                var referenceModel = ReferenceModelCache.Get(model);
+
                 var conversionContext = new JsonValueConvertToContext
                 {
                     ModelNamespace = @namespace,
                     Model = model,
                 };
 
-                var defaults = model.GetDefaultValues();
-                var types = model.GetTypes();
+                var defaults = referenceModel.DefaultValues;
+                var types = referenceModel.Types;
                 foreach (var kv in types)
                 {
-                    var propInfo = model.GetPropertyInfo(kv.Key);
+                    var propInfo = referenceModel.GetPropertyInfo(kv.Key);
                     if (propInfo == null)
                     {
                         _logger.LogWarning($"Model {typeof(T).FullName} declares property {kv.Key} but is missing C# declaration");
