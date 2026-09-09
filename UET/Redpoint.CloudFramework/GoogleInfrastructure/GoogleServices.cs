@@ -96,30 +96,6 @@
             return builder.Build();
         }
 
-        public TType BuildRest<TType, TBuilder>(IEnumerable<string> scopes) where TBuilder : global::Google.Api.Gax.Rest.ClientBuilderBase<TType>, new()
-        {
-            var filePath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                throw new InvalidOperationException("BuildRest not supported without GOOGLE_APPLICATION_CREDENTIALS being specified.");
-            }
-
-            using (var reader = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-            {
-                var googleCredentials = CredentialFactory.FromStream<GoogleCredential>(reader);
-                if (googleCredentials.IsCreateScopedRequired)
-                {
-                    googleCredentials = googleCredentials.CreateScoped(scopes);
-                }
-
-                var builder = new TBuilder();
-                builder.Credential = googleCredentials;
-                // @todo: Figure this out.
-                // builder.HttpClientFactory = new HttpClientFromMessageHandlerFactory(_httpClientFactory.CreateClient);
-                return builder.Build();
-            }
-        }
-
         public ChannelCredentials? GetChannelCredentials(string endpoint, IEnumerable<string> scopes)
         {
             if (_hostEnvironment.IsDevelopment() || _hostEnvironment.IsStaging())

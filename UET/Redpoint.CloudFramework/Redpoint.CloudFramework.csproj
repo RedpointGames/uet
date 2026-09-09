@@ -19,7 +19,6 @@
 	<ItemGroup>
 		<PackageReference Include="Cronos" />
 		<PackageReference Include="Docker.DotNet" />
-		<PackageReference Include="Google.Cloud.BigQuery.V2" />
 		<PackageReference Include="Google.Cloud.Datastore.V1" />
 		<PackageReference Include="Google.Cloud.Monitoring.V3" />
 		<PackageReference Include="Google.Cloud.PubSub.V1" />

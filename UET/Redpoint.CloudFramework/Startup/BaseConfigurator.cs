@@ -7,7 +7,6 @@ namespace Redpoint.CloudFramework.Startup
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using OpenTelemetry.Metrics;
-    using Redpoint.CloudFramework.BigQuery;
     using Redpoint.CloudFramework.Configuration;
     using Redpoint.CloudFramework.Prefix;
     using Redpoint.CloudFramework.Storage;
@@ -194,10 +193,6 @@ namespace Redpoint.CloudFramework.Startup
                 services.AddCloudFrameworkRepository(
                     enableMigrations: !_isInteractiveCLIApp,
                     enableRedis: true);
-            }
-            if (_googleCloudUsage.HasFlag(GoogleCloudUsageFlag.BigQuery))
-            {
-                services.AddSingleton<IBigQuery, DefaultBigQuery>();
             }
             if (!_isInteractiveCLIApp && _googleCloudUsage.HasFlag(GoogleCloudUsageFlag.SecretManager))
             {

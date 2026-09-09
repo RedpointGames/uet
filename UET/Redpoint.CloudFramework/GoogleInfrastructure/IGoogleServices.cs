@@ -11,8 +11,6 @@
 
         TType Build<TType, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)] TBuilder>(string endpoint, IEnumerable<string> scopes) where TBuilder : ClientBuilderBase<TType>, new();
 
-        TType BuildRest<TType, TBuilder>(IEnumerable<string> scopes) where TBuilder : global::Google.Api.Gax.Rest.ClientBuilderBase<TType>, new();
-
         ChannelCredentials? GetChannelCredentials(string endpoint, IEnumerable<string> scopes);
 
         string? GetServiceEndpoint(string endpoint, IEnumerable<string> scopes);
