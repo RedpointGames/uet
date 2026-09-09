@@ -31,8 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Integration.Docker\Redpoint.Uefs.Daemon.Integration.Docker.csproj" />
-    <ProjectReference Include="..\Redpoint.Uefs.Daemon.Integration.Kubernetes\Redpoint.Uefs.Daemon.Integration.Kubernetes.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.PackageFs\Redpoint.Uefs.Daemon.PackageFs.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.PackageStorage\Redpoint.Uefs.Daemon.PackageStorage.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Daemon.RemoteStorage\Redpoint.Uefs.Daemon.RemoteStorage.csproj" />
