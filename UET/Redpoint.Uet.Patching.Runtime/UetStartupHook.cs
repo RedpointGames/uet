@@ -15,6 +15,7 @@
             var patches = new IUetPatch[]
             {
                 new TestUetPatch(),
+                new BuildGraphUetPatch(),
             };
 
             // Determine if we have any patches to apply. If we have none, we're done.
