@@ -6,7 +6,7 @@
     using static Google.Cloud.Datastore.V1.Key.Types;
     using DatastoreKey = Google.Cloud.Datastore.V1.Key;
 
-    public class UntypedKey
+    public abstract class UntypedKey
         : IEquatable<UntypedKey?>
     {
         private readonly DatastoreKey _key;

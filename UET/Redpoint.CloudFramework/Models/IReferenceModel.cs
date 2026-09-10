@@ -23,8 +23,6 @@
         UntypedKey? GetUntypedKey(IModel model);
         [return: NotNullIfNotNull(nameof(key))]
         UntypedKey? ConvertDatastoreKeyToUntypedKey(DatastoreKey? key);
-        [return: NotNullIfNotNull(nameof(key))]
-        object? ConvertDatastoreKeyToDynamicTypedKey(DatastoreKey? key);
         UntypedKey[] ConstructDynamicTypedKeyArray(int length);
         [SuppressMessage("Design", "CA1002:Do not expose generic lists", Justification = "This is a factory method.")]
         (object list, Action<UntypedKey> addEntry) ConstructDynamicTypedKeyList(int length);

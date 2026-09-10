@@ -2,11 +2,13 @@
 {
     using Redpoint.CloudFramework.Models;
     using System.Diagnostics.CodeAnalysis;
+    using DatastoreKey = Google.Cloud.Datastore.V1.Key;
 
     public interface IGlobalPrefix
     {
         string Create(UntypedKey key);
         string CreateInternal(UntypedKey key, PathGenerationMode pathGenerationMode = PathGenerationMode.Default);
+        string CreateInternal(DatastoreKey datastoreKey, PathGenerationMode pathGenerationMode = PathGenerationMode.Default);
         UntypedKey Parse(string datastoreNamespace, string identifier);
         UntypedKey ParseInternal(string datastoreNamespace, string identifier);
         UntypedKey ParseLimited(string datastoreNamespace, string identifier, string kind);
