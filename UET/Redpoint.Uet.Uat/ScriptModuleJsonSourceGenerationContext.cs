@@ -1,7 +1,7 @@
 ﻿namespace Redpoint.Uet.Uat
 {
     using System.Text.Json.Serialization;
-    using static Redpoint.Uet.Uat.DefaultUATExecutor;
+    using static Redpoint.Uet.Uat.DefaultUatExecutor;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(ScriptModuleJson))]

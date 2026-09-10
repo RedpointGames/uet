@@ -41,7 +41,7 @@ namespace Redpoint.Uet.Automation.Tests
             });
             services.AddProcessExecution();
             services.AddUETAutomation();
-            services.AddUETUAT();
+            services.AddUetUat();
 
             var sp = services.BuildServiceProvider();
 
@@ -446,7 +446,7 @@ namespace Redpoint.Uet.Automation.Tests
             services.AddPathResolution();
             services.AddProcessExecution();
             services.AddUETAutomation();
-            services.AddUETUAT();
+            services.AddUetUat();
             services.AddReservation();
             return services;
         }

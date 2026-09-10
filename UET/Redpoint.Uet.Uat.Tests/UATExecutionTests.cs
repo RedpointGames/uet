@@ -18,10 +18,10 @@ namespace Redpoint.Uet.Uat.Tests
             services.AddPathResolution();
             services.AddProcessExecution();
             services.AddUetCore();
-            services.AddUETUAT();
+            services.AddUetUat();
 
             var serviceProvider = services.BuildServiceProvider();
-            var executor = serviceProvider.GetRequiredService<IUATExecutor>();
+            var executor = serviceProvider.GetRequiredService<IUatExecutor>();
 
             var lines = new List<string>();
             var exitCode = await executor.ExecuteAsync(

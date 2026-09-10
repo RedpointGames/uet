@@ -9,13 +9,14 @@
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
-    internal class DefaultUATExecutor : IUATExecutor
+    internal class DefaultUatExecutor : IUatExecutor
     {
         private readonly IProcessExecutor _processExecutor;
-        private readonly ILogger<DefaultUATExecutor> _logger;
+        private readonly ILogger<DefaultUatExecutor> _logger;
         private readonly ILocalHandleCloser _localHandleCloser;
         private readonly IRemoteHandleCloser _remoteHandleCloser;
         private readonly IWorldPermissionApplier _worldPermissionApplier;
+        private readonly IUatStartupHookProvider _uatStartupHookProvider;
 
         internal class ScriptModuleJson
         {
@@ -26,18 +27,20 @@
             public string? TargetPath { get; set; }
         }
 
-        public DefaultUATExecutor(
+        public DefaultUatExecutor(
             IProcessExecutor processExecutor,
-            ILogger<DefaultUATExecutor> logger,
+            ILogger<DefaultUatExecutor> logger,
             ILocalHandleCloser localHandleCloser,
             IRemoteHandleCloser remoteHandleCloser,
-            IWorldPermissionApplier worldPermissionApplier)
+            IWorldPermissionApplier worldPermissionApplier,
+            IUatStartupHookProvider uatStartupHookProvider)
         {
             _processExecutor = processExecutor;
             _logger = logger;
             _localHandleCloser = localHandleCloser;
             _remoteHandleCloser = remoteHandleCloser;
             _worldPermissionApplier = worldPermissionApplier;
+            _uatStartupHookProvider = uatStartupHookProvider;
         }
 
         public async Task<int> ExecuteAsync(
@@ -159,6 +162,9 @@
                 }
             }
 
+            // Extract the hooks and set DOTNET_STARTUP_HOOKS.
+            var dotnetStartupHooks = await _uatStartupHookProvider.GetDotnetStartupHooksPathAsync();
+
             // Generate the final environment variable values.
             var uatEnvironmentVariables = new Dictionary<string, string>();
             if (uatSpecification.EnvironmentVariables != null)
@@ -171,6 +177,7 @@
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__ProcessorCountMultiplier"] = OperatingSystem.IsMacOS() ? "1" : "2";
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__MemoryPerActionBytes"] = "0";
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__bShowCompilationTimes"] = "true";
+            uatEnvironmentVariables["DOTNET_STARTUP_HOOKS"] = dotnetStartupHooks;
 
             // Execute UAT, automatically handling retries as needed.
             int reportedExitCode = -1;
