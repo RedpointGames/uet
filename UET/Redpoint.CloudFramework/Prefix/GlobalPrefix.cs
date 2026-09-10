@@ -69,6 +69,11 @@
             _reversePrefixes = registration.ReversePrefixes;
         }
 
+        private static UntypedKey ConvertToUntypedKey(DatastoreKey datastoreKey)
+        {
+            return ReferenceModelCache.Get(datastoreKey.Path.Last().Kind).ConvertDatastoreKeyToUntypedKey(datastoreKey);
+        }
+
         /// <summary>
         /// Parse a public identifier into a Google Datastore key object.
         /// </summary>
@@ -77,7 +82,7 @@
         /// <returns>A key object.</returns>
         public UntypedKey Parse(string datastoreNamespace, string identifier)
         {
-            return new UntypedKey(ParseToDatastoreKey(datastoreNamespace, identifier));
+            return ConvertToUntypedKey(ParseToDatastoreKey(datastoreNamespace, identifier));
         }
 
         /// <summary>
@@ -100,7 +105,7 @@
                 throw new IdentifierWrongTypeException(identifier, kind);
             }
 
-            return new UntypedKey(result);
+            return ConvertToUntypedKey(result);
         }
 
         /// <summary>
@@ -166,7 +171,7 @@
         /// <returns>A key object.</returns>
         public UntypedKey ParseInternal(string datastoreNamespace, string identifier)
         {
-            return new UntypedKey(ParseInternalToDatastoreKey(datastoreNamespace, identifier));
+            return ConvertToUntypedKey(ParseInternalToDatastoreKey(datastoreNamespace, identifier));
         }
 
         /// <summary>
@@ -201,7 +206,18 @@
         {
             ArgumentNullException.ThrowIfNull(key);
 
-            var datastoreKey = key.__InternalDatastoreKey__;
+            return CreateInternal(key.__InternalDatastoreKey__, pathGenerationMode);
+        }
+
+        /// <summary>
+        /// Creates a public or internal identifier from a Datastore key.
+        /// </summary>
+        /// <param name="datastoreKey">The datastore key to create an identifier from.</param>
+        /// <param name="pathGenerationMode"></param>
+        /// <returns>The public or internal identifier.</returns>
+        public string CreateInternal(DatastoreKey datastoreKey, PathGenerationMode pathGenerationMode = PathGenerationMode.Default)
+        {
+            ArgumentNullException.ThrowIfNull(datastoreKey);
 
             var keyComponents = new List<string>
             {

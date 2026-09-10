@@ -65,11 +65,11 @@
             }
             else if (propertyClrType == typeof(UntypedKey))
             {
-                return new UntypedKey(datastoreKey);
+                return ReferenceModelCache.Get(datastoreKey.Path.Last().Kind).ConvertDatastoreKeyToUntypedKey(datastoreKey);
             }
             else
             {
-                return ReferenceModelCache.GetFromKeyProperty(propertyClrType).ConvertDatastoreKeyToDynamicTypedKey(datastoreKey);
+                return ReferenceModelCache.GetFromKeyProperty(propertyClrType).ConvertDatastoreKeyToUntypedKey(datastoreKey);
             }
         }
 
@@ -79,14 +79,10 @@
             {
                 return null;
             }
-            else if (propertyClrType == typeof(UntypedKey))
-            {
-                return untypedKey;
-            }
             else
             {
-                // The ParseLimited calls don't construct the concrete Key<T> type, so we need to change the wrapping type here.
-                return ReferenceModelCache.GetFromKeyProperty(propertyClrType).ConvertDatastoreKeyToDynamicTypedKey(untypedKey.__InternalDatastoreKey__);
+                // UntypedKey is now abstract, so all instantiations are the correct concrete Key<T> type.
+                return untypedKey;
             }
         }
 

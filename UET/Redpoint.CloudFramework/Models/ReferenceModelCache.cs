@@ -13,6 +13,7 @@
     {
         private static Dictionary<Type, IReferenceModel> _referenceCache = [];
         private static Dictionary<Type, IReferenceModel> _referenceByKeyCache = [];
+        private static Dictionary<string, IReferenceModel> _referenceByKind = [];
         private static readonly IValueConverter[] _stringEnumValueConverters =
         [
             new StringEnumValueConverter(),
@@ -51,6 +52,21 @@
             if (!_referenceCache.TryGetValue(type, out var result))
             {
                 throw new InvalidOperationException($"Model type '{type.FullName}' is not registered with reference model cache, which should be impossible since all models implicitly call InitModel in the base constructor.");
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Returns a reference model representing static metadata about a given model, based on the underlying kind.
+        /// </summary>
+        /// <param name="kind">The Datastore kind to lookup metadata for.</param>
+        /// <returns>The reference model.</returns>
+        public static IReferenceModel Get(string kind)
+        {
+            ArgumentNullException.ThrowIfNull(kind);
+            if (!_referenceByKind.TryGetValue(kind, out var result))
+            {
+                throw new InvalidOperationException($"Model kind '{kind}' is not registered with reference model cache, which should be impossible since all models implicitly call InitModel in the base constructor.");
             }
             return result;
         }
@@ -245,6 +261,7 @@
                         getTypedKey);
                     _referenceCache[typeof(T)] = referenceModel;
                     _referenceByKeyCache[typeof(Key<T>)] = referenceModel;
+                    _referenceByKind[referenceModel.Kind] = referenceModel;
                 }
 
                 foreach (var referencedType in modelTypesReferencedFromKeyFields)
@@ -434,17 +451,6 @@
 
             [return: NotNullIfNotNull(nameof(key))]
             public UntypedKey? ConvertDatastoreKeyToUntypedKey(DatastoreKey? key)
-            {
-                if (key == null)
-                {
-                    return null;
-                }
-
-                return new UntypedKey(key);
-            }
-
-            [return: NotNullIfNotNull(nameof(key))]
-            public object? ConvertDatastoreKeyToDynamicTypedKey(DatastoreKey? key)
             {
                 if (key == null)
                 {

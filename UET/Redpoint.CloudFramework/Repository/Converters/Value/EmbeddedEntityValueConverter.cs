@@ -276,7 +276,7 @@
                             new JsonObject
                             {
                                 { "ns", value.KeyValue.PartitionId.NamespaceId },
-                                { "value", _globalPrefix.CreateInternal(new UntypedKey(value.KeyValue), PathGenerationMode.NoShortPathComponents) }
+                                { "value", _globalPrefix.CreateInternal(value.KeyValue, PathGenerationMode.NoShortPathComponents) }
                             }
                         }
                     };
