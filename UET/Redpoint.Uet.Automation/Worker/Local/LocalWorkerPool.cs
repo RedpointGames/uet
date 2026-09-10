@@ -174,7 +174,7 @@
                                     newWorker = new LocalGauntletWorker(
                                         _serviceProvider.GetRequiredService<ILogger<LocalGauntletWorker>>(),
                                         _serviceProvider.GetRequiredService<IProcessExecutor>(),
-                                        _serviceProvider.GetRequiredService<IUATExecutor>(),
+                                        _serviceProvider.GetRequiredService<IUatExecutor>(),
                                         newId,
                                         displayName,
                                         portReservation,

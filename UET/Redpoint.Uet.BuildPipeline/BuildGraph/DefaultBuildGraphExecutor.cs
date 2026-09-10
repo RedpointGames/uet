@@ -21,7 +21,7 @@
     internal class DefaultBuildGraphExecutor : IBuildGraphExecutor
     {
         private readonly ILogger<DefaultBuildGraphExecutor> _logger;
-        private readonly IUATExecutor _uatExecutor;
+        private readonly IUatExecutor _uatExecutor;
         private readonly IBuildGraphArgumentGenerator _buildGraphArgumentGenerator;
         private readonly IBuildGraphPatcher _buildGraphPatcher;
         private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
@@ -32,7 +32,7 @@
 
         public DefaultBuildGraphExecutor(
             ILogger<DefaultBuildGraphExecutor> logger,
-            IUATExecutor uatExecutor,
+            IUatExecutor uatExecutor,
             IBuildGraphArgumentGenerator buildGraphArgumentGenerator,
             IBuildGraphPatcher buildGraphPatcher,
             IWorkspaceProvider dynamicWorkspaceProvider,

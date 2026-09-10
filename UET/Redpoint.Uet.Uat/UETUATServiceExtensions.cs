@@ -7,9 +7,9 @@ namespace Redpoint.Uet.Uat
     using Microsoft.Extensions.DependencyInjection;
     using Redpoint.Uet.Uat.Internal;
 
-    public static class UETUATServiceExtensions
+    public static class UetUatServiceExtensions
     {
-        public static void AddUETUAT(this IServiceCollection services)
+        public static void AddUetUat(this IServiceCollection services)
         {
             if (OperatingSystem.IsWindowsVersionAtLeast(6, 2))
             {
@@ -21,7 +21,8 @@ namespace Redpoint.Uet.Uat
             }
             services.AddSingleton<IRemoteHandleCloser, DefaultRemoteHandleCloser>();
 
-            services.AddSingleton<IUATExecutor, DefaultUATExecutor>();
+            services.AddSingleton<IUatExecutor, DefaultUatExecutor>();
+            services.AddSingleton<IUatStartupHookProvider, DefaultUatStartupHookProvider>();
         }
     }
 }

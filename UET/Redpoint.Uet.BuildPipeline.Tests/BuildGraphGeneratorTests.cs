@@ -21,7 +21,7 @@ namespace Redpoint.Uet.BuildPipeline.Tests
             services.AddProcessExecution();
             services.AddGrpcPipes<TcpGrpcPipeFactory>();
             services.AddUetCore();
-            services.AddUETUAT();
+            services.AddUetUat();
             services.AddUETBuildPipeline();
             services.AddMSBuildPathResolution();
             return services.BuildServiceProvider();

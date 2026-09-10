@@ -16,7 +16,7 @@
     {
         private readonly ILogger<LocalGauntletWorker> _logger;
         private readonly IProcessExecutor _processExecutor;
-        private readonly IUATExecutor _uatExecutor;
+        private readonly IUatExecutor _uatExecutor;
         private readonly ILoopbackPortReservation _portReservation;
 
         private readonly OnWorkerStarted _onWorkerStarted;
@@ -28,7 +28,7 @@
         public LocalGauntletWorker(
             ILogger<LocalGauntletWorker> logger,
             IProcessExecutor processExecutor,
-            IUATExecutor uatExecutor,
+            IUatExecutor uatExecutor,
             string id,
             string displayName,
             ILoopbackPortReservation portReservation,

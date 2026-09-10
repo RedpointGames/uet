@@ -120,13 +120,11 @@
         /// <param name="path">The full path to the file to compute the hash of.</param>
         /// <param name="cancellationToken">The cancellation token used to cancel the asynchronous operation.</param>
         /// <returns>The xxHash64 hash value and the byte length of the original file.</returns>
-        public static async Task<XxHash64WithLength> XxHash64OfFileAsync(string path, CancellationToken cancellationToken)
+        public static async Task<XxHash64WithLength> XxHash64OfFileAsync(string path, CancellationToken cancellationToken = default)
         {
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                var hasher = new XxHash64();
-                await hasher.AppendAsync(stream, cancellationToken).ConfigureAwait(false);
-                return new XxHash64WithLength(BitConverter.ToInt64(hasher.GetCurrentHash()), stream.Length);
+                return await XxHash64Async(stream, cancellationToken);
             }
         }
 
@@ -141,6 +139,19 @@
             ArgumentNullException.ThrowIfNull(encoding);
             var bytes = Encoding.UTF8.GetBytes(value);
             return new XxHash64WithLength(BitConverter.ToInt64(System.IO.Hashing.XxHash64.Hash(encoding.GetBytes(value))), bytes.Length);
+        }
+
+        /// <summary>
+        /// Compute the xxHash64 of the specified stream and return both the hash and byte length of the stream.
+        /// </summary>
+        /// <param name="stream">The stream to hash.</param>
+        /// <returns>The xxHash64 hash value and the byte length of the original file.</returns>
+        public static async Task<XxHash64WithLength> XxHash64Async(Stream stream, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            var hasher = new XxHash64();
+            await hasher.AppendAsync(stream, cancellationToken).ConfigureAwait(false);
+            return new XxHash64WithLength(BitConverter.ToInt64(hasher.GetCurrentHash()), stream.Length);
         }
     }
 }

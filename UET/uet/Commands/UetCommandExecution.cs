@@ -99,7 +99,7 @@
             services.AddPackageManagement();
             services.AddUet();
             services.AddUETAutomation();
-            services.AddUETUAT();
+            services.AddUetUat();
             services.AddUETBuildPipeline();
             services.AddUETBuildPipelineExecutorsLocal();
             services.AddUETBuildPipelineExecutorsGitLab();

@@ -50,7 +50,7 @@ namespace Redpoint.Uet.Automation.Tests
             });
             services.AddProcessExecution();
             services.AddUETAutomation();
-            services.AddUETUAT();
+            services.AddUetUat();
             services.AddReservation();
 
             var sp = services.BuildServiceProvider();

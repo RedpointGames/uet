@@ -23,7 +23,7 @@
         private readonly IPathResolver _pathResolver;
         private readonly IProcessExecutor _processExecutor;
         private readonly IWorkspaceProvider _dynamicWorkspaceProvider;
-        private readonly IUATExecutor _uatExecutor;
+        private readonly IUatExecutor _uatExecutor;
         private readonly IDotnetLocator _dotnetLocator;
         private readonly BuildGraphPatchSet[] _patches;
         private readonly string _patchHash;
@@ -36,7 +36,7 @@
             IPathResolver pathResolver,
             IProcessExecutor processExecutor,
             IWorkspaceProvider dynamicWorkspaceProvider,
-            IUATExecutor uatExecutor,
+            IUatExecutor uatExecutor,
             IDotnetLocator dotnetLocator)
         {
             _logger = logger;

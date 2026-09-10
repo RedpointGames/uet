@@ -2,7 +2,7 @@
 {
     using Redpoint.ProcessExecution;
 
-    public interface IUATExecutor
+    public interface IUatExecutor
     {
         Task<int> ExecuteAsync(
             string enginePath,

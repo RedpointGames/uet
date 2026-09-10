@@ -414,6 +414,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.CloudFramework.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.CloudFramework.TestService", "Redpoint.CloudFramework.TestService\Redpoint.CloudFramework.TestService.csproj", "{9A2F8287-70AC-4085-91EB-8865D482C54E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.Patching.Runtime", "Redpoint.Uet.Patching.Runtime\Redpoint.Uet.Patching.Runtime.csproj", "{C88BE677-5DCE-4933-95A4-F0CFABE25FC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1132,6 +1134,10 @@ Global
 		{9A2F8287-70AC-4085-91EB-8865D482C54E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A2F8287-70AC-4085-91EB-8865D482C54E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A2F8287-70AC-4085-91EB-8865D482C54E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C88BE677-5DCE-4933-95A4-F0CFABE25FC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C88BE677-5DCE-4933-95A4-F0CFABE25FC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C88BE677-5DCE-4933-95A4-F0CFABE25FC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C88BE677-5DCE-4933-95A4-F0CFABE25FC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1280,6 +1286,7 @@ Global
 		{63273CA6-C996-E77C-BFBB-411A10FF1785} = {A1E49E48-240A-4799-A9F3-988CC1E9D0CE}
 		{C5185D7B-8085-43C9-BB1C-A72BF6567393} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
 		{9A2F8287-70AC-4085-91EB-8865D482C54E} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
+		{C88BE677-5DCE-4933-95A4-F0CFABE25FC5} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
