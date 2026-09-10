@@ -1,23 +1,53 @@
 ﻿namespace Redpoint.Uet.Uat
 {
+    using Microsoft.Extensions.Logging;
     using Redpoint.Hashing;
     using Redpoint.Reservation;
+    using Redpoint.Uet.Workspace;
     using Redpoint.Uet.Workspace.Reservation;
     using System;
+    using System.Globalization;
     using System.Reflection;
     using System.Text;
 
     internal class DefaultUatStartupHookProvider : IUatStartupHookProvider, IAsyncDisposable
     {
         private readonly IReservationManagerForUet _reservationManagerForUet;
+        private readonly ILogger<DefaultUatStartupHookProvider> _logger;
         private SemaphoreSlim _resolvingSemaphore = new SemaphoreSlim(1);
         private string? _resolvedPath;
         private IReservation? _resolvedWorkspace;
 
         public DefaultUatStartupHookProvider(
-            IReservationManagerForUet reservationManagerForUet)
+            IReservationManagerForUet reservationManagerForUet,
+            ILogger<DefaultUatStartupHookProvider> logger)
         {
             _reservationManagerForUet = reservationManagerForUet;
+            _logger = logger;
+        }
+
+        private static async Task WriteOrUpdateFileAsync(
+            string manifestResourceStreamName,
+            string fullTargetPath)
+        {
+            if (File.Exists(fullTargetPath))
+            {
+                var existingFileHash = await Hash.XxHash64OfFileAsync(fullTargetPath);
+                using var manifestResourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(manifestResourceStreamName);
+                var manifestHash = await Hash.XxHash64Async(manifestResourceStream!);
+                if (existingFileHash.Hash == manifestHash.Hash &&
+                    existingFileHash.ByteLength == manifestHash.ByteLength)
+                {
+                    // File is already up-to-date.
+                    return;
+                }
+            }
+
+            using (var fileStream = new FileStream(fullTargetPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                using var manifestResourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(manifestResourceStreamName);
+                await manifestResourceStream!.CopyToAsync(fileStream);
+            }
         }
 
         public async Task<string> GetDotnetStartupHooksPathAsync()
@@ -38,7 +68,7 @@
                 var manifestResourcePrefix = "Redpoint.Uet.Uat.Embedded.";
 
                 // First, hash the embedded contents that we have. This allows us to only instantiate a new copy when we have different binaries compared with a different version of UET.
-                XxHash64WithLength hash;
+                XxHash64WithLength hashWithLength;
                 {
                     using var streamForHashing = new MemoryStream();
                     foreach (var manifestResourceStreamName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
@@ -55,31 +85,24 @@
                             }
                         }
                     }
-                    hash = await Hash.XxHash64Async(streamForHashing);
+                    hashWithLength = await Hash.XxHash64Async(streamForHashing);
                 }
 
-                var workspace = await _reservationManagerForUet.ReserveAsync("UetRuntimePatches", new string[] { hash.ToString() });
+                _logger.LogInformation($"Target hash for UAT runtime patches is: {hashWithLength.Hash}");
+
+                var workspace = await _reservationManagerForUet.ReserveAsync("UetRuntimePatches", new string[] { hashWithLength.Hash.ToString(CultureInfo.InvariantCulture) });
                 try
                 {
                     // Extract only if the workspace isn't already set up.
-                    if (!File.Exists(Path.Combine(workspace.ReservedPath, "extracted")))
+                    foreach (var manifestResourceStreamName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
                     {
-                        foreach (var manifestResourceStreamName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+                        if (manifestResourceStreamName.StartsWith(manifestResourcePrefix, StringComparison.Ordinal))
                         {
-                            if (manifestResourceStreamName.StartsWith(manifestResourcePrefix, StringComparison.Ordinal))
-                            {
-                                var filename = manifestResourceStreamName.Substring(manifestResourcePrefix.Length);
-                                using (var fileStream = new FileStream(Path.Combine(workspace.ReservedPath, filename), FileMode.Create, FileAccess.Write, FileShare.None))
-                                {
-                                    using var manifestResourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(manifestResourceStreamName);
-                                    await manifestResourceStream!.CopyToAsync(fileStream);
-                                }
-                            }
+                            var filename = manifestResourceStreamName.Substring(manifestResourcePrefix.Length);
+                            await WriteOrUpdateFileAsync(
+                                manifestResourceStreamName,
+                                Path.Combine(workspace.ReservedPath, filename));
                         }
-
-                        File.WriteAllText(
-                            Path.Combine(workspace.ReservedPath, "extracted"),
-                            "ok");
                     }
 
                     _resolvedPath = Path.Combine(workspace.ReservedPath, "Redpoint.Uet.Patching.Runtime.dll");
