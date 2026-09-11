@@ -16,10 +16,18 @@
 		<ProjectReference Include="..\Redpoint.Uet.Patching.Runtime\Redpoint.Uet.Patching.Runtime.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<EmbeddedResource Include="..\Redpoint.Uet.Patching.Runtime\bin\$(Configuration)\net6.0\*.dll">
-			<Link>Embedded\%(Filename)%(Extension)</Link>
-		</EmbeddedResource>
-	</ItemGroup>
+	<Target Name="EmbedRuntimePatchingBinaries" AfterTargets="ResolveProjectReferences" BeforeTargets="BeforeBuild">
+		<!-- Wildcard matching and %(Filename) doesn't work with EmbeddedResource inside Target. -->
+		<ItemGroup>
+			<EmbeddedResource Include="..\Redpoint.Uet.Patching.Runtime\bin\$(Configuration)\net6.0\0Harmony.dll">
+				<Link>Embedded\0Harmony.dll</Link>
+				<LogicalName>Redpoint.Uet.Uat.Embedded.0Harmony.dll</LogicalName>
+			</EmbeddedResource>
+			<EmbeddedResource Include="..\Redpoint.Uet.Patching.Runtime\bin\$(Configuration)\net6.0\Redpoint.Uet.Patching.Runtime.dll">
+				<Link>Embedded\Redpoint.Uet.Patching.Runtime.dll</Link>
+				<LogicalName>Redpoint.Uet.Uat.Embedded.Redpoint.Uet.Patching.Runtime.dll</LogicalName>
+			</EmbeddedResource>
+		</ItemGroup>
+	</Target>
 
 </Project>
