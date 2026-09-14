@@ -279,6 +279,91 @@
             throw new InvalidOperationException("Unable to read Apple SDK versions from either 'MaxVersion' or 'MainVersion' in Apple_SDK.json!");
         }
 
+        [SupportedOSPlatform("macos")]
+        public async Task<MacPortableToolchainInfo?> GetPortableToolchainVersion(string unrealEnginePath, string xcodeVersion)
+        {
+            var jsonPath = Path.Combine(
+                unrealEnginePath,
+                "Engine",
+                "Config",
+                "Apple",
+                "AppleOpenSource_SDK.json");
+            if (!File.Exists(jsonPath))
+            {
+                return null;
+            }
+
+            if (!Version.TryParse(xcodeVersion, out var xcodeParsedVersion) || xcodeParsedVersion == null)
+            {
+                throw new InvalidOperationException($"Unable to parse {xcodeVersion} to generic platform version!");
+            }
+
+            var json = await File.ReadAllTextAsync(jsonPath).ConfigureAwait(false);
+            var dictionary = JsonSerializer.Deserialize(
+                json,
+                new JsonConfigJsonSerializerContext(new JsonSerializerOptions
+                {
+                    AllowTrailingCommas = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip,
+                }).DictionaryStringJsonElement);
+            if (dictionary == null)
+            {
+                throw new InvalidOperationException("Unable to read Apple open source SDK versions from Apple_SDK.json!");
+            }
+
+            string? clangSubdir = null;
+            string? ossHeadersSubdir = null;
+
+            if (dictionary.TryGetValue("ClangSubdir", out var clangSubdirElement) &&
+                clangSubdirElement.ValueKind == JsonValueKind.String)
+            {
+                clangSubdir = clangSubdirElement.GetString();
+            }
+            if (dictionary.TryGetValue("OSSHeadersSubdir", out var ossHeadersSubdirElement) &&
+                ossHeadersSubdirElement.ValueKind == JsonValueKind.String)
+            {
+                ossHeadersSubdir = ossHeadersSubdirElement.GetString();
+            }
+
+            string? matchingVersion = null;
+            if (dictionary.TryGetValue("XcodeToToolchainVersion", out var versionMappings) &&
+                versionMappings.ValueKind == JsonValueKind.Array)
+            {
+                var jsonArray = versionMappings.EnumerateArray().ToArray();
+                for (int mappingIndex = jsonArray.Length - 1; mappingIndex >= 0; mappingIndex--)
+                {
+                    var jsonElement = jsonArray[mappingIndex];
+                    if (jsonElement.ValueKind == JsonValueKind.String)
+                    {
+                        var split = jsonElement.GetString()!.Split('-');
+                        if (split.Length == 2)
+                        {
+                            if (Version.TryParse(split[0], out var mappingVersion) && xcodeParsedVersion >= mappingVersion)
+                            {
+                                _logger.LogInformation($"Selected Xcode version '{xcodeParsedVersion}' is within bounds '0'-'{mappingVersion}', with toolchain version '{split[1]}'.");
+                                matchingVersion = split[1];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(clangSubdir) &&
+                !string.IsNullOrWhiteSpace(ossHeadersSubdir) &&
+                !string.IsNullOrWhiteSpace(matchingVersion))
+            {
+                return new MacPortableToolchainInfo
+                {
+                    ClangSubdir = clangSubdir,
+                    OSSHeadersSubdir = ossHeadersSubdir,
+                    PortableToolchainVersion = matchingVersion,
+                };
+            }
+
+            return null;
+        }
+
         [SupportedOSPlatform("windows")]
         public async Task<string> GetITunesVersion(string unrealEnginePath)
         {
