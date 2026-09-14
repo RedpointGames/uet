@@ -78,8 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        VERSION_DOTNET: ["10.0"]
-        VERSION_NODE: ["20.x", "22.x"]
+        VERSION_DOTNET: ["10.0", "10.0.401"]
+        VERSION_NODE: ["22.x", "24.x", "26.x"]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
