@@ -15,5 +15,6 @@ RUN apt-get update && \
     (echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list) && \
     apt-get update && \
     apt-get install -y nodejs google-cloud-cli && \
+    npm install -g corepack && \
     corepack enable && \
     dotnet tool install --global powershell --version ${VERSION_PWSH}
