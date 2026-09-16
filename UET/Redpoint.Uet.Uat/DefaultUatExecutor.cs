@@ -166,16 +166,18 @@
             }
 
             // Extract the hooks and set DOTNET_STARTUP_HOOKS.
-            var entryAssembly = Assembly.GetEntryAssembly();
+            var entryAssemblyLocation = Assembly.GetEntryAssembly()?.Location;
             string? dotnetStartupHooks = null;
-            if (entryAssembly?.Location != null)
+            if (!string.IsNullOrWhiteSpace(entryAssemblyLocation))
             {
-                var devRuntimePatchingPath = Path.Combine(
-                    Path.GetDirectoryName(entryAssembly?.Location)!,
-                    "Redpoint.Uet.Patching.Runtime.dll");
-                if (File.Exists(devRuntimePatchingPath))
+                var entryAssemblyDirectory = Path.GetDirectoryName(entryAssemblyLocation);
+                if (!string.IsNullOrWhiteSpace(entryAssemblyDirectory))
                 {
-                    dotnetStartupHooks = devRuntimePatchingPath;
+                    var devRuntimePatchingPath = Path.Combine(entryAssemblyDirectory, "Redpoint.Uet.Patching.Runtime.dll");
+                    if (!string.IsNullOrWhiteSpace(devRuntimePatchingPath) && File.Exists(devRuntimePatchingPath))
+                    {
+                        dotnetStartupHooks = devRuntimePatchingPath;
+                    }
                 }
             }
             if (dotnetStartupHooks == null)
