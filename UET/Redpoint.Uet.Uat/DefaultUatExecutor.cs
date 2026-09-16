@@ -198,6 +198,12 @@
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__MemoryPerActionBytes"] = "0";
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__bShowCompilationTimes"] = "true";
             uatEnvironmentVariables["DOTNET_STARTUP_HOOKS"] = dotnetStartupHooks!;
+            if (OperatingSystem.IsMacOS())
+            {
+                // On macOS, turning this option on results in UAT hanging indefinitely instead of exiting on first error.
+                // Prevent misconfiguration and force this option off.
+                uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__bStopCompilationAfterErrors"] = "false";
+            }
 
             // Execute UAT, automatically handling retries as needed.
             int reportedExitCode = -1;
