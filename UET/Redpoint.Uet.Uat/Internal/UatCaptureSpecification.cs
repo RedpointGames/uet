@@ -5,7 +5,7 @@
     using System;
     using System.Text.RegularExpressions;
 
-    internal class RetryCaptureSpecification : ICaptureSpecification
+    internal class UatCaptureSpecification : ICaptureSpecification
     {
         private readonly ILogger _logger;
         private readonly ICaptureSpecification _baseCaptureSpecification;
@@ -13,7 +13,7 @@
         private readonly string _enginePath;
         private bool _isCurrentlySilenced;
 
-        public RetryCaptureSpecification(
+        public UatCaptureSpecification(
             ILogger logger,
             ICaptureSpecification baseCaptureSpecification,
             string[] forceRetryMessages,

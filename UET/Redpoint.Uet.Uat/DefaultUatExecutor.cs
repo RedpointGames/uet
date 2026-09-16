@@ -289,49 +289,63 @@
                     throw new PlatformNotSupportedException();
                 }
 
-                // Create the capture specification to track whether we need to 
-                var retryCaptureSpecification = new RetryCaptureSpecification(
-                    _logger,
-                    captureSpecification,
-                    forceRetryMessages,
-                    enginePath);
-
-                // Execute UAT.
-                reportedExitCode = await _processExecutor.ExecuteAsync(
-                    processSpecification,
-                    retryCaptureSpecification,
-                    cancellationToken).ConfigureAwait(false);
-
-                // We need to check if BuildGraph didn't release file handles properly. When this happens, Windows holds open
-                // the file handle on the remote machine that the share is mapped to, and this causes failures on downstream
-                // builds that need the files as inputs. In this case, the files whose handles are lost are *also* not written
-                // correctly - they end up as 0 bytes if we forcibly close the handle. Therefore, we need to release the handles,
-                // delete the output directory on the shared drive, and then run this build again.
-                if (requireLostHandleDetection)
+                if (Environment.GetEnvironmentVariable("UET_PASSTHROUGH_UAT_OUTPUT") == "1")
                 {
-                    if (await _remoteHandleCloser.CloseRemoteHandles(Path.Combine(sharedStorageDir, singleNodeName)).ConfigureAwait(false))
+                    // Execute UAT.
+                    reportedExitCode = await _processExecutor.ExecuteAsync(
+                        processSpecification,
+                        CaptureSpecification.Passthrough,
+                        cancellationToken).ConfigureAwait(false);
+
+                    // Always break as we will not retry.
+                    break;
+                }
+                else
+                {
+                    // Create the capture specification to track whether we need to 
+                    var retryCaptureSpecification = new UatCaptureSpecification(
+                        _logger,
+                        captureSpecification,
+                        forceRetryMessages,
+                        enginePath);
+
+                    // Execute UAT.
+                    reportedExitCode = await _processExecutor.ExecuteAsync(
+                        processSpecification,
+                        retryCaptureSpecification,
+                        cancellationToken).ConfigureAwait(false);
+
+                    // We need to check if BuildGraph didn't release file handles properly. When this happens, Windows holds open
+                    // the file handle on the remote machine that the share is mapped to, and this causes failures on downstream
+                    // builds that need the files as inputs. In this case, the files whose handles are lost are *also* not written
+                    // correctly - they end up as 0 bytes if we forcibly close the handle. Therefore, we need to release the handles,
+                    // delete the output directory on the shared drive, and then run this build again.
+                    if (requireLostHandleDetection)
                     {
-                        _logger.LogWarning("Detected lost file handles for output. Automatically retrying...");
+                        if (await _remoteHandleCloser.CloseRemoteHandles(Path.Combine(sharedStorageDir, singleNodeName)).ConfigureAwait(false))
+                        {
+                            _logger.LogWarning("Detected lost file handles for output. Automatically retrying...");
+                            continue;
+                        }
+                    }
+
+                    // If the engine needs to be remounted, throw now.
+                    if (retryCaptureSpecification.NeedsEngineRemount)
+                    {
+                        throw new EngineUefsRequiresRemountException();
+                    }
+
+                    // If the reported exit code is non-zero and the output detected we need to retry, or if the output wants to force a retry, then do this build node again.
+                    if ((reportedExitCode != 0 && retryCaptureSpecification.NeedsRetry) ||
+                        (retryCaptureSpecification.ForceRetry))
+                    {
+                        _logger.LogWarning("Detected this build node needs to be retried.");
                         continue;
                     }
-                }
 
-                // If the engine needs to be remounted, throw now.
-                if (retryCaptureSpecification.NeedsEngineRemount)
-                {
-                    throw new EngineUefsRequiresRemountException();
+                    // If we didn't trigger the retry logic, break out of the while (true) loop.
+                    break;
                 }
-
-                // If the reported exit code is non-zero and the output detected we need to retry, or if the output wants to force a retry, then do this build node again.
-                if ((reportedExitCode != 0 && retryCaptureSpecification.NeedsRetry) ||
-                    (retryCaptureSpecification.ForceRetry))
-                {
-                    _logger.LogWarning("Detected this build node needs to be retried.");
-                    continue;
-                }
-
-                // If we didn't trigger the retry logic, break out of the while (true) loop.
-                break;
             }
             return reportedExitCode;
         }
