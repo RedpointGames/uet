@@ -293,8 +293,7 @@
                                                 Platform = "$(TargetPlatform)",
                                                 Configuration = "$(TargetConfiguration)",
                                                 Tag = $"#{vector.TagPrefix}_Binaries_$(TargetType)_$(TargetName)_$(TargetPlatform)_$(TargetConfiguration)_WithIntermediate",
-                                                // @note: Try to workaround log file stall on macOS.
-                                                Arguments = vector.Arguments.Concat(["-NoLog"]).ToList(),
+                                                Arguments = vector.Arguments,
                                             });
                                     });
                             }

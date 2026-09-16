@@ -6,6 +6,8 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Uet.Core.Permissions;
     using Redpoint.Uet.Uat.Internal;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Reflection;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
@@ -43,6 +45,7 @@
             _uatStartupHookProvider = uatStartupHookProvider;
         }
 
+        [UnconditionalSuppressMessage("SingleFile", "IL3000:Avoid accessing Assembly file path when publishing as a single file", Justification = "Auto-detection")]
         public async Task<int> ExecuteAsync(
             string enginePath,
             UATSpecification uatSpecification,
@@ -163,7 +166,22 @@
             }
 
             // Extract the hooks and set DOTNET_STARTUP_HOOKS.
-            var dotnetStartupHooks = await _uatStartupHookProvider.GetDotnetStartupHooksPathAsync();
+            var entryAssembly = Assembly.GetEntryAssembly();
+            string? dotnetStartupHooks = null;
+            if (entryAssembly?.Location != null)
+            {
+                var devRuntimePatchingPath = Path.Combine(
+                    Path.GetDirectoryName(entryAssembly?.Location)!,
+                    "Redpoint.Uet.Patching.Runtime.dll");
+                if (File.Exists(devRuntimePatchingPath))
+                {
+                    dotnetStartupHooks = devRuntimePatchingPath;
+                }
+            }
+            if (dotnetStartupHooks == null)
+            {
+                dotnetStartupHooks = await _uatStartupHookProvider.GetDotnetStartupHooksPathAsync();
+            }
 
             // Generate the final environment variable values.
             var uatEnvironmentVariables = new Dictionary<string, string>();
@@ -177,7 +195,7 @@
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__ProcessorCountMultiplier"] = OperatingSystem.IsMacOS() ? "1" : "2";
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__MemoryPerActionBytes"] = "0";
             uatEnvironmentVariables["UnrealBuildTool_ParallelExecutor__bShowCompilationTimes"] = "true";
-            uatEnvironmentVariables["DOTNET_STARTUP_HOOKS"] = dotnetStartupHooks;
+            uatEnvironmentVariables["DOTNET_STARTUP_HOOKS"] = dotnetStartupHooks!;
 
             // Execute UAT, automatically handling retries as needed.
             int reportedExitCode = -1;

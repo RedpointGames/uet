@@ -16,6 +16,7 @@
             {
                 new TestUetPatch(),
                 new BuildGraphUetPatch(),
+                new ProcessUtilsRunUetPatch(),
             };
 
             // Determine if we have any patches to apply. If we have none, we're done.
