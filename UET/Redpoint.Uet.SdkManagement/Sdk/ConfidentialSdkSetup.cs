@@ -178,23 +178,37 @@
                                 using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                                 {
                                     stream.Seek(logFilePosition, SeekOrigin.Begin);
-                                    var content = new byte[stream.Length - logFilePosition];
-                                    stream.Read(content);
-                                    var contentString = Encoding.UTF8.GetString(content);
-                                    var lastNewline = contentString.LastIndexOf('\n');
-                                    if (lastNewline > 0)
+                                    try
                                     {
-                                        var targetContentString = lastNewline == contentString.Length - 1 ? contentString : contentString[..(lastNewline + 1)];
-                                        var byteCount = Encoding.UTF8.GetBytes(targetContentString).Length;
-                                        logFiles[file] += byteCount;
-                                        foreach (var line in targetContentString.Split('\n'))
+                                        if (logFilePosition > stream.Length)
                                         {
-                                            var trimmedLine = line.TrimEnd();
-                                            if (!string.IsNullOrWhiteSpace(trimmedLine))
+                                            logFilePosition = stream.Length;
+                                        }
+
+                                        if (stream.Length - logFilePosition > 0)
+                                        {
+                                            var content = new byte[stream.Length - logFilePosition];
+                                            stream.Read(content);
+                                            var contentString = Encoding.UTF8.GetString(content);
+                                            var lastNewline = contentString.LastIndexOf('\n');
+                                            if (lastNewline > 0)
                                             {
-                                                Console.WriteLine(trimmedLine);
+                                                var targetContentString = lastNewline == contentString.Length - 1 ? contentString : contentString[..(lastNewline + 1)];
+                                                var byteCount = Encoding.UTF8.GetBytes(targetContentString).Length;
+                                                logFiles[file] += byteCount;
+                                                foreach (var line in targetContentString.Split('\n'))
+                                                {
+                                                    var trimmedLine = line.TrimEnd();
+                                                    if (!string.IsNullOrWhiteSpace(trimmedLine))
+                                                    {
+                                                        Console.WriteLine(trimmedLine);
+                                                    }
+                                                }
                                             }
                                         }
+                                    }
+                                    catch (ArithmeticException)
+                                    {
                                     }
                                 }
                             }
