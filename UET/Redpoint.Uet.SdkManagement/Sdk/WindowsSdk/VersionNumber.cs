@@ -16,17 +16,19 @@
             return new VersionNumber
             {
                 Major = int.Parse(components[0], CultureInfo.InvariantCulture),
-                Minor = int.Parse(components[1], CultureInfo.InvariantCulture),
-                Patch = int.Parse(components[2], CultureInfo.InvariantCulture),
+                Minor = components.Length <= 1 ? 0 : int.Parse(components[1], CultureInfo.InvariantCulture),
+                Patch = components.Length <= 2 ? 0 : int.Parse(components[2], CultureInfo.InvariantCulture),
             };
         }
 
-        public static bool operator ==(VersionNumber a, VersionNumber b)
+        public static bool operator ==(VersionNumber? a, VersionNumber? b)
         {
+            if (a is null && b is null) return true;
+            if (a is null || b is null) return false;
             return a.Major == b.Major && a.Minor == b.Minor && a.Patch == b.Patch;
         }
 
-        public static bool operator !=(VersionNumber a, VersionNumber b)
+        public static bool operator !=(VersionNumber? a, VersionNumber? b)
         {
             return !(a == b);
         }

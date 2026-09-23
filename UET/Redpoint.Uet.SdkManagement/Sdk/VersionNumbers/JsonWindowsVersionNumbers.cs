@@ -38,42 +38,72 @@
             VersionNumber visualCppMinimumVersion = VersionNumber.Parse(dictionary!["MinimumVisualCppVersion"].ToString());
             List<VersionRange> preferredVisualCppVersions = new();
             List<VersionRange> bannedVisualCppVersions = new();
+            List<VersionRange> bannedClangVersions = new();
             Dictionary<string, string> minimumRequiredClangVersions = new();
+            VersionNumber? minimumClangVersion = null;
 
-            if (dictionary.TryGetValue("PreferredVisualCppVersions", out var preferredJsonElement) &&
-                preferredJsonElement.ValueKind == JsonValueKind.Array)
             {
-                foreach (var preferredJsonSubElement in preferredJsonElement.EnumerateArray())
+                if (dictionary.TryGetValue("PreferredVisualCppVersions", out var preferredJsonElement) &&
+                    preferredJsonElement.ValueKind == JsonValueKind.Array)
                 {
-                    if (preferredJsonSubElement.ValueKind == JsonValueKind.String)
+                    foreach (var preferredJsonSubElement in preferredJsonElement.EnumerateArray())
                     {
-                        preferredVisualCppVersions.Add(VersionRange.Parse(preferredJsonSubElement.GetString()!));
+                        if (preferredJsonSubElement.ValueKind == JsonValueKind.String)
+                        {
+                            preferredVisualCppVersions.Add(VersionRange.Parse(preferredJsonSubElement.GetString()!));
+                        }
                     }
                 }
             }
 
-            if (dictionary.TryGetValue("BannedVisualCppVersions", out var bannedJsonElement) &&
-                bannedJsonElement.ValueKind == JsonValueKind.Array)
             {
-                foreach (var bannedJsonSubElement in bannedJsonElement.EnumerateArray())
+                if (dictionary.TryGetValue("BannedVisualCppVersions", out var bannedJsonElement) &&
+                    bannedJsonElement.ValueKind == JsonValueKind.Array)
                 {
-                    if (bannedJsonSubElement.ValueKind == JsonValueKind.String)
+                    foreach (var bannedJsonSubElement in bannedJsonElement.EnumerateArray())
                     {
-                        bannedVisualCppVersions.Add(VersionRange.Parse(bannedJsonSubElement.GetString()!));
+                        if (bannedJsonSubElement.ValueKind == JsonValueKind.String)
+                        {
+                            bannedVisualCppVersions.Add(VersionRange.Parse(bannedJsonSubElement.GetString()!));
+                        }
                     }
                 }
             }
 
-            if (dictionary.TryGetValue("MinimumRequiredClangVersion", out var minimumRequiredClangVersionElement) &&
-                minimumRequiredClangVersionElement.ValueKind == JsonValueKind.Array)
             {
-                foreach (var minimumRequiredClangVersionSubElement in minimumRequiredClangVersionElement.EnumerateArray())
+                if (dictionary.TryGetValue("MinimumRequiredClangVersion", out var minimumRequiredClangVersionElement) &&
+                    minimumRequiredClangVersionElement.ValueKind == JsonValueKind.Array)
                 {
-                    if (minimumRequiredClangVersionSubElement.ValueKind == JsonValueKind.String)
+                    foreach (var minimumRequiredClangVersionSubElement in minimumRequiredClangVersionElement.EnumerateArray())
                     {
-                        var expr = (minimumRequiredClangVersionSubElement.GetString()!).Split('-');
-                        minimumRequiredClangVersions.Add(expr[0], expr[1]);
+                        if (minimumRequiredClangVersionSubElement.ValueKind == JsonValueKind.String)
+                        {
+                            var expr = (minimumRequiredClangVersionSubElement.GetString()!).Split('-');
+                            minimumRequiredClangVersions.Add(expr[0], expr[1]);
+                        }
                     }
+                }
+            }
+
+            {
+                if (dictionary.TryGetValue("BannedClangVersions", out var bannedJsonElement) &&
+                    bannedJsonElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var bannedJsonSubElement in bannedJsonElement.EnumerateArray())
+                    {
+                        if (bannedJsonSubElement.ValueKind == JsonValueKind.String)
+                        {
+                            bannedClangVersions.Add(VersionRange.Parse(bannedJsonSubElement.GetString()!));
+                        }
+                    }
+                }
+            }
+
+            {
+                if (dictionary.TryGetValue("MinimumClangVersion", out var minimumJsonElement) &&
+                    minimumJsonElement.ValueKind == JsonValueKind.String)
+                {
+                    minimumClangVersion = VersionNumber.Parse(minimumJsonElement.GetString()!);
                 }
             }
 
@@ -85,6 +115,8 @@
                 BannedVisualCppVersions = bannedVisualCppVersions,
                 SuggestedComponents = [],
                 MinimumRequiredClangVersions = minimumRequiredClangVersions,
+                BannedClangVersions = bannedClangVersions,
+                MinimumClangVersion = minimumClangVersion,
             };
         }
     }

@@ -8,5 +8,7 @@
         public required List<VersionRange> BannedVisualCppVersions { get; set; }
         public required string[] SuggestedComponents { get; set; }
         public required Dictionary<string, string> MinimumRequiredClangVersions { get; set; }
+        public required List<VersionRange> BannedClangVersions { get; set; }
+        public required VersionNumber? MinimumClangVersion { get; set; }
     }
 }
