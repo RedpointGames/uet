@@ -45,6 +45,8 @@
                 PreferredVisualCppVersions = new(),
                 SuggestedComponents = rawVersions.suggestedComponents,
                 MinimumRequiredClangVersions = [],
+                BannedClangVersions = [],
+                MinimumClangVersion = null,
             };
         }
 

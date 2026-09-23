@@ -221,9 +221,25 @@
                 .First();
 
             // Figure out the Clang version.
-            var msvcMajorMinor = string.Join('.', lowestVersion.Split('.')[..2]);
             var clangVersion = string.Empty;
-            if (versions.MinimumRequiredClangVersions.TryGetValue(msvcMajorMinor, out var clangMajorVersion))
+            VersionNumber? minimumClangVersion = null;
+            if (versions.MinimumClangVersion != null)
+            {
+                minimumClangVersion = versions.MinimumClangVersion;
+            }
+            {
+                var msvcMajorMinor = string.Join('.', lowestVersion.Split('.')[..2]);
+                if (versions.MinimumRequiredClangVersions.TryGetValue(msvcMajorMinor, out var clangMajorVersion))
+                {
+                    var clangParsedVersion = VersionNumber.Parse(clangMajorVersion);
+                    if (minimumClangVersion == null ||
+                        minimumClangVersion < clangParsedVersion)
+                    {
+                        minimumClangVersion = clangParsedVersion;
+                    }
+                }
+            }
+            if (minimumClangVersion != null)
             {
                 var info = await LoadClangManifestAsync(cancellationToken);
                 var lines = info
@@ -243,12 +259,17 @@
                         continue;
                     }
 
-                    if (lines[i].StartsWith($"llvm-win64-{clangMajorVersion}.x-", StringComparison.OrdinalIgnoreCase) &&
-                        lines[i].EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    var majorRegex = Regex.Match(lines[i], "^llvm-win64-([0-9]+)\\.x-([a-f0-9]+)\\.zip$");
+                    if (majorRegex.Success)
                     {
-                        clangVersion = lines[i]["llvm-win64-".Length..];
-                        clangVersion = clangVersion[0..(clangVersion.Length - 4)];
-                        break;
+                        var availableParsedVersion = VersionNumber.Parse(majorRegex.Groups[1].Value + ".999.999");
+                        if (availableParsedVersion >= minimumClangVersion &&
+                            !versions.BannedClangVersions.Any(x => x.Contains(availableParsedVersion)))
+                        {
+                            clangVersion = lines[i]["llvm-win64-".Length..];
+                            clangVersion = clangVersion[0..(clangVersion.Length - 4)];
+                            break;
+                        }
                     }
                 }
             }

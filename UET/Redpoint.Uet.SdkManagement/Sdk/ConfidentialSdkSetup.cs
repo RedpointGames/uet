@@ -427,6 +427,8 @@
                         BannedVisualCppVersions = new(),
                         SuggestedComponents = suggestedComponents.Select(x => Substitute(x, sdkPackagePath)).ToArray(),
                         MinimumRequiredClangVersions = [],
+                        BannedClangVersions = [],
+                        MinimumClangVersion = null,
                     };
                 }
 
