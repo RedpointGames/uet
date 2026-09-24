@@ -801,6 +801,8 @@
                 _logger.LogInformation($"--git-repository-uri:      {gitRepositoryUri}");
                 _logger.LogInformation($"--git-workspace-path:      {gitWorkspaceRootPath.FullName}");
 
+                Directory.CreateDirectory(p4WorkspacePath.FullName);
+
                 var p4Envs = new Dictionary<string, string>
                 {
                     { "P4CLIENT", p4Client },
@@ -959,7 +961,6 @@
                             entry.Delete();
                         }
                     }
-                    Directory.CreateDirectory(p4WorkspacePath.FullName);
                 }
 
                 if (string.IsNullOrWhiteSpace(targetChangeset))
