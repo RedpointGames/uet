@@ -948,7 +948,17 @@
                     }
 
                     _logger.LogInformation("Removing any remaining files that were not tracked by Perforce...");
-                    await DirectoryAsync.DeleteAsync(p4WorkspacePath.FullName, true);
+                    foreach (var entry in p4WorkspacePath.EnumerateFileSystemInfos())
+                    {
+                        if ((entry.Attributes & FileAttributes.Directory) != 0)
+                        {
+                            await DirectoryAsync.DeleteAsync(entry.FullName, true);
+                        }
+                        else
+                        {
+                            entry.Delete();
+                        }
+                    }
                     Directory.CreateDirectory(p4WorkspacePath.FullName);
                 }
 
