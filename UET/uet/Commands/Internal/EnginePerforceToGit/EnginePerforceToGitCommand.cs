@@ -924,98 +924,46 @@
                     _logger.LogWarning($"Missing '{intactFile}' on disk; assuming that the last sync may have been interrupted and a clean will be necessary.");
                 }
 
-                _logger.LogInformation("Syncing latest Perforce content to client...");
-                if (Environment.GetEnvironmentVariable("UET_SIMPLE_P4_SYNC") == "1" && isIntact)
-                {
-                    if (Environment.GetEnvironmentVariable("UET_P4_PREFER_CLI_PROGRESS") == "1")
-                    {
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = p4,
-                                Arguments = ["-I", "sync", "-q"],
-                                EnvironmentVariables = p4Envs,
-                            },
-                            CaptureSpecification.Passthrough,
-                            context.GetCancellationToken());
-                        if (exitCode != 0)
-                        {
-                            _logger.LogError("Failed to sync Perforce content.");
-                            return exitCode;
-                        }
-                    }
-                    else
-                    {
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = p4,
-                                Arguments = ["-I", "sync", "--parallel=24"],
-                                EnvironmentVariables = p4Envs,
-                            },
-                            new PerforceSyncCaptureSpecification(),
-                            context.GetCancellationToken());
-                        if (exitCode != 0)
-                        {
-                            _logger.LogError("Failed to sync Perforce content.");
-                            return exitCode;
-                        }
-                    }
-                }
-                else
-                {
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = p4,
-                            Arguments = ["-I", "sync", "--parallel=24", $"//{p4Client}/..."],
-                            EnvironmentVariables = p4Envs,
-                        },
-                        new PerforceSyncCaptureSpecification(),
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
-                    {
-                        _logger.LogError("Failed to sync Perforce content (phase 1).");
-                        return exitCode;
-                    }
-
-                    _logger.LogInformation("Syncing latest Perforce content to workspace path...");
-                    exitCode = await _processExecutor.ExecuteAsync(
-                        new ProcessSpecification
-                        {
-                            FilePath = p4,
-                            Arguments = ["-I", "sync", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#head"],
-                            EnvironmentVariables = p4Envs,
-                        },
-                        new PerforceSyncCaptureSpecification(),
-                        context.GetCancellationToken());
-                    if (exitCode != 0)
-                    {
-                        _logger.LogError("Failed to sync Perforce content (phase 2).");
-                        return exitCode;
-                    }
-                }
-
                 if (!isIntact)
                 {
-                    _logger.LogInformation("Reconciling Perforce workspace in case files don't exactly match...");
+                    _logger.LogInformation("Wiping all files due to unclean sync...");
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
                             FilePath = p4,
-                            Arguments = ["clean", "-I", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}..."],
+                            Arguments = ["sync", "...#none"],
                             EnvironmentVariables = p4Envs,
                         },
-                        CaptureSpecification.Passthrough,
+                        new PerforceSyncCaptureSpecification(),
                         context.GetCancellationToken());
                     if (exitCode != 0)
                     {
-                        _logger.LogError("Failed to reconcile Perforce content.");
+                        _logger.LogError("Failed to wipe existing Perforce content.");
                         return exitCode;
                     }
+
+                    _logger.LogInformation("Removing any remaining files that were not tracked by Perforce...");
+                    await DirectoryAsync.DeleteAsync(p4WorkspacePath.FullName, true);
+                    Directory.CreateDirectory(p4WorkspacePath.FullName);
                 }
 
-                _logger.LogInformation("Marking latest sync as intact so we can skip 'p4 clean' next time...");
+                _logger.LogInformation("Syncing latest Perforce content to client...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = p4,
+                        Arguments = ["-I", "sync", "--parallel=24"],
+                        EnvironmentVariables = p4Envs,
+                    },
+                    new PerforceSyncCaptureSpecification(),
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to sync Perforce content.");
+                    return exitCode;
+                }
+
+                _logger.LogInformation("Marking latest sync as intact so we can skip full sync next time...");
                 File.WriteAllText(intactFile, "ok");
 
                 _logger.LogInformation("Turning off 'safe.directory' setting for Git...");
