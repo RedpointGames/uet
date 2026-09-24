@@ -975,7 +975,7 @@
                             Arguments = ["changes", "-m1", $"//{p4Client}/...#head"],
                             EnvironmentVariables = p4Envs,
                         },
-                        CaptureSpecification.Passthrough,
+                        CaptureSpecification.CreateFromStdoutStringBuilder(changesetStringBuilder),
                         context.GetCancellationToken());
                     if (exitCode != 0)
                     {
