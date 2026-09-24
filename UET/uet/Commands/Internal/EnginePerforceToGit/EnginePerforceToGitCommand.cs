@@ -931,10 +931,10 @@
                         new ProcessSpecification
                         {
                             FilePath = p4,
-                            Arguments = ["sync", "...#none"],
+                            Arguments = ["sync", "-f", "...#none"],
                             EnvironmentVariables = p4Envs,
                         },
-                        new PerforceSyncCaptureSpecification(),
+                        CaptureSpecification.Passthrough,
                         context.GetCancellationToken());
                     if (exitCode != 0)
                     {
