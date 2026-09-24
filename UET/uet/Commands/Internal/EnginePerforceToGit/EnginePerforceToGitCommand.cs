@@ -10,6 +10,7 @@
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
     internal sealed class EnginePerforceToGitCommand : ICommandDescriptorProvider<UetGlobalCommandContext>
@@ -597,12 +598,12 @@
                             FilePath = rclone!,
                             Arguments = [
                                 "sync",
-                                        "--exclude=/.git/**",
-                                        "--transfers=64",
-                                        "--delete-before",
-                                        "--metadata",
-                                        releaseFolder.FullName,
-                                        gitWorkspacePath.FullName,
+                                "--exclude=/.git/**",
+                                "--transfers=64",
+                                "--delete-before",
+                                "--metadata",
+                                releaseFolder.FullName,
+                                gitWorkspacePath.FullName,
                             ],
                             WorkingDirectory = gitWorkspacePath.FullName,
                             EnvironmentVariables = gitEnvs,
@@ -913,25 +914,29 @@
                 }
 
                 var intactFile = p4IntactPath.FullName;
-                var isIntact = File.Exists(intactFile);
-                if (isIntact)
+                string? targetChangeset = null;
+                if (File.Exists(intactFile))
                 {
-                    _logger.LogInformation("Detected that the last sync operation completed fully. 'p4 clean' will be skipped.");
-                    File.Delete(intactFile);
-                }
-                else
-                {
-                    _logger.LogWarning($"Missing '{intactFile}' on disk; assuming that the last sync may have been interrupted and a clean will be necessary.");
+                    targetChangeset = File.ReadAllText(intactFile).Trim();
+                    if (targetChangeset == "ok")
+                    {
+                        targetChangeset = string.Empty;
+                    }
                 }
 
-                if (!isIntact)
+                if (targetChangeset == null)
                 {
+                    // There is no intact file, so this is an interrupted sync from a version of UET that
+                    // did not keep track of the changeset number when syncing. In this case we need to fully
+                    // remove the workspace and sync fresh.
+                    _logger.LogWarning($"Missing '{intactFile}' on disk. The previous sync was interrupted and we don't know what changeset was being synced, so we need to wipe the whole workspace.");
+
                     _logger.LogInformation("Wiping all files due to unclean sync...");
                     exitCode = await _processExecutor.ExecuteAsync(
                         new ProcessSpecification
                         {
                             FilePath = p4,
-                            Arguments = ["sync", "-f", "...#none"],
+                            Arguments = ["sync", "-f", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#none"],
                             EnvironmentVariables = p4Envs,
                         },
                         CaptureSpecification.Passthrough,
@@ -947,15 +952,52 @@
                     Directory.CreateDirectory(p4WorkspacePath.FullName);
                 }
 
-                _logger.LogInformation("Syncing latest Perforce content to client...");
+                if (string.IsNullOrWhiteSpace(targetChangeset))
+                {
+                    _logger.LogInformation("Detected that the last sync operation completed fully. Resolving #head to the new changeset...");
+
+                    var changesetStringBuilder = new StringBuilder();
+                    exitCode = await _processExecutor.ExecuteAsync(
+                        new ProcessSpecification
+                        {
+                            FilePath = p4,
+                            Arguments = ["changes", "-m1", $"//{p4Client}/...#head"],
+                            EnvironmentVariables = p4Envs,
+                        },
+                        CaptureSpecification.Passthrough,
+                        context.GetCancellationToken());
+                    if (exitCode != 0)
+                    {
+                        _logger.LogError("Failed to wipe existing Perforce content.");
+                        return exitCode;
+                    }
+
+                    var regexMatch = new Regex("^Change ([0-9]+) on").Match(changesetStringBuilder.ToString().Trim());
+                    if (!regexMatch.Success)
+                    {
+                        _logger.LogError("Can't match changeset number regex against message: " + changesetStringBuilder.ToString().Trim());
+                        return 1;
+                    }
+
+                    targetChangeset = regexMatch.Groups[1].Value;
+
+                    _logger.LogInformation($"Syncing to changeset {targetChangeset}...");
+                    await File.WriteAllTextAsync(intactFile, targetChangeset);
+                }
+                else
+                {
+                    _logger.LogInformation($"Resuming previous sync of changeset {targetChangeset}...");
+                }
+
+                _logger.LogInformation("Syncing Perforce content to client...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "sync", "--parallel=24"],
+                        Arguments = ["-I", "sync", "-q", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
                         EnvironmentVariables = p4Envs,
                     },
-                    new PerforceSyncCaptureSpecification(),
+                    CaptureSpecification.Passthrough,
                     context.GetCancellationToken());
                 if (exitCode != 0)
                 {
@@ -963,8 +1005,8 @@
                     return exitCode;
                 }
 
-                _logger.LogInformation("Marking latest sync as intact so we can skip full sync next time...");
-                File.WriteAllText(intactFile, "ok");
+                _logger.LogInformation("Marking sync as complete.");
+                await File.WriteAllTextAsync(intactFile, string.Empty);
 
                 _logger.LogInformation("Turning off 'safe.directory' setting for Git...");
                 exitCode = await _processExecutor.ExecuteAsync(
