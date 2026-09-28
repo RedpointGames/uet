@@ -96,6 +96,7 @@
 
                     await macSdkSetup.InstallXcode(
                         version,
+                        null,
                         packageWorkingPath,
                         context.GetCancellationToken());
                     await File.WriteAllTextAsync(Path.Combine(packageWorkingPath, "sdk-ready"), "ready", context.GetCancellationToken()).ConfigureAwait(false);
