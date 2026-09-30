@@ -55,11 +55,27 @@
                 },
                 async writer =>
                 {
+                    await writer.WritePropertyAsync(
+                        new PropertyElementProperties
+                        {
+                            Name = "TargetNamesAndTypes",
+                            Value = "",
+                        });
+                    foreach (var x in vector.Targets)
+                    {
+                        await writer.WritePropertyAsync(
+                            new PropertyElementProperties
+                            {
+                                Name = "TargetNamesAndTypes",
+                                Value = $"$(TargetNamesAndTypes){x.TargetName}|{x.TargetType};",
+                                If = x.ConditionalIf,
+                            });
+                    }
                     await writer.WriteForEachAsync(
                         new ForEachElementProperties
                         {
                             Name = "TargetNameAndType",
-                            Values = vector.Targets.Select(x => $"{x.TargetName}|{x.TargetType}").ToArray(),
+                            Values = ["$(TargetNamesAndTypes)"],
                             If = hostPlatform == "Win64"
                                 ? $"!ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"
                                 : $"ContainsItem('$(MacPlatforms)', '$(TargetPlatform)', ';')"
