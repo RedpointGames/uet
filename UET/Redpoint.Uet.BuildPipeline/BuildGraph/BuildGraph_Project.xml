@@ -32,6 +32,9 @@
   <Option Name="ServerConfigurations" Restrict="[^ ]*" DefaultValue="Development" Description="List of configurations to build the server targets for, e.g. Development;Shipping" />
   <Option Name="AndroidGameCookFlavors" Restrict="[^ ]*" DefaultValue="ETC2" Description="The flavors to cook the Android game target for. e.g. ASTC;ETC2" />
   <Option Name="AndroidClientCookFlavors" Restrict="[^ ]*" DefaultValue="ETC2" Description="The flavors to cook the Android client target for.  e.g. ASTC;ETC2" />
+  <Option Name="CreateReleaseVersion" Restrict="true|false" DefaultValue="true" Description="If false, -CreateReleaseVersion is not passed when cooking and staging, so no release data is written." />
+  <Option Name="CookVersioned" Restrict="true|false" DefaultValue="true" Description="If false, content is cooked unversioned, matching the BuildCookRun default." />
+  <Option Name="WriteReleaseVersionToConfig" Restrict="true|false" DefaultValue="true" Description="If false, the release version is not written into the project's DefaultEngine.ini." />
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
   <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on." />
 
@@ -144,12 +147,14 @@
         <Property Name="CookPlatform" Value="$(CookPlatform)NoEditor" If="'$(IsUnrealEngine5)' == 'false'" />
         <Property Name="CookPlatform" Value="$(CookPlatform)Client" If="'$(IsUnrealEngine5)' == 'true' and '$(TargetType)' == 'Client'" />
         <Property Name="CookPlatform" Value="$(CookPlatform)Server" If="(('$(CookPlatform)' == 'Windows') or ('$(CookPlatform)' == 'Mac') or ('$(CookPlatform)' == 'Linux')) and '$(TargetType)' == 'Server'" />
+        <Property Name="CookArguments" Value="" />
+        <Property Name="CookArguments" Value="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" If="'$(CreateReleaseVersion)' == 'true'" />
         <Cook
           Project="$(UProjectPath)"
           Platform="$(CookPlatform)"
           Tag="#$(TargetType)CookedContent_$(TargetPlatform)_$(CookFlavor)"
-          Versioned="True"
-          Arguments="-CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
+          Versioned="$(CookVersioned)"
+          Arguments="$(CookArguments)" />
         <Do If="'$(IsUnrealEngineInstalled)' != 'true' and '$(UET_ZEN_PUBLISH_HOST)' != ''">
           <Copy
             From="$(ProjectRoot)/Binaries/Win64/ZenLaunch.exe"
@@ -231,13 +236,15 @@
         <!-- Set up the extra BuildCookRun arguments to be empty. -->
         <Property Name="BCRArgs" Value="" />
 
-        <!-- Specify the release version. -->
+        <!-- Specify the release version, unless the project opted out. -->
         <Property
+				  If="'$(CreateReleaseVersion)' == 'true'"
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
 
-        <!-- Set the release version into the configs for reading at runtime. -->
+        <!-- Set the release version into the configs for reading at runtime, unless the project opted out. -->
         <ModifyConfig
+          If="'$(WriteReleaseVersionToConfig)' == 'true'"
           File="$(ProjectRoot)/Config/DefaultEngine.ini"
           Section="Redpoint.UnrealEngineTool"
           Key="ReleaseVersion"

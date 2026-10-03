@@ -752,6 +752,9 @@
                     { "ServerConfigurations", serverConfig.Configurations },
                     { "AndroidGameCookFlavors", gameConfig.CookFlavors },
                     { "AndroidClientCookFlavors", clientConfig.CookFlavors },
+                    { "CreateReleaseVersion", (distribution.Build.CreateReleaseVersion ?? true) ? "true" : "false" },
+                    { "CookVersioned", (distribution.Build.CookVersioned ?? true) ? "true" : "false" },
+                    { "WriteReleaseVersionToConfig", (distribution.Build.WriteReleaseVersionToConfig ?? true) ? "true" : "false" },
                     { "MacPlatforms", $"IOS;Mac" },
                     { "StrictIncludes", strictIncludes ? "true" : "false" },
 
@@ -979,6 +982,9 @@
                     { "ServerConfigurations", string.Empty },
                     { "AndroidGameCookFlavors", string.Empty },
                     { "AndroidClientCookFlavors", string.Empty },
+                    { "CreateReleaseVersion", "true" },
+                    { "CookVersioned", "true" },
+                    { "WriteReleaseVersionToConfig", "true" },
                     { "MacPlatforms", $"IOS;Mac" },
                     { "StrictIncludes", strictIncludes ? "true" : "false" },
 
