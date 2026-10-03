@@ -43,6 +43,13 @@
         public bool? CookVersioned { get; set; }
 
         /// <summary>
+        /// Additional arguments appended verbatim to every BuildCookRun invocation when staging and packaging,
+        /// for example "-iostore -compressed -archive -archivedirectory=C:\Builds".
+        /// </summary>
+        [JsonPropertyName("BuildCookRunArguments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BuildCookRunArguments { get; set; }
+
+        /// <summary>
         /// If set to false, the release version is not written into the project's Config/DefaultEngine.ini under
         /// [Redpoint.UnrealEngineTool]. Writing it rewrites the file and drops its comments. Defaults to true.
         /// </summary>
