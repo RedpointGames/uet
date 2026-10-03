@@ -34,6 +34,8 @@
   <Option Name="AndroidClientCookFlavors" Restrict="[^ ]*" DefaultValue="ETC2" Description="The flavors to cook the Android client target for.  e.g. ASTC;ETC2" />
   <Option Name="CreateReleaseVersion" Restrict="true|false" DefaultValue="true" Description="If false, -CreateReleaseVersion is not passed when cooking and staging, so no release data is written." />
   <Option Name="CookVersioned" Restrict="true|false" DefaultValue="true" Description="If false, content is cooked unversioned, matching the BuildCookRun default." />
+  <Option Name="MobileShippingDistribution" Restrict="true|false" DefaultValue="true" Description="If false, Shipping builds for IOS and Android are not forced to pass -distribution." />
+  <Option Name="AndroidAutoStoreVersion" Restrict="true|false" DefaultValue="true" Description="If false, the Android StoreVersion and VersionDisplayName are not overridden with a timestamp." />
   <Option Name="WriteReleaseVersionToConfig" Restrict="true|false" DefaultValue="true" Description="If false, the release version is not written into the project's DefaultEngine.ini." />
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
   <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on." />
@@ -274,9 +276,9 @@
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -crashreporter" />
 
-        <!-- Specify the -distribution flag if we're targeting iOS or Android AND the configuration is Shipping. -->
+        <!-- Specify the -distribution flag if we're targeting iOS or Android AND the configuration is Shipping, unless the project opted out. -->
         <Property
-				  If="(('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')) and '$(TargetConfiguration)' == 'Shipping'"
+				  If="(('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')) and '$(MobileShippingDistribution)' == 'true' and '$(TargetConfiguration)' == 'Shipping'"
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -distribution" />
 
@@ -289,11 +291,11 @@
           has installed on their device.
         -->
         <Property
-				  If="'$(TargetPlatform)' == 'Android'"
+				  If="'$(TargetPlatform)' == 'Android' and '$(AndroidAutoStoreVersion)' == 'true'"
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:StoreVersion=$(Timestamp)" />
         <Property
-				  If="'$(TargetPlatform)' == 'Android'"
+				  If="'$(TargetPlatform)' == 'Android' and '$(AndroidAutoStoreVersion)' == 'true'"
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:VersionDisplayName=$(Timestamp)" />
 
