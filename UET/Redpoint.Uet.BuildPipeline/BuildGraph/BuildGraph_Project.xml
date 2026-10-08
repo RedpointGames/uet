@@ -34,6 +34,7 @@
   <Option Name="AndroidClientCookFlavors" Restrict="[^ ]*" DefaultValue="ETC2" Description="The flavors to cook the Android client target for.  e.g. ASTC;ETC2" />
   <Option Name="CreateReleaseVersion" Restrict="true|false" DefaultValue="true" Description="If false, -CreateReleaseVersion is not passed when cooking and staging, so no release data is written." />
   <Option Name="CookVersioned" Restrict="true|false" DefaultValue="true" Description="If false, content is cooked unversioned, matching the BuildCookRun default." />
+  <Option Name="BuildCookRunArguments" Restrict=".*" DefaultValue="" Description="Additional arguments appended verbatim to every BuildCookRun invocation." />
   <Option Name="WriteReleaseVersionToConfig" Restrict="true|false" DefaultValue="true" Description="If false, the release version is not written into the project's DefaultEngine.ini." />
   <Option Name="MacPlatforms" Restrict="[^ ]*" DefaultValue="Mac;IOS" Description="List of platforms that macOS agents should build instead of Windows, e.g. Mac;IOS" />
   <Option Name="StrictIncludes" Restrict="true|false" DefaultValue="false" Description="If enabled, builds with strict includes turned on." />
@@ -241,6 +242,12 @@
 				  If="'$(CreateReleaseVersion)' == 'true'"
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -CreateReleaseVersion=&quot;$(ReleaseVersion)&quot;" />
+
+        <!-- Append any additional arguments provided by the project. -->
+        <Property
+				  If="'$(BuildCookRunArguments)' != ''"
+				  Name="BCRArgs"
+				  Value="$(BCRArgs) $(BuildCookRunArguments)" />
 
         <!-- Set the release version into the configs for reading at runtime, unless the project opted out. -->
         <ModifyConfig
