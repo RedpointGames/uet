@@ -43,6 +43,20 @@
         public bool? CookVersioned { get; set; }
 
         /// <summary>
+        /// If set to false, Shipping builds for Android and iOS are no longer forced to pass '-distribution'.
+        /// Defaults to true.
+        /// </summary>
+        [JsonPropertyName("MobileShippingDistribution"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? MobileShippingDistribution { get; set; }
+
+        /// <summary>
+        /// If set to false, the Android StoreVersion and VersionDisplayName from the project's configuration are
+        /// used as-is instead of being overridden with a timestamp. Defaults to true.
+        /// </summary>
+        [JsonPropertyName("AndroidAutoStoreVersion"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? AndroidAutoStoreVersion { get; set; }
+
+        /// <summary>
         /// If set to false, the release version is not written into the project's Config/DefaultEngine.ini under
         /// [Redpoint.UnrealEngineTool]. Writing it rewrites the file and drops its comments. Defaults to true.
         /// </summary>
