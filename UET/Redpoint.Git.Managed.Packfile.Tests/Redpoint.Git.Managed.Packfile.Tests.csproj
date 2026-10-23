@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
     <None Update="pack-a3937f64bd05eea333e59ce57f47f3cdd76664b1.idx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

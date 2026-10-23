@@ -5,6 +5,7 @@
 	<Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.HostedService\Redpoint.KubernetesManager.HostedService.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager.PxeBoot\Redpoint.KubernetesManager.PxeBoot.csproj" />
 		<ProjectReference Include="..\Redpoint.KubernetesManager\Redpoint.KubernetesManager.csproj" />

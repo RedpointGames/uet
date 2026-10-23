@@ -3,6 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
     <ProjectReference Include="..\Redpoint.Unreal.Serialization\Redpoint.Unreal.Serialization.csproj" />
     <ProjectReference Include="..\Redpoint.Unreal.Serialization.SourceGenerator\Redpoint.Unreal.Serialization.SourceGenerator.csproj"
                       OutputItemType="Analyzer"

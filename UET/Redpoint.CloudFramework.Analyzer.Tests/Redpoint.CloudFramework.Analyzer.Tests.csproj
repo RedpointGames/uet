@@ -10,6 +10,7 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Analyzer.Testing" />
 		<PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeFix.Testing" />
 		<PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.CodeRefactoring.Testing" />
+		<PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
 	</ItemGroup>
 
 	<ItemGroup>

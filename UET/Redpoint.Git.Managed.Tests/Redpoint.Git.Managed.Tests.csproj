@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
     <None Update="git/**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

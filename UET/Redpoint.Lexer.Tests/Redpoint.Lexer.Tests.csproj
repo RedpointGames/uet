@@ -9,6 +9,7 @@
   -->
   
   <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
     <ProjectReference Include="..\Redpoint.Lexer\Redpoint.Lexer.csproj" />
     <ProjectReference 
       Include="..\Redpoint.Lexer.SourceGenerator\Redpoint.Lexer.SourceGenerator.csproj"

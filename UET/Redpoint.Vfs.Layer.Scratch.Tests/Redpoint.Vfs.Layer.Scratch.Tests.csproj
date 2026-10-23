@@ -3,6 +3,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
     <ProjectReference Include="..\Redpoint.Vfs.Layer.Scratch\Redpoint.Vfs.Layer.Scratch.csproj" />
     <ProjectReference Include="..\Redpoint.Vfs.LocalIo\Redpoint.Vfs.LocalIo.csproj" />
   </ItemGroup>

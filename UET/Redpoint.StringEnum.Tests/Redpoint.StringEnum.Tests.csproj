@@ -4,6 +4,7 @@
   <Import Project="$(MSBuildThisFileDirectory)../Lib/XunitTesting.Build.props" />
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />
     <ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
   </ItemGroup>
 
