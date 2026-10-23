@@ -50,6 +50,13 @@
                     {
                         options.IncludeTracing = enableRunbackLogging || bugReportCollector != null ? (minimumLogLevel == LogLevel.Trace) : true;
                     });
+                    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SENTRY_DSN")))
+                    {
+                        builder.AddSentry(options =>
+                        {
+                            options.EnableLogs = true;
+                        });
+                    }
 
                     if (enableRunbackLogging)
                     {
