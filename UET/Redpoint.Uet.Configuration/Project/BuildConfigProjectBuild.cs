@@ -56,6 +56,7 @@
         [JsonPropertyName("AndroidAutoStoreVersion"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? AndroidAutoStoreVersion { get; set; }
       
+        /// <summary>
         /// Additional arguments appended verbatim to every BuildCookRun invocation when staging and packaging,
         /// for example "-iostore -compressed -archive -archivedirectory=C:\Builds".
         /// </summary>
