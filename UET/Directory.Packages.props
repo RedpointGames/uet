@@ -99,8 +99,7 @@
 		<PackageVersion Include="System.IO.Hashing" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="Crayon" Version="2.0.69" />
 		<PackageVersion Include="Sentry" Version="$(SentryPackageVersion)" />
-		<PackageVersion Include="Sentry.OpenTelemetry" Version="$(SentryPackageVersion)" />
-		<PackageVersion Include="Sentry.Extensions.Logging" Version="$(SentryPackageVersion)" />
+		<PackageVersion Include="Sentry.Extensions.Logging" Version="6.12.1" />
 		<PackageVersion Include="System.ServiceProcess.ServiceController" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="KeyedSemaphores" Version="6.1.0" />
 		<PackageVersion Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="18.1.0" />

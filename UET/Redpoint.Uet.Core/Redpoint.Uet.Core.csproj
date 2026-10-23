@@ -1,19 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging" />
-    <ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<PackageReference Include="Sentry.Extensions.Logging" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
-    <ProjectReference Include="..\Redpoint.Logging.File\Redpoint.Logging.File.csproj" />
-    <ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.CommonPaths\Redpoint.Uet.CommonPaths.csproj" />
-    <ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.IO\Redpoint.IO.csproj" />
+		<ProjectReference Include="..\Redpoint.Logging.File\Redpoint.Logging.File.csproj" />
+		<ProjectReference Include="..\Redpoint.Logging.SingleLine\Redpoint.Logging.SingleLine.csproj" />
+		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console\Redpoint.ThirdParty.Microsoft.Extensions.Logging.Console.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.CommonPaths\Redpoint.Uet.CommonPaths.csproj" />
+		<ProjectReference Include="..\Redpoint.Uet.Configuration\Redpoint.Uet.Configuration.csproj" />
+	</ItemGroup>
 
 </Project>
