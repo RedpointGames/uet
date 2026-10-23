@@ -55,6 +55,12 @@
         /// </summary>
         [JsonPropertyName("AndroidAutoStoreVersion"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? AndroidAutoStoreVersion { get; set; }
+      
+        /// Additional arguments appended verbatim to every BuildCookRun invocation when staging and packaging,
+        /// for example "-iostore -compressed -archive -archivedirectory=C:\Builds".
+        /// </summary>
+        [JsonPropertyName("BuildCookRunArguments"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? BuildCookRunArguments { get; set; }
 
         /// <summary>
         /// If set to false, the release version is not written into the project's Config/DefaultEngine.ini under
