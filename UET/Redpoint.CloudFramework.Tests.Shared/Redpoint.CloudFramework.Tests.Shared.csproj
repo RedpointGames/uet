@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
-	
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
 	<Import Project="$(MSBuildThisFileDirectory)../Lib/Framework.Build.props" Condition="'$(RedpointIsFrameworkImported)' != 'true'" />
 
 	<ItemGroup>
@@ -13,10 +13,6 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="coverlet.collector">
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
 		<PackageReference Include="MartinCostello.Logging.XUnit.v3" />
 	</ItemGroup>
 
@@ -24,19 +20,19 @@
 		<ProjectReference Include="$(MSBuildThisFileDirectory)../Redpoint.XunitFramework/Redpoint.XunitFramework.csproj" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.CloudFramework\Redpoint.CloudFramework.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.CloudFramework\Redpoint.CloudFramework.csproj" />
+	</ItemGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
-  <PropertyGroup>
-    <Description>Provides common types for unit testing with Redpoint.CloudFramework.</Description>
-    <PackageTags>cloud, framework, unit, testing</PackageTags>
-  </PropertyGroup>
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/LibraryPackaging.Build.props" />
+	<PropertyGroup>
+		<Description>Provides common types for unit testing with Redpoint.CloudFramework.</Description>
+		<PackageTags>cloud, framework, unit, testing</PackageTags>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <IsTestProject>false</IsTestProject>
-  </PropertyGroup>
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<IsTestProject>false</IsTestProject>
+	</PropertyGroup>
 
 </Project>
