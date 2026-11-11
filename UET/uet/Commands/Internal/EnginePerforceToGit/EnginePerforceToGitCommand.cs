@@ -182,118 +182,6 @@
                 }
             }
 
-            private class PerforceSyncCaptureSpecification : ICaptureSpecification
-            {
-                private long _filesAdded = 0;
-
-                public bool InterceptStandardInput => false;
-
-                public bool InterceptStandardOutput => true;
-
-                public bool InterceptStandardError => true;
-
-                private void ProcessLine(string data)
-                {
-                    if (data.Contains(" added as ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _filesAdded++;
-                    }
-
-                    if (_filesAdded % 1000 == 0)
-                    {
-                        Console.WriteLine($"{_filesAdded} files synced from Perforce.");
-                    }
-                }
-
-                public void OnReceiveStandardError(string data)
-                {
-                    ProcessLine(data);
-                }
-
-                public void OnReceiveStandardOutput(string data)
-                {
-                    ProcessLine(data);
-                }
-
-                public string? OnRequestStandardInputAtStartup()
-                {
-                    throw new NotImplementedException();
-                }
-            }
-
-            private class PerforceCleanCaptureSpecification : ICaptureSpecification
-            {
-                private Stopwatch _stopwatch = Stopwatch.StartNew();
-
-                private long _filesFound = 0;
-
-                public bool InterceptStandardInput => false;
-
-                public bool InterceptStandardOutput => true;
-
-                public bool InterceptStandardError => true;
-
-                private static Regex _fileFoundRegex = new Regex("^\\s+file\\[([^\\]]+)\\]$");
-                private static Regex _recvBufferConfirm = new Regex("RpcRecvBuffer confirm = (.+)$");
-                private static Regex _rpcInvokeRegex = new Regex("Rpc invoking (.+)$");
-
-                private void ProcessLine(string data)
-                {
-                    if (data.Contains("file[", StringComparison.Ordinal))
-                    {
-                        _filesFound++;
-
-                        if (_stopwatch.ElapsedMilliseconds > 5000)
-                        {
-                            _stopwatch.Restart();
-
-                            var match = _fileFoundRegex.Match(data);
-                            if (match.Success)
-                            {
-                                Console.WriteLine($"{_filesFound} local files found: {match.Groups[1].Value}");
-                            }
-                            else
-                            {
-                                Console.WriteLine($"{_filesFound} local files found: (no filename available)");
-                            }
-                        }
-                    }
-
-                    if (data.Contains("RpcRecvBuffer confirm =", StringComparison.Ordinal))
-                    {
-                        var match = _recvBufferConfirm.Match(data);
-                        if (match.Success)
-                        {
-                            Console.WriteLine($"Command invocation: '{match.Groups[1].Value}' (preparing...)");
-                        }
-                    }
-
-                    if (data.Contains("Rpc invoking", StringComparison.Ordinal))
-                    {
-                        var match = _rpcInvokeRegex.Match(data);
-                        if (match.Success)
-                        {
-                            Console.WriteLine($"Command invocation: '{match.Groups[1].Value}' (invoking on server; might take some time...)");
-                        }
-                    }
-                }
-
-                public void OnReceiveStandardError(string data)
-                {
-                    ProcessLine(data);
-                }
-
-                public void OnReceiveStandardOutput(string data)
-                {
-                    ProcessLine(data);
-                }
-
-                public string? OnRequestStandardInputAtStartup()
-                {
-                    throw new NotImplementedException();
-                }
-            }
-
             private class SyncContext
             {
                 public required string GitPath { get; set; }
@@ -989,6 +877,30 @@
                     return exitCode;
                 }
 
+                _logger.LogInformation("Checking client is configured correctly...");
+                var typeRegex = new Regex("Type:\\s+(.+)$");
+                var clientConfigStringBuilder = new StringBuilder();
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = p4,
+                        Arguments = ["client", "-o"],
+                        EnvironmentVariables = p4Envs,
+                    },
+                    CaptureSpecification.CreateFromStdoutStringBuilder(clientConfigStringBuilder),
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to get client configuration.");
+                    return exitCode;
+                }
+                var typeRegexMatch = typeRegex.Match(clientConfigStringBuilder.ToString());
+                if (typeRegexMatch.Success)
+                {
+                    _logger.LogError($"Client is incorrectly configured with type '{typeRegexMatch.Groups[1].Value}'. Needs to be 'writable' for have list to work.");
+                    return 1;
+                }
+
                 var intactFile = p4IntactPath.FullName;
                 string? targetChangeset = null;
                 if (File.Exists(intactFile))
@@ -1012,7 +924,7 @@
                         new ProcessSpecification
                         {
                             FilePath = p4,
-                            Arguments = ["sync", "-f", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#none"],
+                            Arguments = ["-I", "sync", "-f", "-q", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...#none"],
                             EnvironmentVariables = p4Envs,
                         },
                         CaptureSpecification.Passthrough,
@@ -1079,7 +991,7 @@
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "sync", "-q", "-f", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
+                        Arguments = ["-I", "sync", "-q", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
                         EnvironmentVariables = p4Envs,
                     },
                     CaptureSpecification.Passthrough,
@@ -1087,41 +999,6 @@
                 if (exitCode != 0)
                 {
                     _logger.LogError("Failed to sync Perforce content.");
-                    return exitCode;
-                }
-
-                var cleanSpecification = new PerforceCleanCaptureSpecification();
-                var releaseFoldersToClean = new List<DirectoryInfo>();
-                foreach (var engineMajorVersion in engineMajorVersions)
-                {
-                    foreach (var releaseFolder in new DirectoryInfo(Path.Combine(p4WorkspacePath.FullName, $"UE{engineMajorVersion}")).GetDirectories($"Release-{engineMajorVersion}.*"))
-                    {
-                        releaseFoldersToClean.Add(releaseFolder);
-                    }
-                }
-                await Parallel.ForEachAsync(
-                    releaseFoldersToClean,
-                    new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = 8,
-                        CancellationToken = context.GetCancellationToken(),
-                    },
-                    async (releaseFolder, cancellationToken) =>
-                    {
-                        _logger.LogInformation($"Cleaning Perforce content for '{releaseFolder.Name}'...");
-                        exitCode = await _processExecutor.ExecuteAsync(
-                            new ProcessSpecification
-                            {
-                                FilePath = p4,
-                                Arguments = ["-v", "3", "clean", "-a", $"{releaseFolder.FullName}{Path.DirectorySeparatorChar}..."],
-                                EnvironmentVariables = p4Envs,
-                            },
-                            cleanSpecification,
-                            context.GetCancellationToken());
-                    });
-                if (exitCode != 0)
-                {
-                    _logger.LogError("Failed to clean Perforce content.");
                     return exitCode;
                 }
 
