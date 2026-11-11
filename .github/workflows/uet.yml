@@ -825,6 +825,8 @@ jobs:
     name: "Publish to NuGet"
     runs-on: windows-latest
     if: github.ref == 'refs/heads/main' && github.repository == 'RedpointGames/uet'
+    permissions:
+      id-token: write
     concurrency:
       group: publish-nuget
       cancel-in-progress: false
@@ -871,18 +873,22 @@ jobs:
         with:
           UET_ARTIFACT_NAME: libs-win
           UET_FRAMEWORK_TARGET: ${{ env.UET_FRAMEWORK_TARGET }}
+      - name: NuGet login (OIDC → temp API key)
+        if: steps.check-if-latest.outputs.skip != 'true'
+        uses: NuGet/login@v1
+        id: nugetlogin
+        with:
+          user: hach-que
       - name: Publish Packages
         if: steps.check-if-latest.outputs.skip != 'true'
         shell: pwsh
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet `
             nuget `
             push `
             --source https://api.nuget.org/v3/index.json `
             --skip-duplicate `
-            --api-key $env:NUGET_API_KEY `
+            --api-key ${{steps.nugetlogin.outputs.NUGET_API_KEY}} `
             (Get-ChildItem -Recurse -Filter "*.${env:UET_PACKAGE_VERSION}.nupkg" | % { $_.FullName })
           if ($LastExitCode -ne 0) {
             Write-Host "dotnet push failed with exit code $LastExitCode"
