@@ -1074,12 +1074,12 @@
                     _logger.LogInformation($"Resuming previous sync of changeset {targetChangeset}...");
                 }
 
-                _logger.LogInformation("Syncing Perforce content without updating workspace...");
+                _logger.LogInformation("Syncing Perforce content...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "sync", "-q", "-k", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
+                        Arguments = ["-I", "sync", "-q", "-f", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
                         EnvironmentVariables = p4Envs,
                     },
                     CaptureSpecification.Passthrough,
@@ -1090,16 +1090,35 @@
                     return exitCode;
                 }
 
-                _logger.LogInformation("Cleaning Perforce content to sync workspace...");
-                exitCode = await _processExecutor.ExecuteAsync(
-                    new ProcessSpecification
+                var cleanSpecification = new PerforceCleanCaptureSpecification();
+                var releaseFoldersToClean = new List<DirectoryInfo>();
+                foreach (var engineMajorVersion in engineMajorVersions)
+                {
+                    foreach (var releaseFolder in new DirectoryInfo(Path.Combine(p4WorkspacePath.FullName, $"UE{engineMajorVersion}")).GetDirectories($"Release-{engineMajorVersion}.*"))
                     {
-                        FilePath = p4,
-                        Arguments = ["-v", "3", "clean", "-a", "-d", "-e", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}..."],
-                        EnvironmentVariables = p4Envs,
+                        releaseFoldersToClean.Add(releaseFolder);
+                    }
+                }
+                await Parallel.ForEachAsync(
+                    releaseFoldersToClean,
+                    new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = 8,
+                        CancellationToken = context.GetCancellationToken(),
                     },
-                    new PerforceCleanCaptureSpecification(),
-                    context.GetCancellationToken());
+                    async (releaseFolder, cancellationToken) =>
+                    {
+                        _logger.LogInformation($"Cleaning Perforce content for '{releaseFolder.Name}'...");
+                        exitCode = await _processExecutor.ExecuteAsync(
+                            new ProcessSpecification
+                            {
+                                FilePath = p4,
+                                Arguments = ["-v", "3", "clean", "-a", $"{releaseFolder.FullName}{Path.DirectorySeparatorChar}..."],
+                                EnvironmentVariables = p4Envs,
+                            },
+                            cleanSpecification,
+                            context.GetCancellationToken());
+                    });
                 if (exitCode != 0)
                 {
                     _logger.LogError("Failed to clean Perforce content.");
