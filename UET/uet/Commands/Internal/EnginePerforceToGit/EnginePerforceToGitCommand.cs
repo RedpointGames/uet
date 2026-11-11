@@ -1000,12 +1000,12 @@
                     _logger.LogInformation($"Resuming previous sync of changeset {targetChangeset}...");
                 }
 
-                _logger.LogInformation("Syncing Perforce content to client...");
+                _logger.LogInformation("Syncing Perforce content without updating workspace...");
                 exitCode = await _processExecutor.ExecuteAsync(
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "sync", "-q", "-f", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
+                        Arguments = ["-I", "sync", "-q", "-k", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
                         EnvironmentVariables = p4Envs,
                     },
                     CaptureSpecification.Passthrough,
@@ -1013,6 +1013,22 @@
                 if (exitCode != 0)
                 {
                     _logger.LogError("Failed to sync Perforce content.");
+                    return exitCode;
+                }
+
+                _logger.LogInformation("Cleaning Perforce content to sync workspace...");
+                exitCode = await _processExecutor.ExecuteAsync(
+                    new ProcessSpecification
+                    {
+                        FilePath = p4,
+                        Arguments = ["-I", "clean", "-a", "-d", "-e", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}..."],
+                        EnvironmentVariables = p4Envs,
+                    },
+                    CaptureSpecification.Passthrough,
+                    context.GetCancellationToken());
+                if (exitCode != 0)
+                {
+                    _logger.LogError("Failed to clean Perforce content.");
                     return exitCode;
                 }
 
