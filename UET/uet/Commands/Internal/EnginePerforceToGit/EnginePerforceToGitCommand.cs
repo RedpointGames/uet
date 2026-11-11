@@ -220,6 +220,65 @@
                 }
             }
 
+            private class PerforceCleanCaptureSpecification : ICaptureSpecification
+            {
+                private long _filesFound = 0;
+
+                public bool InterceptStandardInput => false;
+
+                public bool InterceptStandardOutput => true;
+
+                public bool InterceptStandardError => true;
+
+                private static Regex _fileFoundRegex = new Regex("^\\s+file\\[([^\\]]+)\\]$");
+                private static Regex _rpcInvokeRegex = new Regex("Rpc invoking (.+)$");
+
+                private void ProcessLine(string data)
+                {
+                    if (data.Contains("file[", StringComparison.Ordinal))
+                    {
+                        _filesFound++;
+
+                        if (_filesFound % 10000 == 0)
+                        {
+                            var match = _fileFoundRegex.Match(data);
+                            if (match.Success)
+                            {
+                                Console.WriteLine($"{_filesFound} local files found: {match.Groups[1].Value}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"{_filesFound} local files found: (no filename available)");
+                            }
+                        }
+                    }
+
+                    if (data.Contains("Rpc invoking", StringComparison.Ordinal))
+                    {
+                        var match = _rpcInvokeRegex.Match(data);
+                        if (match.Success)
+                        {
+                            Console.WriteLine($"Invoking command on server (this might take some time): {match.Groups[1].Value}");
+                        }
+                    }
+                }
+
+                public void OnReceiveStandardError(string data)
+                {
+                    ProcessLine(data);
+                }
+
+                public void OnReceiveStandardOutput(string data)
+                {
+                    ProcessLine(data);
+                }
+
+                public string? OnRequestStandardInputAtStartup()
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
             private class SyncContext
             {
                 public required string GitPath { get; set; }
@@ -1021,10 +1080,10 @@
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "clean", "-a", "-d", "-e", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}..."],
+                        Arguments = ["-v", "3", "clean", "-a", "-d", "-e", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}..."],
                         EnvironmentVariables = p4Envs,
                     },
-                    CaptureSpecification.Passthrough,
+                    new PerforceCleanCaptureSpecification(),
                     context.GetCancellationToken());
                 if (exitCode != 0)
                 {
