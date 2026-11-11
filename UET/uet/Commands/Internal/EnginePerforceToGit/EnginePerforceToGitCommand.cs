@@ -7,6 +7,7 @@
     using Redpoint.ProcessExecution;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.Diagnostics;
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -222,6 +223,8 @@
 
             private class PerforceCleanCaptureSpecification : ICaptureSpecification
             {
+                private Stopwatch _stopwatch = Stopwatch.StartNew();
+
                 private long _filesFound = 0;
 
                 public bool InterceptStandardInput => false;
@@ -231,6 +234,7 @@
                 public bool InterceptStandardError => true;
 
                 private static Regex _fileFoundRegex = new Regex("^\\s+file\\[([^\\]]+)\\]$");
+                private static Regex _recvBufferConfirm = new Regex("RpcRecvBuffer confirm = (.+)$");
                 private static Regex _rpcInvokeRegex = new Regex("Rpc invoking (.+)$");
 
                 private void ProcessLine(string data)
@@ -239,8 +243,10 @@
                     {
                         _filesFound++;
 
-                        if (_filesFound % 10000 == 0)
+                        if (_stopwatch.ElapsedMilliseconds > 5000)
                         {
+                            _stopwatch.Restart();
+
                             var match = _fileFoundRegex.Match(data);
                             if (match.Success)
                             {
@@ -253,12 +259,21 @@
                         }
                     }
 
+                    if (data.Contains("RpcRecvBuffer confirm =", StringComparison.Ordinal))
+                    {
+                        var match = _recvBufferConfirm.Match(data);
+                        if (match.Success)
+                        {
+                            Console.WriteLine($"Command invocation: '{match.Groups[1].Value}' (preparing...)");
+                        }
+                    }
+
                     if (data.Contains("Rpc invoking", StringComparison.Ordinal))
                     {
                         var match = _rpcInvokeRegex.Match(data);
                         if (match.Success)
                         {
-                            Console.WriteLine($"Invoking command on server (this might take some time): {match.Groups[1].Value}");
+                            Console.WriteLine($"Command invocation: '{match.Groups[1].Value}' (invoking on server; might take some time...)");
                         }
                     }
                 }
