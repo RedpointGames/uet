@@ -1,15 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <PublishAot>true</PublishAot>
-    <InvariantGlobalization>true</InvariantGlobalization>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<PublishAot>true</PublishAot>
+		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.DotNet.ILCompiler" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.StringEnum\Redpoint.StringEnum.csproj" />
+	</ItemGroup>
 
 </Project>

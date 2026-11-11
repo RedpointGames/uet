@@ -18,6 +18,7 @@
 		<PackageReference Include="KubernetesClient.Aot" />
 		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" />
 		<PackageReference Include="Microsoft.AspNetCore.WebSockets" />
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
 		<PackageReference Include="Microsoft.Dism" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

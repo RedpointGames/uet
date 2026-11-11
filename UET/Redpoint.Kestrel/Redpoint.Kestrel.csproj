@@ -12,6 +12,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" />
 		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" />
 		<PackageReference Include="Microsoft.AspNetCore.WebSockets" />
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
 	</ItemGroup>
 
 </Project>

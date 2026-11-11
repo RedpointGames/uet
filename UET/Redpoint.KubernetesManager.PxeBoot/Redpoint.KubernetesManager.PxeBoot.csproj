@@ -3,6 +3,10 @@
 	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
 
 	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp\Redpoint.ThirdParty.GitHub.JPMikkers.Dhcp.csproj" />
 		<ProjectReference Include="..\Lib\Redpoint.ThirdParty.Tftp.Net\Redpoint.ThirdParty.Tftp.Net.csproj" />
 		<ProjectReference Include="..\Redpoint.Collections\Redpoint.Collections.csproj" />

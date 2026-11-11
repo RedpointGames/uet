@@ -8,14 +8,16 @@
 		<!-- If this changes, it will change the minimum version of Visual Studio the analyzers will work with. -->
 		<MicrosoftAnalyzersVersion>5.3.0</MicrosoftAnalyzersVersion>
 		<MicrosoftTestingAnalyzersVersion>1.1.4</MicrosoftTestingAnalyzersVersion>
+		<AspNetCoreWebUtilitiesVersion>2.3.14</AspNetCoreWebUtilitiesVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- System libraries whose version is tied with framework version -->
 		<PackageVersion Include="AWSSDK.S3" Version="4.0.104.6" />
 		<PackageVersion Include="Cronos" Version="0.13.0" />
 		<PackageVersion Include="Lib.Harmony" Version="2.4.2" />
-		<PackageVersion Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.3.13" />
-		<PackageVersion Include="Microsoft.AspNetCore.WebSockets" Version="2.3.13" />
+		<PackageVersion Include="Microsoft.AspNetCore.Server.Kestrel" Version="$(AspNetCoreWebUtilitiesVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.WebSockets" Version="$(AspNetCoreWebUtilitiesVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.WebUtilities" Version="$(AspNetCoreWebUtilitiesVersion)" />
 		<PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="Microsoft.Dism" Version="6.1.0" />
 		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftPackageVersion)" />
@@ -104,6 +106,8 @@
 		<PackageVersion Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="18.1.0" />
 		<PackageVersion Include="YamlDotNet" Version="18.1.0" />
 		<PackageVersion Include="KubernetesClient.Aot" Version="21.0.8" />
+		<PackageVersion Include="Microsoft.DotNet.ILCompiler" Version="10.0.15" />
+		<PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.23" />
 		<!-- Libraries for Io build monitor -->
 		<PackageVersion Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="$(MicrosoftPackageVersion)" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(MicrosoftPackageVersion)" />
