@@ -285,7 +285,12 @@
             var epicGamesBuildProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "Shared", "EpicGames.Build", "EpicGames.Build.csproj");
             var unrealBuildToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
             var automationToolBuildGraphProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "BuildGraph", "BuildGraph.Automation.csproj");
-            var automationToolProject = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
+            var automationToolProjectLegacy = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool.csproj");
+            var automationToolProjectModern = Path.Combine(enginePath, "Engine", "Source", "Programs", "AutomationTool", "AutomationTool", "AutomationTool.csproj");
+            var automationToolProject =
+                (File.Exists(automationToolProjectLegacy) && !File.Exists(automationToolProjectModern))
+                ? automationToolProjectLegacy
+                : automationToolProjectModern;
             var dotnetPath = await _dotnetLocator.TryLocateDotNetWithinEngine(enginePath);
             if (dotnetPath == null)
             {
