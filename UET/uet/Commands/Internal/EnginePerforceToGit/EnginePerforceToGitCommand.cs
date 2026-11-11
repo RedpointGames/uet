@@ -1005,7 +1005,7 @@
                     new ProcessSpecification
                     {
                         FilePath = p4,
-                        Arguments = ["-I", "sync", "-q", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
+                        Arguments = ["-I", "sync", "-q", "-f", "--parallel=24", $"{p4WorkspacePath}{Path.DirectorySeparatorChar}...@{targetChangeset}"],
                         EnvironmentVariables = p4Envs,
                     },
                     CaptureSpecification.Passthrough,
