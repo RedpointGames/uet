@@ -951,7 +951,14 @@
 
                 if (string.IsNullOrWhiteSpace(targetChangeset))
                 {
-                    _logger.LogInformation("Detected that the last sync operation completed fully. Resolving #head to the new changeset...");
+                    if (targetChangeset == null)
+                    {
+                        _logger.LogInformation("The workspace is empty following a previous sync being interrupted. Resolving #head to the new changeset...");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Detected that the last sync operation completed fully. Resolving #head to the new changeset...");
+                    }
 
                     var changesetStringBuilder = new StringBuilder();
                     exitCode = await _processExecutor.ExecuteAsync(
@@ -965,7 +972,7 @@
                         context.GetCancellationToken());
                     if (exitCode != 0)
                     {
-                        _logger.LogError("Failed to wipe existing Perforce content.");
+                        _logger.LogError("Failed to get latest changeset number for #head.");
                         return exitCode;
                     }
 
