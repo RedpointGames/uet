@@ -8,6 +8,8 @@
     <ProjectReference Include="..\Redpoint.ProcessExecution\Redpoint.ProcessExecution.csproj" />
     <ProjectReference Include="..\Redpoint.ProgressMonitor\Redpoint.ProgressMonitor.csproj" />
     <ProjectReference Include="..\Redpoint.Reservation\Redpoint.Reservation.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.ContainerRegistry\Redpoint.Uefs.ContainerRegistry.csproj" />
+    <ProjectReference Include="..\Redpoint.Uefs.Package\Redpoint.Uefs.Package.csproj" />
     <ProjectReference Include="..\Redpoint.Uefs.Protocol\Redpoint.Uefs.Protocol.csproj" />
     <ProjectReference Include="..\Redpoint.Uet.Core\Redpoint.Uet.Core.csproj" />
   </ItemGroup>

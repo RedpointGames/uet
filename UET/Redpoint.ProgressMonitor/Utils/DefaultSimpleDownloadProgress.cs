@@ -95,6 +95,71 @@ namespace Redpoint.ProgressMonitor.Utils
                 }
             }
         }
+
+        public async Task CopyToStreamAsync(
+            Stream sourceStream,
+            long sourceContentLength,
+            Func<Stream, Task> copier,
+            CancellationToken cancellationToken)
+        {
+            using var stream = new PositionAwareStream(sourceStream, sourceContentLength);
+
+            using var cts = new CancellationTokenSource();
+            var progress = _progressFactory.CreateProgressForStream(stream);
+            var outputTrack = new DidOutput();
+            var monitorTask = Task.Run(async () =>
+            {
+                var consoleWidth = 0;
+                try
+                {
+                    consoleWidth = Console.BufferWidth;
+                }
+                catch { }
+
+                var monitor = _monitorFactory.CreateByteBasedMonitor();
+                await monitor.MonitorAsync(
+                    progress,
+                    null,
+                    (message, count) =>
+                    {
+                        if (consoleWidth != 0)
+                        {
+                            Console.Write($"\r                {message}".PadRight(consoleWidth));
+                            outputTrack.Did = true;
+                        }
+                        else if (count % 50 == 0)
+                        {
+                            Console.WriteLine($"                {message}");
+                            outputTrack.Did = true;
+                        }
+                    },
+                    cts.Token).ConfigureAwait(false);
+            }, cts.Token);
+
+            await copier(stream).ConfigureAwait(false);
+
+            cts.Cancel();
+            try
+            {
+                await monitorTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            if (outputTrack.Did)
+            {
+                var consoleWidth = 0;
+                try
+                {
+                    consoleWidth = Console.BufferWidth;
+                }
+                catch { }
+                if (consoleWidth != 0)
+                {
+                    Console.WriteLine();
+                }
+            }
+        }
     }
 }
 

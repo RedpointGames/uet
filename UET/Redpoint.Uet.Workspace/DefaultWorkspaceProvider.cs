@@ -2,7 +2,6 @@
 {
     using Grpc.Core;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Win32.SafeHandles;
     using Redpoint.CredentialDiscovery;
     using Redpoint.GrpcPipes;
     using Redpoint.IO;
@@ -10,15 +9,13 @@
     using Redpoint.ProgressMonitor;
     using Redpoint.Reservation;
     using Redpoint.Uefs.Protocol;
-    using Redpoint.Uet.Core;
+    using Redpoint.Uet.Uefs.InProcess;
     using Redpoint.Uet.Workspace.Descriptors;
     using Redpoint.Uet.Workspace.Instance;
-    using Redpoint.Uet.Workspace.ParallelCopy;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using Redpoint.Uet.Workspace.RemoteZfs;
     using Redpoint.Uet.Workspace.Reservation;
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Net.Sockets;
@@ -38,6 +35,7 @@
         private readonly IRetryableGrpc _retryableGrpc;
         private readonly ICredentialDiscovery _credentialDiscovery;
         private readonly IMonitorFactory _monitorFactory;
+        private readonly IUefsInProcessManager _uefsInProcessManager;
         private readonly UefsClient _uefsClient;
 
         public DefaultWorkspaceProvider(
@@ -50,6 +48,7 @@
             IRetryableGrpc retryableGrpc,
             ICredentialDiscovery credentialDiscovery,
             IMonitorFactory monitorFactory,
+            IUefsInProcessManager uefsInProcessManager,
             UefsClient uefsClient)
         {
             _logger = logger;
@@ -61,6 +60,7 @@
             _retryableGrpc = retryableGrpc;
             _credentialDiscovery = credentialDiscovery;
             _monitorFactory = monitorFactory;
+            _uefsInProcessManager = uefsInProcessManager;
             _uefsClient = uefsClient;
         }
 
@@ -469,22 +469,53 @@
                         string? mountId;
                         try
                         {
-                            mountId = await MountAsync(
-                                _uefsClient.MountPackageTag,
-                                new MountPackageTagRequest()
+                            // @hack: UEFS does not have a VFS on macOS; it has to pull packages before mounting them. Unfortunately the pull logic inside the daemon can also stall during the pull, and doesn't terminate properly. We really should move all tag/pull logic to the client, and leave the UEFS daemon with just the responsibilities of VFS/mount permissions, but since Windows doesn't use any of the broken pull logic, I'm not making broader changes to the UEFS daemon yet.
+                            if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("UET_PULL_UEFS_PACKAGE_IN_PROCESS") == "1")
+                            {
+                                var mountRequest = new MountRequest
                                 {
-                                    MountRequest = new MountRequest
+                                    MountPath = mountReservation.ReservedPath,
+                                    WriteScratchPath = scratchReservation.ReservedPath,
+                                    WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                    StartupBehaviour = StartupBehaviour.None,
+                                    TrackPid = GetTrackedPid(),
+                                };
+                                var packagePath = await _uefsInProcessManager.PullTagToPackagePathAsync(
+                                    new MountPackageTagRequest()
                                     {
-                                        MountPath = mountReservation.ReservedPath,
-                                        WriteScratchPath = scratchReservation.ReservedPath,
-                                        WriteScratchPersistence = WriteScratchPersistence.Keep,
-                                        StartupBehaviour = StartupBehaviour.None,
-                                        TrackPid = GetTrackedPid(),
+                                        MountRequest = mountRequest,
+                                        Tag = descriptor.PackageTag,
+                                        Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
                                     },
-                                    Tag = descriptor.PackageTag,
-                                    Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
-                                },
-                                cancellationToken).ConfigureAwait(false);
+                                    cancellationToken).ConfigureAwait(false);
+                                mountId = await MountAsync(
+                                    _uefsClient.MountPackageFile,
+                                    new MountPackageFileRequest()
+                                    {
+                                        MountRequest = mountRequest,
+                                        Path = packagePath,
+                                    },
+                                    cancellationToken).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                mountId = await MountAsync(
+                                    _uefsClient.MountPackageTag,
+                                    new MountPackageTagRequest()
+                                    {
+                                        MountRequest = new MountRequest
+                                        {
+                                            MountPath = mountReservation.ReservedPath,
+                                            WriteScratchPath = scratchReservation.ReservedPath,
+                                            WriteScratchPersistence = WriteScratchPersistence.Keep,
+                                            StartupBehaviour = StartupBehaviour.None,
+                                            TrackPid = GetTrackedPid(),
+                                        },
+                                        Tag = descriptor.PackageTag,
+                                        Credential = _credentialDiscovery.GetRegistryCredential(descriptor.PackageTag),
+                                    },
+                                    cancellationToken).ConfigureAwait(false);
+                            }
                         }
                         catch (RpcException ex) when (ex.StatusCode == StatusCode.Internal && ex.Status.Detail.Contains("ERROR_SHARING_VIOLATION", StringComparison.Ordinal))
                         {

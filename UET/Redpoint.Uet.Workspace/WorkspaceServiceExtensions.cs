@@ -4,6 +4,7 @@
     using Redpoint.ProcessExecution;
     using Redpoint.Reservation;
     using Redpoint.Uet.CommonPaths;
+    using Redpoint.Uet.Uefs.InProcess;
     using Redpoint.Uet.Workspace.ParallelCopy;
     using Redpoint.Uet.Workspace.PhysicalGit;
     using Redpoint.Uet.Workspace.Reservation;
@@ -25,6 +26,7 @@
             services.AddSingleton<IStorageManagement, DefaultStorageManagement>();
             services.AddSingleton<IWorkspaceReservationParameterGenerator, DefaultWorkspaceReservationParameterGenerator>();
             services.AddSingleton<IProcessExecutorHook, GitConfigProcessExecutorHook>();
+            services.AddSingleton<IUefsInProcessManager, DefaultUefsInProcessManager>();
         }
     }
 }
