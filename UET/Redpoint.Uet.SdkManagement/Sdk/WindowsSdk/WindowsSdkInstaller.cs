@@ -752,6 +752,7 @@
             "Windows SDK for Windows Store Apps Libs-x86_en-us.msi",
             "Windows SDK Desktop Headers x86-x86_en-us.msi",
             "Windows SDK Desktop Libs x64-x86_en-us.msi",
+            "Windows SDK OnecoreUap Headers x64-x86_en-us.msi",
             "Universal CRT Headers Libraries and Sources-x86_en-us.msi"
         ];
 
@@ -851,9 +852,16 @@
                 .ToDictionary(k => k.FileName!, v => (url: v.Url!, size: v.Size));
             foreach (var cabName in allCabNames)
             {
-                var uri = cabFileToUrl.ContainsKey($"Installers\\{cabName}")
-                    ? cabFileToUrl[$"Installers\\{cabName}"]
-                    : cabFileToUrl[$"Installers/{cabName}"];
+                var name = $"Installers\\{cabName}";
+                if (!cabFileToUrl.ContainsKey(name))
+                {
+                    name = $"Installers/{cabName}";
+                }
+                if (!cabFileToUrl.ContainsKey(name))
+                {
+                    continue;
+                }
+                var uri = cabFileToUrl[name];
                 using (var client = new HttpClient())
                 {
                     var targetPath = Path.Combine(sdkPackagePath, "__Installers", cabName);
