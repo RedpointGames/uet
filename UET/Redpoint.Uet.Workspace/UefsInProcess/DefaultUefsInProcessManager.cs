@@ -29,6 +29,7 @@
             ArgumentNullException.ThrowIfNull(request);
 
             // Determine the package storage path (this isn't done via reservation, because we want concurrent access).
+            UetPaths.InitUefsRootPath(x => _logger.LogInformation(x));
             var packageStoragePath = Path.Combine(UetPaths.UefsRootPath, "inprocpkgs");
             Directory.CreateDirectory(packageStoragePath);
 
