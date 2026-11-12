@@ -749,8 +749,8 @@
         [
             "Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
             "Windows SDK for Windows Store Apps Headers-x86_en-us.msi",
-            "Windows SDK Desktop Headers x86-x86_en-us.msi",
             "Windows SDK for Windows Store Apps Libs-x86_en-us.msi",
+            "Windows SDK Desktop Headers x86-x86_en-us.msi",
             "Windows SDK Desktop Libs x64-x86_en-us.msi",
             "Universal CRT Headers Libraries and Sources-x86_en-us.msi"
         ];
@@ -762,7 +762,11 @@
         {
             // Inspect the MSI packages in the Windows SDK component.
             _logger.LogInformation("Downloading MSI files...");
-            var msiPackagesToAllow = new HashSet<string>(_msiPackagesToAllow.Select(x => $"Installers\\{x}"));
+            var msiPackagesToAllow = new HashSet<string>(
+                // Windows SDK prior to 10.0.26100
+                _msiPackagesToAllow.Select(x => $"Installers\\{x}")
+                // Windows SDK after 10.0.26100
+                .Concat(_msiPackagesToAllow.Select(x => $"Installers/{x}")));
             string[] GetCabFilenamesFromMsi(Stream msiData)
             {
                 var cabNames = new List<string>();
@@ -788,6 +792,7 @@
                 }
                 return cabNames.ToArray();
             }
+
             var allCabNames = new List<string>();
             var msiNames = new List<string>();
             foreach (var payload in component.Payloads!)
@@ -846,7 +851,9 @@
                 .ToDictionary(k => k.FileName!, v => (url: v.Url!, size: v.Size));
             foreach (var cabName in allCabNames)
             {
-                var uri = cabFileToUrl[$"Installers\\{cabName}"];
+                var uri = cabFileToUrl.ContainsKey($"Installers\\{cabName}")
+                    ? cabFileToUrl[$"Installers\\{cabName}"]
+                    : cabFileToUrl[$"Installers/{cabName}"];
                 using (var client = new HttpClient())
                 {
                     var targetPath = Path.Combine(sdkPackagePath, "__Installers", cabName);
