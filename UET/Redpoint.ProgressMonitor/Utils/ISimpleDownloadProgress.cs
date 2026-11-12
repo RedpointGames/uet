@@ -26,6 +26,20 @@ namespace Redpoint.ProgressMonitor.Utils
             Uri downloadUrl,
             Func<Stream, Task> copier,
             CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Copy an existing stream, wrapping it with a position-aware stream of the specified length and the wrapped stream to <paramref name="copier"/> (which is typically a lambda that calls <see cref="Stream.CopyToAsync(Stream, CancellationToken)"/>).
+        /// </summary>
+        /// <param name="sourceStream">The original stream to copy data from.</param>
+        /// <param name="sourceContentLength">The length of the original stream that is externally known.</param>
+        /// <param name="copier">The asynchronous function that the download stream will be passed to. When the returned task completes, the stream should have been fully written or consumed.</param>
+        /// <param name="cancellationToken">A token which can be used to cancel the download.</param>
+        /// <returns>An awaitable task.</returns>
+        Task CopyToStreamAsync(
+            Stream sourceStream,
+            long sourceContentLength,
+            Func<Stream, Task> copier,
+            CancellationToken cancellationToken);
     }
 }
 
