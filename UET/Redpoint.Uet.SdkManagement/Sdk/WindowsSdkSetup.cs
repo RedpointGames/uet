@@ -32,7 +32,7 @@
 
         public bool SupportsTemporaryFolderSwapOnInstall => true;
 
-        private const string _installLogicVersion = "v7";
+        private const string _installLogicVersion = "v8";
 
         public async Task<string> ComputeSdkPackageId(string unrealEnginePath, CancellationToken cancellationToken)
         {

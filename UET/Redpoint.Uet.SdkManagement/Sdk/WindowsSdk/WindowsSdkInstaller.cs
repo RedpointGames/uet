@@ -747,9 +747,11 @@
 
         private readonly HashSet<string> _msiPackagesToAllow =
         [
-            "Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
+            "Windows SDK for Windows Store Apps Headers OnecoreUap-x86_en-us.msi",
             "Windows SDK for Windows Store Apps Headers-x86_en-us.msi",
             "Windows SDK for Windows Store Apps Libs-x86_en-us.msi",
+            "Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
+            "Windows SDK for Windows Store Managed Apps Libs-x86_en-us.msi",
             "Windows SDK Desktop Headers x86-x86_en-us.msi",
             "Windows SDK Desktop Libs x64-x86_en-us.msi",
             "Windows SDK OnecoreUap Headers x64-x86_en-us.msi",
