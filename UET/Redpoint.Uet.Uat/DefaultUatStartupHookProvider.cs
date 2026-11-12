@@ -90,29 +90,42 @@
 
                 _logger.LogInformation($"Target hash for UAT runtime patches is: {hashWithLength.Hash}");
 
-                var workspace = await _reservationManagerForUet.ReserveAsync("UetRuntimePatches", new string[] { hashWithLength.Hash.ToString(CultureInfo.InvariantCulture) });
-                try
+                int uniqueAccess = 0;
+                var workspace = await _reservationManagerForUet.ReserveAsync("UetRuntimePatches", new string[] { hashWithLength.Hash.ToString(CultureInfo.InvariantCulture), uniqueAccess.ToString(CultureInfo.InvariantCulture) });
+                while (true)
                 {
-                    // Extract only if the workspace isn't already set up.
-                    foreach (var manifestResourceStreamName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+                    try
                     {
-                        if (manifestResourceStreamName.StartsWith(manifestResourcePrefix, StringComparison.Ordinal))
+                        // Extract only if the workspace isn't already set up.
+                        foreach (var manifestResourceStreamName in Assembly.GetExecutingAssembly().GetManifestResourceNames())
                         {
-                            var filename = manifestResourceStreamName.Substring(manifestResourcePrefix.Length);
-                            await WriteOrUpdateFileAsync(
-                                manifestResourceStreamName,
-                                Path.Combine(workspace.ReservedPath, filename));
+                            if (manifestResourceStreamName.StartsWith(manifestResourcePrefix, StringComparison.Ordinal))
+                            {
+                                var filename = manifestResourceStreamName.Substring(manifestResourcePrefix.Length);
+                                await WriteOrUpdateFileAsync(
+                                    manifestResourceStreamName,
+                                    Path.Combine(workspace.ReservedPath, filename));
+                            }
                         }
-                    }
 
-                    _resolvedPath = Path.Combine(workspace.ReservedPath, "Redpoint.Uet.Patching.Runtime.dll");
-                    _resolvedWorkspace = workspace;
-                }
-                finally
-                {
-                    if (_resolvedPath == null)
+                        _resolvedPath = Path.Combine(workspace.ReservedPath, "Redpoint.Uet.Patching.Runtime.dll");
+                        _resolvedWorkspace = workspace;
+                        break;
+                    }
+                    catch (IOException) when (uniqueAccess < 10)
                     {
+                        // File might be in use by another version of UET that is no longer holding the reservation properly.
+                        uniqueAccess++;
                         await workspace.DisposeAsync();
+                        workspace = await _reservationManagerForUet.ReserveAsync("UetRuntimePatches", new string[] { hashWithLength.Hash.ToString(CultureInfo.InvariantCulture), uniqueAccess.ToString(CultureInfo.InvariantCulture) });
+                        continue;
+                    }
+                    finally
+                    {
+                        if (_resolvedPath == null)
+                        {
+                            await workspace.DisposeAsync();
+                        }
                     }
                 }
             }
