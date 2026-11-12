@@ -5,6 +5,7 @@
     using Redpoint.KubernetesManager.PxeBoot;
     using System.CommandLine;
     using UET.Commands.Internal.BuildMultiPlatformContainer;
+    using UET.Commands.Internal.CheckSlowDrive;
     using UET.Commands.Internal.CIBuild;
     using UET.Commands.Internal.CMakeUbaRun;
     using UET.Commands.Internal.CMakeUbaServer;
@@ -106,6 +107,7 @@
                     builder.AddCommand<BuildMultiPlatformContainerCommand>();
                     builder.AddCommand<OpenFirewallPortCommand>();
                     builder.AddCommand<FixPathCommand>();
+                    builder.AddCommand<CheckSlowDriveCommand>();
 
                     var command = new Command("internal", "Internal commands used by UET when it needs to call back into itself.");
                     command.IsHidden = true;
