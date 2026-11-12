@@ -238,7 +238,17 @@
                     }
 
                     // Move the temporary file in-place over the desired path.
-                    File.Move(temporaryPackagePath, desiredPackagePath, true);
+                    if (!File.Exists(desiredPackagePath))
+                    {
+                        try
+                        {
+                            File.Move(temporaryPackagePath, desiredPackagePath, false);
+                        }
+                        catch (Exception) when (File.Exists(desiredPackagePath))
+                        {
+                            // Ignored; multiple processes tried to move the temporary package into the desired path at the same time.
+                        }
+                    }
                     return desiredPackagePath;
                 }
                 finally
