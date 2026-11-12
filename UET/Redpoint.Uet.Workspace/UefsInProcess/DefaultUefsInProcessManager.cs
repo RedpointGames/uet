@@ -32,6 +32,10 @@
             UetPaths.InitUefsRootPath(x => _logger.LogInformation(x));
             var packageStoragePath = Path.Combine(UetPaths.UefsRootPath, "inprocpkgs");
             Directory.CreateDirectory(packageStoragePath);
+            if (UetPaths.UefsIsOnSlowDrive)
+            {
+                _logger.LogWarning("UEFS is writing package images to a very slow external USB drive. Please plug the external drive into a faster port, otherwise image transfers will be extremely slow.");
+            }
 
             // Download or copy the package so it exists locally.
             var packagePath = await PullTagAndResolveToPackagePath(

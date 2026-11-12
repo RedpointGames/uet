@@ -4,6 +4,7 @@
     using System.Diagnostics;
     using System.Runtime.InteropServices;
     using System.Runtime.Versioning;
+    using System.Text.RegularExpressions;
 
     public static class UetPaths
     {
@@ -150,6 +151,8 @@
 
         public static string UefsRootPath => _uefsRootPath.Value;
 
+        public static bool UefsIsOnSlowDrive { get; private set; }
+
         private static string _uefsRootPathValue = string.Empty;
         private static bool _isUefsRootPathInitialized = false;
         private static object _uefsRootPathInitializationLock = new object();
@@ -219,44 +222,67 @@
                     return;
                 }
 
-            attemptMount:
-                logInformation("Attempting to mount 'Build' volume...");
-                {
-                    var mountProc = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "/usr/sbin/diskutil",
-                        ArgumentList = { "mount", "Build" },
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    });
-                    mountProc!.WaitForExit();
-                    if (mountProc.ExitCode != 0)
-                    {
-                        throw new NotSupportedException("Unable to mount 'Build' disk when UEFS root path needs to be resolved.");
-                    }
-                }
+                // Loop until mounted.
+                MountBuildVolumeOnMacOS(logInformation);
 
-                currentInfo = GetMacBuildVolumeMount();
-                if (!currentInfo.exists)
+                // Check the disk attachment type, in case it is marked as "USB", because that is much slower.
+                logInformation("Checking the attachment type of the 'Build' volume...");
+                var diskutilProc = Process.Start(new ProcessStartInfo
                 {
-                    logInformation("'Build' volume went away!");
-                    _uefsRootPathValue = GetApplicationSystemWideRootPath(ApplicationName.UEFS);
-                    _isUefsRootPathInitialized = true;
-                    return;
-                }
-                else if (currentInfo.mounted && !string.IsNullOrWhiteSpace(currentInfo.mountPoint))
+                    FileName = "/usr/sbin/diskutil",
+                    ArgumentList = { "info", "Build" },
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                });
+                var diskutilStdout = diskutilProc!.StandardOutput.ReadToEnd();
+                diskutilProc!.WaitForExit();
+                if (Regex.IsMatch(diskutilStdout, "Protocol:\\s+USB"))
                 {
-                    logInformation($"'Build' volume mounted at: '{currentInfo.mountPoint}'");
-                    _uefsRootPathValue = Path.Combine(currentInfo.mountPoint, "UEFS");
-                    _isUefsRootPathInitialized = true;
-                    return;
+                    UefsIsOnSlowDrive = true;
                 }
-                else
+            }
+        }
+
+        private static void MountBuildVolumeOnMacOS(Action<string> logInformation)
+        {
+        attemptMount:
+            logInformation("Attempting to mount 'Build' volume...");
+            {
+                var mountProc = Process.Start(new ProcessStartInfo
                 {
-                    logInformation("Waiting for 'Build' to be mounted...");
-                    Thread.Sleep(1000);
-                    goto attemptMount;
+                    FileName = "/usr/sbin/diskutil",
+                    ArgumentList = { "mount", "Build" },
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                mountProc!.WaitForExit();
+                if (mountProc.ExitCode != 0)
+                {
+                    throw new NotSupportedException("Unable to mount 'Build' disk when UEFS root path needs to be resolved.");
                 }
+            }
+
+            var currentInfo = GetMacBuildVolumeMount();
+            if (!currentInfo.exists)
+            {
+                logInformation("'Build' volume went away!");
+                _uefsRootPathValue = GetApplicationSystemWideRootPath(ApplicationName.UEFS);
+                _isUefsRootPathInitialized = true;
+                return;
+            }
+            else if (currentInfo.mounted && !string.IsNullOrWhiteSpace(currentInfo.mountPoint))
+            {
+                logInformation($"'Build' volume mounted at: '{currentInfo.mountPoint}'");
+                _uefsRootPathValue = Path.Combine(currentInfo.mountPoint, "UEFS");
+                _isUefsRootPathInitialized = true;
+                return;
+            }
+            else
+            {
+                logInformation("Waiting for 'Build' to be mounted...");
+                Thread.Sleep(1000);
+                goto attemptMount;
             }
         }
     }
