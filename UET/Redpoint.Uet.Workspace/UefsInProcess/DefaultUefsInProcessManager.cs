@@ -187,18 +187,19 @@
                 }
 
                 // Check if the package is already downloaded.
+                var safePackageDigest = packageDigest.Replace(':', '_');
                 var desiredPackagePath = Path.Combine(
                     packageStoragePath,
-                    $"{packageDigest}{extension}");
+                    $"{safePackageDigest}{extension}");
+                var temporaryPackagePath = Path.Combine(
+                    packageStoragePath,
+                    $"{safePackageDigest}{extension}.tmp.{Environment.ProcessId}");
                 if (File.Exists(desiredPackagePath))
                 {
                     return desiredPackagePath;
                 }
 
                 // Copy the package data to a temporary file (that can be cleaned up if this download gets interrupted).
-                var temporaryPackagePath = Path.Combine(
-                    packageStoragePath,
-                    $"{packageDigest}{extension}.tmp.{Environment.ProcessId}");
                 try
                 {
                     if (packageManifest.MediaType == RegistryConstants.MediaTypePackageVHD ||
