@@ -4,13 +4,13 @@ namespace Redpoint.Vfs.Driver.FsKit
 {
     using FSKit;
 
-    public sealed class RedpointFS : FSUnaryFileSystem, IFSUnaryFileSystemOperations
+    public sealed class VirtualFileSystem : FSUnaryFileSystem, IFSUnaryFileSystemOperations
     {
         void IFSUnaryFileSystemOperations.ProbeResource(FSResource resource, FSUnaryFileSystemOperationsProbeResourceResult replyHandler)
         {
             replyHandler(
                 FSProbeResult.CreateUsableProbeResult(
-                    "RedpointFS",
+                    nameof(VirtualFileSystem),
                     new FSContainerIdentifier { Uuid = Constants.ContainerIdentifier }),
                 null);
         }
@@ -20,7 +20,7 @@ namespace Redpoint.Vfs.Driver.FsKit
             ContainerStatus = FSContainerStatus.Ready;
 
             replyHandler(
-                new RedpointFSVolume(resource),
+                new FsKitVolume(resource),
                 null);
         }
 

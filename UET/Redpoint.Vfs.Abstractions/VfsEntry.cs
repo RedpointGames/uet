@@ -34,7 +34,7 @@
         public required DateTimeOffset LastWriteTime;
 
         /// <summary>
-        /// THe time that the contents or metadata (such as attributes) of the virtual filesystem entry were last changed.
+        /// The time that the contents or metadata (such as attributes) of the virtual filesystem entry were last changed.
         /// </summary>
         public required DateTimeOffset ChangeTime;
 

@@ -4,12 +4,17 @@
 namespace Redpoint.Vfs.Driver.FsKit
 {
     using FSKit;
+    using Microsoft.Extensions.Logging;
+    using Redpoint.Vfs.Abstractions;
 
-    public sealed class RedpointFSVolume : FSVolume, IFSVolumePathConfOperations, IFSVolumeOperations, IFSVolumeOpenCloseOperations, IFSVolumeXattrOperations, IFSVolumeReadWriteOperations
+    public sealed class FsKitVolume : FSVolume, IFSVolumePathConfOperations, IFSVolumeOperations, IFSVolumeOpenCloseOperations, IFSVolumeXattrOperations, IFSVolumeReadWriteOperations
     {
+        private readonly ILogger _logger;
+        private readonly IVfsLayer _projectionLayer;
         private readonly FSResource _resource;
+        private readonly string _filesystemType;
 
-        private readonly RedpointFSItem _root = new RedpointFSItem(
+        private readonly FsKitFileNode _root = new FsKitFileNode(
             new FSFileName("/"),
             new FSItemAttributes
             {
@@ -24,11 +29,22 @@ namespace Redpoint.Vfs.Driver.FsKit
                 Size = 1,
             });
 
-        public RedpointFSVolume(FSResource resource) : base(
+        private const int _allocationUnit = 4096;
+
+        public FsKitVolume(
+            ILogger logger,
+            IVfsLayer projectionLayer,
+            FSResource resource,
+            string filesystemType,
+            string volumeName,
+            string volumeGuid) : base(
             volumeId: new FSVolumeIdentifier { Uuid = Constants.VolumeIdentifier },
-            volumeName: new FSFileName("Test1"))
+            volumeName: new FSFileName(volumeName))
         {
+            _logger = logger;
+            _projectionLayer = projectionLayer;
             _resource = resource;
+            _filesystemType = filesystemType;
         }
 
         nint IFSVolumePathConfOperations.MaximumLinkCount => -1;
@@ -60,9 +76,9 @@ namespace Redpoint.Vfs.Driver.FsKit
             CaseFormat = FSVolumeCaseFormat.InsensitiveCasePreserving,
         };
 
-        FSStatFSResult IFSVolumeOperations.VolumeStatistics => new FSStatFSResult("RedpointFS")
+        FSStatFSResult IFSVolumeOperations.VolumeStatistics => new FSStatFSResult(_filesystemType)
         {
-            BlockSize = 1024000,
+            BlockSize = _allocationUnit,
             IoSize = 1024000,
             TotalBlocks = 1024000,
             AvailableBlocks = 1024000,
@@ -70,6 +86,11 @@ namespace Redpoint.Vfs.Driver.FsKit
             TotalFiles = 1024000,
             FreeFiles = 1024000,
         };
+
+        internal static ulong GetAllocationSize(ulong fileSize)
+        {
+            return (fileSize + _allocationUnit - 1) / _allocationUnit * _allocationUnit;
+        }
 
         void IFSVolumeOperations.Activate(FSTaskOptions options, FSVolumeOperationsActivateHandler reply)
         {
@@ -101,7 +122,7 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItem item,
             FSVolumeOperationsAttributesHandler reply)
         {
-            if (item is RedpointFSItem redpointItem)
+            if (item is FsKitFileNode redpointItem)
             {
                 reply(redpointItem.Attributes, null);
             }
@@ -116,7 +137,7 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItem item,
             FSVolumeOperationsAttributesHandler reply)
         {
-            if (item is RedpointFSItem redpointItem)
+            if (item is FsKitFileNode redpointItem)
             {
                 reply(null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EROFS));
             }
@@ -131,15 +152,21 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItem directory,
             FSVolumeOperationsLookupItemHandler reply)
         {
-            if (directory is RedpointFSItem redpointItem)
+            if (directory is FsKitFileNode redpointItem)
             {
-                if (redpointItem.Children.TryGetValue(name.String ?? string.Empty, out var child))
+                var childItem = _projectionLayer.GetInfo(Path.Combine(redpointItem.Path, name.String!));
+                if (childItem == null)
                 {
-                    reply(child, name, null);
+                    reply(null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
                 }
                 else
                 {
-                    reply(null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                    reply(
+                        childItem.IsDirectory
+                            ? FsKitFileNode.AsExistingDirectoryWithPath(Path.Combine(redpointItem.Path, childItem.Name), childItem)
+                            : FsKitFileNode.AsFileWithPath(Path.Combine(redpointItem.Path, childItem.Name), childItem),
+                        new FSFileName(childItem.Name),
+                        null);
                 }
             }
             else
@@ -210,30 +237,39 @@ namespace Redpoint.Vfs.Driver.FsKit
 
         void IFSVolumeOperations.EnumerateDirectory(
             FSItem directory,
-            ulong startingAt,
+            ulong startingAtCookie,
             ulong verifier,
             FSItemGetAttributesRequest? attributes,
             FSDirectoryEntryPacker packer,
             FSVolumeOperationsEnumerateDirectoryHandler reply)
         {
-            if (!(directory is RedpointFSItem redpointItem))
+            if (!(directory is FsKitFileNode redpointItem))
             {
-                reply(verifier, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                reply(0, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
                 return;
             }
 
-            ulong idx = 0;
-            foreach (var childKv in redpointItem.Children)
+            var enumerable = _projectionLayer.List(redpointItem.Path);
+            if (enumerable == null)
             {
-                var isLast = (idx == (ulong)(redpointItem.Children.Count - 1));
+                reply(0, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                return;
+            }
 
+            var sortedChildren = enumerable
+                .OrderBy(x => x.Name)
+                .ToList();
+            for (int idx = startingAtCookie == FSConstants.FSDirectoryCookieInitial ? 0 : (int)startingAtCookie;
+                idx < sortedChildren.Count;
+                idx++)
+            {
+                var child = sortedChildren[idx];
                 packer.PackEntry(
-                    name: childKv.Value.Name,
-                    itemType: childKv.Value.Attributes.Type,
-                    itemId: childKv.Value.Attributes.FileId,
-                    nextCookie: idx,
-                    attributes: attributes != null ? childKv.Value.Attributes : null);
-                idx++;
+                    name: new FSFileName(child.Name),
+                    itemType: child.IsDirectory ? FSItemType.Directory : FSItemType.File,
+                    itemId: FsKitFileNode.GetFileId(Path.Combine(redpointItem.Path, child.Name)),
+                    nextCookie: (ulong)(idx + 1),
+                    attributes: FsKitFileNode.GetItemAttributes(redpointItem.Path, child));
             }
 
             reply(0, null);
