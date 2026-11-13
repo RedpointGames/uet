@@ -225,7 +225,7 @@
                         packageManifest.MediaType == RegistryConstants.MediaTypePackageReferenceVHD ||
                         packageManifest.MediaType == RegistryConstants.MediaTypePackageReferenceSparseImage)
                     {
-                        using (var sourceFileStream = new FileStream(packageReferenceInfo!.Location, FileMode.Open, FileAccess.Read, FileShare.Read))
+                        using (var sourceFileStream = new FileStream(packageReferenceInfo!.Location, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                         {
                             _logger.LogInformation($"Copying referenced package file from '{packageReferenceInfo.Location}' ({sourceFileStream.Length} bytes) to '{temporaryPackagePath}'...");
                             using (var fileStream = new FileStream(temporaryPackagePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
