@@ -13,21 +13,18 @@ namespace Redpoint.Vfs.Driver.FsKit
         private readonly IVfsLayer _projectionLayer;
         private readonly FSResource _resource;
         private readonly string _filesystemType;
+        private readonly Router _router;
 
-        private readonly FsKitFileNode _root = new FsKitFileNode(
-            new FSFileName("/"),
-            new FSItemAttributes
-            {
-                ParentId = FSItemId.ParentOfRoot,
-                FileId = FSItemId.RootDirectory,
-                Uid = 0,
-                Gid = 0,
-                LinkCount = 1,
-                Type = FSItemType.Directory,
-                Mode = (uint)(FileTypes.S_IFDIR | 0b111_000_000),
-                AllocSize = 1,
-                Size = 1,
-            });
+        private readonly FsKitFileNode _root = FsKitFileNode.AsExistingDirectoryWithPath("/", new VfsEntry
+        {
+            Name = string.Empty,
+            Attributes = FileAttributes.Directory,
+            CreationTime = DateTimeOffset.UtcNow,
+            LastAccessTime = DateTimeOffset.UtcNow,
+            LastWriteTime = DateTimeOffset.UtcNow,
+            ChangeTime = DateTimeOffset.UtcNow,
+            Size = 0,
+        });
 
         private const int _allocationUnit = 4096;
 
@@ -45,6 +42,7 @@ namespace Redpoint.Vfs.Driver.FsKit
             _projectionLayer = projectionLayer;
             _resource = resource;
             _filesystemType = filesystemType;
+            _router = new Router(logger);
         }
 
         nint IFSVolumePathConfOperations.MaximumLinkCount => -1;
@@ -94,7 +92,10 @@ namespace Redpoint.Vfs.Driver.FsKit
 
         void IFSVolumeOperations.Activate(FSTaskOptions options, FSVolumeOperationsActivateHandler reply)
         {
-            reply(_root, null);
+            _router.Call<FSItem?, NSError?>(reply.Invoke, () =>
+            {
+                return (_root, null);
+            });
         }
 
         void IFSVolumeOperations.Deactivate(FSDeactivateOptions options, FSVolumeOperationsDeactivateHandler reply)
@@ -122,14 +123,19 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItem item,
             FSVolumeOperationsAttributesHandler reply)
         {
-            if (item is FsKitFileNode redpointItem)
+            (FSItemAttributes? attributes, NSError? error) Impl()
             {
-                reply(redpointItem.Attributes, null);
+                if (item is FsKitFileNode redpointItem)
+                {
+                    return (redpointItem.Attributes, null);
+                }
+                else
+                {
+                    return (null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EIO));
+                }
             }
-            else
-            {
-                reply(null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EIO));
-            }
+
+            _router.Call(reply.Invoke, Impl);
         }
 
         void IFSVolumeOperations.SetAttributes(
@@ -137,14 +143,19 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItem item,
             FSVolumeOperationsAttributesHandler reply)
         {
-            if (item is FsKitFileNode redpointItem)
+            (FSItemAttributes? attributes, NSError? error) Impl()
             {
-                reply(null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EROFS));
+                if (item is FsKitFileNode redpointItem)
+                {
+                    return (null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EROFS));
+                }
+                else
+                {
+                    return (null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EIO));
+                }
             }
-            else
-            {
-                reply(null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EIO));
-            }
+
+            _router.Call(reply.Invoke, Impl);
         }
 
         void IFSVolumeOperations.LookupItem(
@@ -152,27 +163,32 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItem directory,
             FSVolumeOperationsLookupItemHandler reply)
         {
-            if (directory is FsKitFileNode redpointItem)
+            (FSItem? item, FSFileName? itemName, NSError? error) Impl()
             {
-                var childItem = _projectionLayer.GetInfo(Path.Combine(redpointItem.Path, name.String!));
-                if (childItem == null)
+                if (directory is FsKitFileNode redpointItem)
                 {
-                    reply(null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                    var childItem = _projectionLayer.GetInfo(Path.Combine(redpointItem.Path, name.String!));
+                    if (childItem == null)
+                    {
+                        return (null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                    }
+                    else
+                    {
+                        return (
+                            childItem.IsDirectory
+                                ? FsKitFileNode.AsExistingDirectoryWithPath(Path.Combine(redpointItem.Path, childItem.Name), childItem)
+                                : FsKitFileNode.AsFileWithPath(Path.Combine(redpointItem.Path, childItem.Name), childItem),
+                            new FSFileName(childItem.Name),
+                            null);
+                    }
                 }
                 else
                 {
-                    reply(
-                        childItem.IsDirectory
-                            ? FsKitFileNode.AsExistingDirectoryWithPath(Path.Combine(redpointItem.Path, childItem.Name), childItem)
-                            : FsKitFileNode.AsFileWithPath(Path.Combine(redpointItem.Path, childItem.Name), childItem),
-                        new FSFileName(childItem.Name),
-                        null);
+                    return (null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
                 }
             }
-            else
-            {
-                reply(null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
-            }
+
+            _router.Call(reply.Invoke, Impl);
         }
 
         void IFSVolumeOperations.Reclaim(FSItem item, FSVolumeOperationsReclaimHandler reply)
@@ -192,7 +208,32 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSItemSetAttributesRequest newAttributes,
             FSVolumeOperationsCreateItemHandler reply)
         {
-            reply(null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EROFS));
+            (FSItem? newItem, FSFileName? newItemName, NSError? error) Impl()
+            {
+                if (!(directory is FsKitFileNode redpointDirectory))
+                {
+                    return (null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                }
+
+                var path = Path.Combine(redpointDirectory.Path, name.String!).TrimStart('/');
+
+                // Is this read-only?
+                if (_projectionLayer.ReadOnly)
+                {
+                    return (null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EROFS));
+                }
+
+                // Does this object already exist, or does it's parent not exist?
+                if (_projectionLayer.Exists(path) == VfsEntryExistence.FileExists)
+                {
+                    return (null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EEXIST));
+                }
+
+                // @todo: Implement
+                return (null, null, FSKitFunctions.GetErrorForPosixError((int)PosixError.EIO));
+            }
+
+            _router.Call(reply.Invoke, Impl);
         }
 
         void IFSVolumeOperations.CreateSymbolicLink(
@@ -243,36 +284,39 @@ namespace Redpoint.Vfs.Driver.FsKit
             FSDirectoryEntryPacker packer,
             FSVolumeOperationsEnumerateDirectoryHandler reply)
         {
-            if (!(directory is FsKitFileNode redpointItem))
+            (ulong currentVerifier, NSError? error) Impl()
             {
-                reply(0, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
-                return;
+                if (!(directory is FsKitFileNode redpointItem))
+                {
+                    return (0, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                }
+
+                var enumerable = _projectionLayer.List(redpointItem.Path);
+                if (enumerable == null)
+                {
+                    return (0, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
+                }
+
+                var sortedChildren = enumerable
+                    .OrderBy(x => x.Name)
+                    .ToList();
+                for (int idx = startingAtCookie == FSConstants.FSDirectoryCookieInitial ? 0 : (int)startingAtCookie;
+                    idx < sortedChildren.Count;
+                    idx++)
+                {
+                    var child = sortedChildren[idx];
+                    packer.PackEntry(
+                        name: new FSFileName(child.Name),
+                        itemType: child.IsDirectory ? FSItemType.Directory : FSItemType.File,
+                        itemId: FsKitFileNode.GetFileId(Path.Combine(redpointItem.Path, child.Name)),
+                        nextCookie: (ulong)(idx + 1),
+                        attributes: FsKitFileNode.GetItemAttributes(redpointItem.Path, child));
+                }
+
+                return (0, null);
             }
 
-            var enumerable = _projectionLayer.List(redpointItem.Path);
-            if (enumerable == null)
-            {
-                reply(0, FSKitFunctions.GetErrorForPosixError((int)PosixError.ENOENT));
-                return;
-            }
-
-            var sortedChildren = enumerable
-                .OrderBy(x => x.Name)
-                .ToList();
-            for (int idx = startingAtCookie == FSConstants.FSDirectoryCookieInitial ? 0 : (int)startingAtCookie;
-                idx < sortedChildren.Count;
-                idx++)
-            {
-                var child = sortedChildren[idx];
-                packer.PackEntry(
-                    name: new FSFileName(child.Name),
-                    itemType: child.IsDirectory ? FSItemType.Directory : FSItemType.File,
-                    itemId: FsKitFileNode.GetFileId(Path.Combine(redpointItem.Path, child.Name)),
-                    nextCookie: (ulong)(idx + 1),
-                    attributes: FsKitFileNode.GetItemAttributes(redpointItem.Path, child));
-            }
-
-            reply(0, null);
+            _router.Call(reply.Invoke, Impl);
         }
 
         void IFSVolumeOpenCloseOperations.OpenItem(
