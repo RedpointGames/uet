@@ -418,6 +418,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uet.Patching.Runti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Vfs.Driver.FsKit", "Redpoint.Vfs.Driver.FsKit\Redpoint.Vfs.Driver.FsKit.csproj", "{7311F9E4-2BD9-465E-85D3-922487DA7923}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redpoint.Uefs.VfsDriver", "Redpoint.Uefs.VfsDriver\Redpoint.Uefs.VfsDriver.csproj", "{DB59C99E-D862-419A-9739-FABCAAFF071F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1144,6 +1146,10 @@ Global
 		{7311F9E4-2BD9-465E-85D3-922487DA7923}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7311F9E4-2BD9-465E-85D3-922487DA7923}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7311F9E4-2BD9-465E-85D3-922487DA7923}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB59C99E-D862-419A-9739-FABCAAFF071F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB59C99E-D862-419A-9739-FABCAAFF071F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB59C99E-D862-419A-9739-FABCAAFF071F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB59C99E-D862-419A-9739-FABCAAFF071F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1294,6 +1300,7 @@ Global
 		{9A2F8287-70AC-4085-91EB-8865D482C54E} = {A93D92E5-865B-4681-AC53-4B1689F1B3E8}
 		{C88BE677-5DCE-4933-95A4-F0CFABE25FC5} = {1AE4AFCD-0F49-4CEA-8439-F1AAA2CDD183}
 		{7311F9E4-2BD9-465E-85D3-922487DA7923} = {ECB67D09-5B69-448D-A6EB-62D7C7921883}
+		{DB59C99E-D862-419A-9739-FABCAAFF071F} = {D6A1983F-C64F-46F2-8AC9-703AAC55A893}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8598A278-509A-48A6-A7B3-3E3B0D1011F1}
