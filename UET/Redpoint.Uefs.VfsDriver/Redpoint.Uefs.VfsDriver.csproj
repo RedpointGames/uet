@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Executable.Build.props" />
+
+	<PropertyGroup>
+		<AssemblyName>uefs-vfs-driver</AssemblyName>
+		<Description>The VFS driver for UEFS.</Description>
+		<Product>UEFS VFS Driver</Product>
+		<AssemblyTitle>UEFS VFS Driver</AssemblyTitle>
+		<PublishTrimmed>true</PublishTrimmed>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<TargetFramework Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">$(TargetFramework)-macos15.5</TargetFramework>
+		<DefineConstants Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">$(DefineConstants);IS_COMPILING_MAC</DefineConstants>
+		<DefineConstants Condition="'$(RuntimeIdentifier)' != 'osx-arm64'">$(DefineConstants);IS_COMPILING_WINDOWS</DefineConstants>
+		<IsAppExtension Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">true</IsAppExtension>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Condition="'$(RuntimeIdentifier)' == 'osx-arm64'" Include="..\Redpoint.Vfs.Driver.FsKit\Redpoint.Vfs.Driver.FsKit.csproj" />
+		<ProjectReference Condition="'$(RuntimeIdentifier)' != 'osx-arm64'" Include="..\Redpoint.Vfs.Driver.WinFsp\Redpoint.Vfs.Driver.WinFsp.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Windows\" />
+	</ItemGroup>
+
+	<Target Name="BuildSwiftFSExtensionEntryPoint" BeforeTargets="_ComputeLinkNativeExecutableInputs" Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">
+		<PropertyGroup>
+			<DeviceSpecificIntermediateOutputPath Condition="'$(DeviceSpecificIntermediateOutputPath)' == ''">/tmp/</DeviceSpecificIntermediateOutputPath>
+			<SwiftOutputFile>$(DeviceSpecificIntermediateOutputPath)/UefsVfsFileSystemExtension.o</SwiftOutputFile>
+		</PropertyGroup>
+
+		<Exec Command="swiftc -module-name 'UefsVfsFileSystemExtension' '$(MSBuildThisFileDirectory)Mac/UefsVfsFileSystemExtension.swift' -sdk '$(_SdkRoot)' -target '$(TargetArchitectures.ToLower())-apple-macos$(SupportedOSPlatformVersion)' -application-extension -swift-version 5 -parse-as-library -c -import-objc-header '$(MSBuildThisFileDirectory)Mac/UefsVfsFileSystem.h' -o '$(SwiftOutputFile)'" />
+
+		<ItemGroup>
+			<_NativeExecutableObjectFiles Include="$(SwiftOutputFile)" />
+		</ItemGroup>
+	</Target>
+
+</Project>

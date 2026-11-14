@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="$(MSBuildThisFileDirectory)../Lib/Common.Build.props" />
+
+	<PropertyGroup>
+		<TargetFramework>net10.0-macos15.5</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Redpoint.Vfs.Abstractions\Redpoint.Vfs.Abstractions.csproj" />
+	</ItemGroup>
+
+</Project>
