@@ -379,9 +379,9 @@ jobs:
       - name: Build and Test Libraries on Windows
         shell: pwsh
         run: |
-          dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.sln
+          dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.slnx
           if ($LastExitCode -ne 0) {
-            Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
+            Write-Host "dotnet build (UET.slnx) failed with exit code $LastExitCode"
             exit $LastExitCode 
           }
           foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
@@ -428,7 +428,7 @@ jobs:
         run: |
           set -e
           echo "Package version: $UET_PACKAGE_VERSION"
-          dotnet build -c Release /p:PackageVersion=$UET_PACKAGE_VERSION UET/UET.sln
+          dotnet build -c Release /p:PackageVersion=$UET_PACKAGE_VERSION UET/UET.slnx
 
   libs-linux:
     name: "Build and Test Libraries on Linux"
@@ -449,9 +449,9 @@ jobs:
       - name: Build and Test Libraries on Linux
         shell: pwsh
         run: |
-          dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.sln
+          dotnet build -c Release "/p:PackageVersion=${env:UET_PACKAGE_VERSION}" UET/UET.slnx
           if ($LastExitCode -ne 0) {
-            Write-Host "dotnet build (UET.sln) failed with exit code $LastExitCode"
+            Write-Host "dotnet build (UET.slnx) failed with exit code $LastExitCode"
             exit $LastExitCode 
           }
           foreach ($Item in (Get-ChildItem UET -Filter *.Tests)) {
