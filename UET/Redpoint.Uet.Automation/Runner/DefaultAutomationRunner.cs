@@ -140,7 +140,9 @@
                             tcpClient = new TcpClient();
                             var connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
                             var connectionTask = tcpClient.ConnectAsync(worker.EndPoint, connectionCts.Token).AsTask();
+#pragma warning disable CA2027 // Cancel Task.Delay after Task.WhenAny completes
                             await Task.WhenAny(connectionTask, Task.Delay(1000)).ConfigureAwait(false);
+#pragma warning restore CA2027 // Cancel Task.Delay after Task.WhenAny completes
                             if (!tcpClient.Connected)
                             {
                                 _logger.LogTrace($"Failed to connect to worker {worker.Id} on endpoint {worker.EndPoint} with 1 seconds, retrying");

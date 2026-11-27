@@ -6,6 +6,7 @@
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.GooglePlay;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.ItchIo;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Meta;
+    using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.PartnerCenter;
     using Redpoint.Uet.BuildPipeline.Providers.Deployment.Project.Steam;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -18,6 +19,10 @@
     [JsonSerializable(typeof(BuildConfigProjectDeploymentGooglePlay))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentDocker))]
     [JsonSerializable(typeof(BuildConfigProjectDeploymentItchIo))]
+    [JsonSerializable(typeof(BuildConfigProjectDeploymentPartnerCenter))]
+    [JsonSerializable(typeof(PartnerCenterConfigFileUploadXvcPackage))]
+    [JsonSerializable(typeof(PartnerCenterConfigFilePublishPackages))]
+    [JsonSerializable(typeof(PartnerCenterConfigFileRemovePackages))]
     internal sealed partial class DeploymentProviderSourceGenerationContext : JsonSerializerContext
     {
         public static DeploymentProviderSourceGenerationContext WithStringEnum { get; } = new DeploymentProviderSourceGenerationContext(new JsonSerializerOptions

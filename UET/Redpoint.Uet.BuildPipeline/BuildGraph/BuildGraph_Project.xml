@@ -271,9 +271,8 @@
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -NoCodeSign" />
 
-        <!-- Specify the -package flag if we're targeting iOS or Android. -->
+        <!-- Always specify the -package flag. -->
         <Property
-				  If="('$(TargetPlatform)' == 'IOS') or ('$(TargetPlatform)' == 'Android')"
 				  Name="BCRArgs"
 				  Value="$(BCRArgs) -package" />
 
@@ -565,6 +564,13 @@
 					  Files="..."
 					  With="$(StageOutputs)" />
         </Do>
+
+        <!-- Tag the release folder as well for deployment steps. -->
+        <Tag
+          BaseDir="$(ProjectRoot)$(Slash)Releases$(Slash)$(ReleaseVersion)$(Slash)$(StagePlatform)"
+          Files="..."
+          With="$(StageOutputs)" />
+
       </Node>
 
       <!-- Add the staged outputs to the overall stage label so we can depend on all of them later. -->
