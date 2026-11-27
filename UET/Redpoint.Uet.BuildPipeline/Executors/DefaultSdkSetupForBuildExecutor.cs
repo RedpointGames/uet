@@ -2,6 +2,7 @@
 {
     using Microsoft.Extensions.Logging;
     using Redpoint.Uet.SdkManagement;
+    using System.Diagnostics;
     using System.Threading.Tasks;
 
     internal class DefaultSdkSetupForBuildExecutor : ISdkSetupForBuildExecutor
@@ -37,7 +38,7 @@
                         nodeName,
                         cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!Debugger.IsAttached)
                 {
                     _logger.LogWarning($"Failed to automatically set up SDKs for BuildGraph node '{nodeName}', relying on global environment instead: {ex.Message}");
                 }
